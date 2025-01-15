@@ -8,7 +8,11 @@ import { DocumentBuilder, SwaggerModule } from '@nestjs/swagger';
 import helmet from 'helmet';
 
 import { AppModule } from './app.module';
+import CONSTANTS from './common/constants';
+import { AwsExceptionFilter } from './common/filters/aws-exception.filter';
+import { QueryFailedExceptionFilter } from './common/filters/db-exception.filter';
 import { HttpExceptionFilter } from './common/filters/http-exception.filter';
+import { ValidationExceptionFilter } from './common/filters/validation-exception.filter';
 import { ResponseTransformInterceptor } from './common/interceptors/response-transform.transform';
 
 async function bootstrap() {
@@ -50,7 +54,7 @@ async function bootstrap() {
         description: 'Enter JWT token **_only_**',
         in: 'header',
       },
-      'access_token', // This name should match the name in @ApiBearerAuth() decorator in your controller
+      CONSTANTS.ACCESS_TOKEN, // This name should match the name in @ApiBearerAuth() decorator in your controller
     );
 
   if (process.env.NODE_ENV === 'development') {
@@ -93,7 +97,12 @@ async function bootstrap() {
   app.useGlobalInterceptors(...interceptors);
 
   // Global Exception Filter for error responses
-  const filters: ExceptionFilter[] = [new HttpExceptionFilter()];
+  const filters: ExceptionFilter[] = [
+    new HttpExceptionFilter(),
+    new AwsExceptionFilter(),
+    new QueryFailedExceptionFilter(),
+    new ValidationExceptionFilter(),
+  ];
   app.useGlobalFilters(...filters);
 
   await app.listen(process.env.HTTP_SERVER_PORT || 8000);
