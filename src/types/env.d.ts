@@ -12,6 +12,10 @@ declare global {
       PROD_APP_URL: string;
       JWT_SECRET: string;
       CSRF_SECRET: string;
+      FACEBOOK_API_BASE_URL: string;
+      FACEBOOK_APP_ID: string;
+      FACEBOOK_APP_SECRET: string;
+      FACEBOOK_CALLBACK_URL: string;
     }
   }
 }

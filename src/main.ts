@@ -9,7 +9,6 @@ import helmet from 'helmet';
 
 import { AppModule } from './app.module';
 import CONSTANTS from './common/constants';
-import { AwsExceptionFilter } from './common/filters/aws-exception.filter';
 import { QueryFailedExceptionFilter } from './common/filters/db-exception.filter';
 import { HttpExceptionFilter } from './common/filters/http-exception.filter';
 import { ValidationExceptionFilter } from './common/filters/validation-exception.filter';
@@ -17,6 +16,12 @@ import { ResponseTransformInterceptor } from './common/interceptors/response-tra
 
 async function bootstrap() {
   const app = await NestFactory.create(AppModule);
+
+  // Remove COOP header to fix Swagger UI issues
+  app.use((_req, res, next) => {
+    res.removeHeader('Cross-Origin-Opener-Policy');
+    next();
+  });
 
   // Set global prefix
   app.setGlobalPrefix('api');
@@ -27,23 +32,26 @@ async function bootstrap() {
     next();
   });
 
-  // cookie parser
-  // app.use(cookieParser());
-
   // helmet
-  app.use(helmet());
+  app.use(
+    helmet({
+      contentSecurityPolicy: false, // Disable CSP for Swagger UI
+      crossOriginEmbedderPolicy: false, // Required for Swagger UI
+    }),
+  );
 
   // cors
   app.enableCors({
-    // origin: [process.env.DEV_CLIENT_URL, process.env.PROD_CLIENT_URL],
     origin: true,
+    methods: 'GET,HEAD,PUT,PATCH,POST,DELETE,OPTIONS',
     credentials: true,
+    allowedHeaders: 'Content-Type, Accept, Authorization',
   });
 
   // swagger docs
   const options = new DocumentBuilder()
-    .setTitle('FB Integration API')
-    .setDescription('The FB Integration API description')
+    .setTitle('Tijaratk API')
+    .setDescription('The Tijaratk API description')
     .setVersion('1.0')
     .addBearerAuth(
       {
@@ -86,6 +94,9 @@ async function bootstrap() {
       whitelist: true,
       forbidNonWhitelisted: true,
       transform: true,
+      transformOptions: {
+        enableImplicitConversion: true,
+      },
       exceptionFactory(errors) {
         return errors;
       },
@@ -99,13 +110,13 @@ async function bootstrap() {
   // Global Exception Filter for error responses
   const filters: ExceptionFilter[] = [
     new HttpExceptionFilter(),
-    new AwsExceptionFilter(),
+    // new AwsExceptionFilter(),
     new QueryFailedExceptionFilter(),
     new ValidationExceptionFilter(),
   ];
   app.useGlobalFilters(...filters);
 
-  await app.listen(process.env.HTTP_SERVER_PORT || 8000);
+  await app.listen(process.env.HTTP_SERVER_PORT);
 }
 
 bootstrap();

@@ -1,12 +1,17 @@
+import { User } from 'src/auth/entities/user.entity';
 import {
-  Entity,
-  PrimaryGeneratedColumn,
   Column,
   CreateDateColumn,
+  Entity,
+  ManyToOne,
+  PrimaryGeneratedColumn,
+  Relation,
+  Unique,
   UpdateDateColumn,
 } from 'typeorm';
 
 @Entity('products')
+@Unique(['user', 'name'])
 export class Product {
   @PrimaryGeneratedColumn()
   id: number;
@@ -20,9 +25,15 @@ export class Product {
   @Column({ nullable: true })
   price?: number;
 
+  @Column({ nullable: true })
+  quantity?: number;
+
+  @ManyToOne(() => User, (user) => user.products)
+  user: Relation<User>;
+
   @CreateDateColumn()
-  createdAt: Date;
+  created_at: Date;
 
   @UpdateDateColumn()
-  updatedAt: Date;
+  updated_at: Date;
 }

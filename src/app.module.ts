@@ -3,15 +3,10 @@ import { ConfigModule } from '@nestjs/config';
 import { ThrottlerModule } from '@nestjs/throttler';
 import { TypeOrmModule } from '@nestjs/typeorm';
 
+import { AuthModule } from './auth/auth.module';
 import { databaseConfig } from './config/db.config';
-import { StatusController } from './status/status.controller';
+import { HealthController } from './health/health.controller';
 import { ProductsModule } from './products/products.module';
-import { CustomersModule } from './customers/customers.module';
-import { PostsModule } from './posts/posts.module';
-import { CommentsModule } from './comments/comments.module';
-import { MessagesModule } from './messages/messages.module';
-import { TagsModule } from './tags/tags.module';
-import { UsersModule } from './users/users.module';
 
 @Module({
   imports: [
@@ -19,18 +14,13 @@ import { UsersModule } from './users/users.module';
     TypeOrmModule.forRoot(databaseConfig),
     ThrottlerModule.forRoot([
       {
-        ttl: 1000 * 60, // 1 minute
+        ttl: 60, // 1 minute
         limit: 10, // 10 requests
       },
     ]),
-    TagsModule,
-    MessagesModule,
-    CommentsModule,
+    AuthModule,
     ProductsModule,
-    CustomersModule,
-    PostsModule,
-    UsersModule,
   ],
-  controllers: [StatusController],
+  controllers: [HealthController],
 })
 export class AppModule {}

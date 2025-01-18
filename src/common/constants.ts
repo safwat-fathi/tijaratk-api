@@ -1,4 +1,8 @@
 const CONSTANTS = {
+  AUTH: {
+    JWT: 'jwt',
+    FACEBOOK: 'facebook',
+  },
   ACCESS_TOKEN: 'access_token',
   SESSION: {
     // EXPIRATION_TIME: 1000 * 60 * 60 * 24, // 1 day
