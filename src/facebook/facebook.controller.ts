@@ -34,7 +34,7 @@ export class FacebookController {
       this.logger.log('Webhook verified successfully');
       return res.status(200).send(challenge);
     } else {
-      this.logger.log('Webhook verification failed');
+      this.logger.error('Webhook verification failed');
       return res.sendStatus(403);
     }
   }
