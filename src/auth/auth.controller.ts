@@ -72,7 +72,6 @@ export class AuthController {
     // Successful authentication here
     // You can generate JWT tokens or perform additional signup/login logic here
     const user = req.user;
-    // console.log('🚀 ~ AuthController ~ facebookLoginCallback ~ user:', user);
 
     // Possibly use AuthService to create tokens or update user data
     // return this.authService.createJwtForUser(user);

@@ -28,7 +28,7 @@ export class FacebookStrategy extends PassportStrategy(
         'pages_manage_posts',
         'business_management',
         'pages_read_user_content',
-        'messages',
+        'pages_messaging',
       ],
     });
   }
