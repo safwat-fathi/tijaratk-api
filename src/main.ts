@@ -25,7 +25,7 @@ async function bootstrap() {
   });
 
   // Set global prefix
-  app.setGlobalPrefix('api');
+  // app.setGlobalPrefix('api');
 
   // remove header x-powered-by
   app.use((_, res, next) => {
@@ -86,7 +86,7 @@ async function bootstrap() {
   const document = SwaggerModule.createDocument(app, config);
 
   SwaggerModule.setup('docs', app, document, {
-    jsonDocumentUrl: 'api/json',
+    jsonDocumentUrl: 'json',
   });
 
   // Global Pipe for validation
