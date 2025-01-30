@@ -110,7 +110,6 @@ async function bootstrap() {
 
   // Global Exception Filter for error responses
   const filters: ExceptionFilter[] = [
-    // new AwsExceptionFilter(),
     new QueryFailedExceptionFilter(),
     new ValidationExceptionFilter(),
     new FBExceptionFilter(),
