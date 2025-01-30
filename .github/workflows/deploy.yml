@@ -34,4 +34,4 @@ jobs:
             git pull origin main
             yarn install
             yarn build
-            pm2 restart API || pm2 start "yarn start" --name "API" 
+            pm2 restart API || pm2 start "yarn start:prod" --name "API" 
