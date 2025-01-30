@@ -1,0 +1,37 @@
+name: Deploy to DigitalOcean
+
+on:
+  push:
+    branches:
+      - main
+
+jobs:
+  deploy:
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout Repository
+        uses: actions/checkout@v3
+
+      - name: Setup Node.js
+        uses: actions/setup-node@v3
+        with:
+          node-version: 18.20.6
+
+      - name: Install Dependencies
+        run: yarn install
+
+      - name: Build Project
+        run: yarn build
+
+      - name: Deploy to DigitalOcean via SSH
+        uses: appleboy/ssh-action@master
+        with:
+          host: ${{ secrets.DIGITALOCEAN_DROPLET }}
+          username: root
+          key: ${{ secrets.SSH_PRIVATE_KEY }}
+          script: |
+            cd tijaratk-api
+            git pull origin main
+            yarn install
+            yarn build
+            pm2 restart API || pm2 start "yarn start" --name "API" 
