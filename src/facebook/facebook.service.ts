@@ -120,7 +120,6 @@ export class FacebookService {
 
       const accessToken = user.fb_access_token;
       // const fields = 'id,name,access_token,category';
-      //https://graph.facebook.com/v21.0/oauth/access_token?grant_type=fb_exchange_token&client_id=3819874238227726&client_secret=25ca3df45fad5c5e964bfa6279d3142a&fb_exchange_token=EAA2SJ8cOZAQ4BO6qfZCfV6NtLBuMZAHykgLR2OJCHSTBI4sfU8iRHruvmgj0MdR1KfgQNZADSoM3PCYZCWqFM7eTWPmw3TEpoPFZAvs4IuX2Ax4lUj7NiqHWRWKZAjzvUfzIvZCGPMh1DbTQFNErxBc5ZBNW9MiCmLfquYP95jrBNuMW4hYX4p4nF0DZA6EbWcybZAJHcN6LqrPXgUnpxZAHpZCqcaozW3ZCNEgOHDK2ABNDTPNfVsWMwxvuLZCeRMGzgoSNGl9ZAgZDZD
 
       // Utilize the enhanced FetchWrapper to pass query parameters
       const response =
