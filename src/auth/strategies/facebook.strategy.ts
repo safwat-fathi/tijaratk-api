@@ -14,7 +14,10 @@ export class FacebookStrategy extends PassportStrategy(
     super({
       clientID: process.env.FACEBOOK_APP_ID,
       clientSecret: process.env.FACEBOOK_APP_SECRET,
-      callbackURL: process.env.FACEBOOK_CALLBACK_URL,
+      callbackURL:
+        process.env.NODE_ENV === 'production'
+          ? process.env.PROD_FACEBOOK_CALLBACK_URL
+          : process.env.DEV_FACEBOOK_CALLBACK_URL,
       profileFields: ['id', 'emails', 'name'], // specify fields you need
       scope: [
         'email',
@@ -25,6 +28,7 @@ export class FacebookStrategy extends PassportStrategy(
         'pages_manage_posts',
         'business_management',
         'pages_read_user_content',
+        'messages',
       ],
     });
   }
