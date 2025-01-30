@@ -41,7 +41,7 @@ export class FacebookController {
 
   @Post('/webhook')
   handleWebhook(@Body() body: any, @Res() res: Response) {
-    this.logger.log('Webhook event received:', body);
+    this.logger.log('Webhook Event Received:', JSON.stringify(body, null, 2));
     // Handle the event (e.g., comments, messages)
     if (body.object === 'page') {
       body.entry.forEach((entry) => {
