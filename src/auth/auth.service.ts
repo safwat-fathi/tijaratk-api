@@ -6,6 +6,7 @@ import {
 import { JwtService } from '@nestjs/jwt';
 import { InjectRepository } from '@nestjs/typeorm';
 import CONSTANTS from 'src/common/constants';
+import { FacebookService } from 'src/facebook/facebook.service';
 import { FacebookUser } from 'src/types/facebook-user.interface';
 import { Repository } from 'typeorm';
 
@@ -18,6 +19,7 @@ export class AuthService {
     @InjectRepository(User)
     private readonly userRepository: Repository<User>,
     private readonly jwtService: JwtService,
+    private readonly facebookService: FacebookService,
     // private readonly emailService: EmailService,
 
     @InjectRepository(UserSession)
@@ -63,6 +65,7 @@ export class AuthService {
         // Assuming your User entity has a field for facebookId
         { facebookId: facebookUser.facebookId },
       ],
+      select: { fb_access_token: true },
     });
 
     // If user exists, return it
@@ -81,6 +84,15 @@ export class AuthService {
     await this.userRepository.save(user);
 
     return user;
+  }
+
+  // after login get user pages, get long-lived access token and create jwt
+  async afterLogin(user: FacebookUser) {
+    const jwt = await this.createJwtForUser(user);
+    // await this.facebookService.getLongLivedAccessToken(user.facebookId);
+    // await this.facebookService.getUserPages(user.facebookId);
+
+    return jwt;
   }
 
   async createJwtForUser(user: FacebookUser) {

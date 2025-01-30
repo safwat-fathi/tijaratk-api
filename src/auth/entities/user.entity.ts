@@ -1,10 +1,12 @@
 import { decrypt, encrypt } from 'src/common/utils/encryption.util';
+import { FacebookPage } from 'src/facebook/entities/facebook-page.entity';
 import { Product } from 'src/products/entities/product.entity';
 import {
   Column,
   CreateDateColumn,
   Entity,
   ManyToOne,
+  OneToMany,
   PrimaryGeneratedColumn,
   Relation,
   Unique,
@@ -24,6 +26,9 @@ export class User {
   @Column({ type: 'varchar', unique: true })
   facebookId: string;
 
+  @OneToMany(() => FacebookPage, (page) => page.user)
+  facebook_pages?: Relation<FacebookPage[]>;
+
   @Column()
   first_name: string;
 
@@ -31,7 +36,7 @@ export class User {
   last_name: string;
 
   @ManyToOne(() => Product, (product) => product.user, {
-    cascade: true, // or 'SET NULL' if you want a different behavior
+    cascade: true,
     nullable: true,
   })
   products?: Relation<Product[]>;
@@ -40,7 +45,11 @@ export class User {
     select: false,
     nullable: true,
     transformer: {
-      to: (value: string | null) => (value ? encrypt(value) : null),
+      to: (value: string | null) => {
+        const encryptedValue = value ? encrypt(value) : null;
+
+        return encryptedValue;
+      },
       from: (value: string | null) => (value ? decrypt(value) : null),
     },
   })

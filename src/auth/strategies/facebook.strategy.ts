@@ -1,11 +1,15 @@
 import { Injectable } from '@nestjs/common';
 import { PassportStrategy } from '@nestjs/passport';
 import { Profile, Strategy } from 'passport-facebook';
+import CONSTANTS from 'src/common/constants';
 
 import { AuthService } from '../auth.service';
 
 @Injectable()
-export class FacebookStrategy extends PassportStrategy(Strategy, 'facebook') {
+export class FacebookStrategy extends PassportStrategy(
+  Strategy,
+  CONSTANTS.AUTH.FACEBOOK,
+) {
   constructor(private readonly authService: AuthService) {
     super({
       clientID: process.env.FACEBOOK_APP_ID,
@@ -19,6 +23,7 @@ export class FacebookStrategy extends PassportStrategy(Strategy, 'facebook') {
         'pages_show_list',
         'pages_read_engagement',
         'pages_manage_posts',
+        'business_management',
         'pages_read_user_content',
       ],
     });

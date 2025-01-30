@@ -1,9 +1,13 @@
 import * as crypto from 'crypto';
+import { config } from 'dotenv';
+
+config();
 
 const algorithm = 'aes-256-gcm';
 const password = process.env.ENCRYPTION_PASSWORD;
+
 // Derive a key from the password (you can tweak salt and iterations as needed)
-const key = crypto.scryptSync(password as string, 'salt', 32);
+const key = crypto.scryptSync(password, 'salt', 32);
 
 export function encrypt(text: string): string {
   // Generate a random initialization vector
@@ -15,10 +19,15 @@ export function encrypt(text: string): string {
   const authTag = cipher.getAuthTag();
 
   // Return iv, auth tag, and encrypted data combined (e.g., in hex form)
-  return iv.toString('hex') + ':' + authTag.toString('hex') + ':' + encrypted;
+  const data = `${iv.toString('hex')}:${authTag.toString('hex')}:${encrypted}`;
+
+  return data;
 }
 
 export function decrypt(data: string): string {
+  if (!data) {
+    throw new Error('No data to decrypt');
+  }
   // Split stored data into iv, auth tag, and ciphertext
   const [ivHex, authTagHex, encrypted] = data.split(':');
   const iv = Buffer.from(ivHex, 'hex');

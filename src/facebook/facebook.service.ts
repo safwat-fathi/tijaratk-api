@@ -1,16 +1,31 @@
-import { Injectable } from '@nestjs/common';
+import { Injectable, Logger, UnauthorizedException } from '@nestjs/common';
+import { InjectRepository } from '@nestjs/typeorm';
+import { User } from 'src/auth/entities/user.entity';
+import { FetchWrapper } from 'src/common/utils/fetch-wrapper';
+import { Repository } from 'typeorm';
+
+import { FacebookPage } from './entities/facebook-page.entity';
+import {
+  ExchangeFacebookAccessTokenResponse,
+  FacebookPagesResponse,
+} from './interfaces/facebook-page.interface';
 
 @Injectable()
 export class FacebookService {
-  // private readonly logger = new Logger(FacebookService.name);
-  // private readonly fetch: FetchWrapper;
+  private readonly logger = new Logger(FacebookService.name);
+  private readonly fetch: FetchWrapper;
 
   // constructor(private readonly usersService: UsersService) {
-  constructor() {
-    // this.fetch = new FetchWrapper({
-    //   baseUrl: process.env.FACEBOOK_API_BASE_URL,
-    //   timeout: 5000, // 5 seconds timeout
-    // });
+  constructor(
+    @InjectRepository(User)
+    private readonly userRepo: Repository<User>,
+    @InjectRepository(FacebookPage)
+    private readonly facebookPageRepo: Repository<FacebookPage>,
+  ) {
+    this.fetch = new FetchWrapper({
+      baseUrl: process.env.FACEBOOK_API_BASE_URL,
+      timeout: 5000, // 5 seconds timeout
+    });
   }
 
   /**
@@ -18,31 +33,123 @@ export class FacebookService {
    * @param facebookId The ID of the user.
    * @returns An object containing Facebook pages data.
    */
-  async getUserPages() {
-    // const user = await this.usersService.findById(userId);
-    // if (!user || !user.facebookAccessToken) {
-    //   this.logger.warn(`User ID ${userId} missing Facebook access token.`);
-    //   throw new UnauthorizedException('Facebook access token not found');
-    // }
-    // const accessToken = user.facebookAccessToken;
-    // const fields = 'id,name,access_token,category';
-    // const limit = 100;
-    // try {
-    //   // Utilize the enhanced FetchWrapper to pass query parameters
-    //   const response = await this.fetch.get<FacebookPagesResponse>(
-    //     '/me/accounts',
-    //     {
-    //       access_token: accessToken,
-    //       fields,
-    //       limit,
-    //     },
-    //   );
-    //   return response;
-    // } catch (error) {
-    //   this.logger.error(
-    //     `Failed to fetch Facebook pages for user ID ${userId}: ${error.message}`,
-    //   );
-    //   throw new UnauthorizedException('Failed to fetch Facebook pages');
-    // }
+  async getUserPages(facebookId: string) {
+    const user = await this.userRepo.findOne({
+      where: { facebookId },
+      relations: { facebook_pages: true },
+      select: ['fb_access_token'],
+    });
+
+    if (!user || !user.fb_access_token) {
+      this.logger.warn(
+        `User with facebookId ${facebookId} missing Facebook access token.`,
+      );
+      throw new UnauthorizedException('Facebook access token not found');
+    }
+
+    const accessToken = user.fb_access_token;
+
+    const fields = 'id,name,access_token,category';
+    const limit = 100;
+    try {
+      // Utilize the enhanced FetchWrapper to pass query parameters
+      const response = await this.fetch.get<FacebookPagesResponse>(
+        '/me/accounts',
+        {
+          access_token: accessToken,
+          fields,
+          limit,
+        },
+      );
+
+      if (!response.data) {
+        this.logger.warn(
+          `Failed to fetch Facebook pages for user with facebook ID ${facebookId}.`,
+        );
+        throw new UnauthorizedException('Failed to fetch Facebook pages');
+      }
+
+      // ?? should i check if the page is already in the database
+
+      const existingPages = await this.facebookPageRepo.find({
+        where: { user },
+      });
+
+      const newPages: FacebookPage[] = [];
+      for (const page of response.data) {
+        const existingPage = existingPages.find(
+          (existingPage) => existingPage.page_id === page.id,
+        );
+
+        if (existingPage) continue;
+
+        const newPage = this.facebookPageRepo.create({
+          page_id: page.id,
+          name: page.name,
+          access_token: page.access_token,
+          category: page.category,
+          user,
+        });
+
+        newPages.push(newPage);
+      }
+
+      await this.facebookPageRepo.save(newPages);
+    } catch (error) {
+      this.logger.error(
+        `Failed to fetch Facebook pages for user with facebook ID ${facebookId}: ${error.message}`,
+      );
+      throw new UnauthorizedException('Failed to fetch Facebook pages');
+    }
+  }
+
+  // exchange short-lived access token for long-lived access token
+  async getLongLivedAccessToken(facebookId: string): Promise<void> {
+    try {
+      const user = await this.userRepo.findOne({
+        where: { facebookId },
+        select: { fb_access_token: true },
+      });
+
+      if (!user || !user.fb_access_token) {
+        this.logger.warn(
+          `User with facebookId ${facebookId} missing Facebook access token.`,
+        );
+        throw new UnauthorizedException('Facebook access token not found');
+      }
+
+      const accessToken = user.fb_access_token;
+      // const fields = 'id,name,access_token,category';
+      //https://graph.facebook.com/v21.0/oauth/access_token?grant_type=fb_exchange_token&client_id=3819874238227726&client_secret=25ca3df45fad5c5e964bfa6279d3142a&fb_exchange_token=EAA2SJ8cOZAQ4BO6qfZCfV6NtLBuMZAHykgLR2OJCHSTBI4sfU8iRHruvmgj0MdR1KfgQNZADSoM3PCYZCWqFM7eTWPmw3TEpoPFZAvs4IuX2Ax4lUj7NiqHWRWKZAjzvUfzIvZCGPMh1DbTQFNErxBc5ZBNW9MiCmLfquYP95jrBNuMW4hYX4p4nF0DZA6EbWcybZAJHcN6LqrPXgUnpxZAHpZCqcaozW3ZCNEgOHDK2ABNDTPNfVsWMwxvuLZCeRMGzgoSNGl9ZAgZDZD
+
+      // Utilize the enhanced FetchWrapper to pass query parameters
+      const response =
+        await this.fetch.get<ExchangeFacebookAccessTokenResponse>(
+          '/oauth/access_token',
+          {
+            grant_type: 'fb_exchange_token',
+            client_id: process.env.FACEBOOK_APP_ID,
+            client_secret: process.env.FACEBOOK_APP_SECRET,
+            fb_exchange_token: accessToken,
+          },
+        );
+
+      if (!response.access_token) {
+        this.logger.warn(
+          `Failed to exchange short-lived access token with long-lived access token for user with facebook ID ${facebookId}.`,
+        );
+        throw new UnauthorizedException('Failed to fetch Facebook pages');
+      }
+
+      await this.userRepo.update(
+        { facebookId },
+        { fb_access_token: response.access_token },
+      );
+    } catch (error) {
+      this.logger.error(
+        `Failed to exchange short-lived access token with long-lived access token for user with facebook ID ${facebookId}: ${error.message}`,
+      );
+      throw new UnauthorizedException('Failed to fetch Facebook pages');
+    }
   }
 }

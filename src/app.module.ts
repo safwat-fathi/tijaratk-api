@@ -5,6 +5,7 @@ import { TypeOrmModule } from '@nestjs/typeorm';
 
 import { AuthModule } from './auth/auth.module';
 import { databaseConfig } from './config/db.config';
+import { FacebookModule } from './facebook/facebook.module';
 import { HealthController } from './health/health.controller';
 import { ProductsModule } from './products/products.module';
 
@@ -20,6 +21,7 @@ import { ProductsModule } from './products/products.module';
     ]),
     AuthModule,
     ProductsModule,
+    FacebookModule,
   ],
   controllers: [HealthController],
 })

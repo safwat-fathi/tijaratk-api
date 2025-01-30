@@ -16,3 +16,8 @@ export interface FacebookPagesResponse {
     next?: string;
   };
 }
+
+export interface ExchangeFacebookAccessTokenResponse {
+  access_token: string;
+  token_type: string;
+}

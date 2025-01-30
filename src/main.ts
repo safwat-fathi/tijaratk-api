@@ -10,6 +10,7 @@ import helmet from 'helmet';
 import { AppModule } from './app.module';
 import CONSTANTS from './common/constants';
 import { QueryFailedExceptionFilter } from './common/filters/db-exception.filter';
+import { FBExceptionFilter } from './common/filters/fb-exception.filter';
 import { HttpExceptionFilter } from './common/filters/http-exception.filter';
 import { ValidationExceptionFilter } from './common/filters/validation-exception.filter';
 import { ResponseTransformInterceptor } from './common/interceptors/response-transform.transform';
@@ -109,10 +110,11 @@ async function bootstrap() {
 
   // Global Exception Filter for error responses
   const filters: ExceptionFilter[] = [
-    new HttpExceptionFilter(),
     // new AwsExceptionFilter(),
     new QueryFailedExceptionFilter(),
     new ValidationExceptionFilter(),
+    new FBExceptionFilter(),
+    new HttpExceptionFilter(),
   ];
   app.useGlobalFilters(...filters);
 
