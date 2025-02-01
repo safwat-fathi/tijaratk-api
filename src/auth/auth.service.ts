@@ -62,10 +62,8 @@ export class AuthService {
     let user = await this.userRepository.findOne({
       where: [
         { email: facebookUser.email },
-        // Assuming your User entity has a field for facebookId
         { facebookId: facebookUser.facebookId },
       ],
-      select: { fb_access_token: true },
     });
 
     // If user exists, return it
@@ -89,8 +87,10 @@ export class AuthService {
   // after login get user pages, get long-lived access token and create jwt
   async afterLogin(user: FacebookUser) {
     const jwt = await this.createJwtForUser(user);
-    // await this.facebookService.getLongLivedAccessToken(user.facebookId);
-    // await this.facebookService.getUserPages(user.facebookId);
+    await this.facebookService.getLongLivedAccessToken(user.facebookId);
+    await this.facebookService.getUserPages(user.facebookId);
+
+    delete jwt.user.accessToken;
 
     return jwt;
   }
@@ -132,7 +132,7 @@ export class AuthService {
       const oldest = activeSessions.reduce(
         (prev, current) =>
           prev.created_at < current.created_at ? prev : current,
-        null,
+        { created_at: new Date(), id: '' },
       );
       await this.sessionRepository.delete(oldest.id);
     }
@@ -154,6 +154,7 @@ export class AuthService {
       user: user,
       token: refresh_token,
     });
+
     await this.sessionRepository.save(session);
 
     return {

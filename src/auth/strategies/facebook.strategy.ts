@@ -52,6 +52,7 @@ export class FacebookStrategy extends PassportStrategy(
 
     // Use your AuthService to find or create a user
     const validatedUser = await this.authService.validateFacebookUser(user);
+
     done(null, { ...validatedUser, accessToken });
   }
 }

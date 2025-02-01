@@ -7,8 +7,10 @@ import {
   Query,
   Res,
 } from '@nestjs/common';
+import { ApiExcludeEndpoint, ApiTags } from '@nestjs/swagger';
 import { Response } from 'express';
 
+@ApiTags('Facebook')
 @Controller('facebook')
 export class FacebookController {
   private readonly logger = new Logger(FacebookController.name);
@@ -24,6 +26,7 @@ export class FacebookController {
   //   return await this.facebookService.getUserPages(facebookId);
   // }
 
+  @ApiExcludeEndpoint()
   @Get('/webhook')
   verifyWebhook(@Query() query: any, @Res() res: Response) {
     const mode = query['hub.mode'];
@@ -39,6 +42,7 @@ export class FacebookController {
     }
   }
 
+  @ApiExcludeEndpoint()
   @Post('/webhook')
   handleWebhook(@Body() body: any, @Res() res: Response) {
     this.logger.log('Webhook Event Received:', JSON.stringify(body, null, 2));

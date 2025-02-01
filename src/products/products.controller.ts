@@ -28,12 +28,12 @@ import { UpdateProductDto } from './dto/update-product.dto';
 import { ProductsService } from './products.service';
 
 @ApiTags('Products')
+@UseGuards(AuthGuard(CONSTANTS.AUTH.JWT))
 @Controller('products')
 export class ProductsController {
   constructor(private readonly productsService: ProductsService) {}
 
   @ApiBearerAuth(CONSTANTS.ACCESS_TOKEN)
-  @UseGuards(AuthGuard(CONSTANTS.AUTH.JWT))
   @Post()
   @HttpCode(HttpStatus.CREATED)
   @ApiOperation({ summary: 'Create product' })
@@ -48,7 +48,6 @@ export class ProductsController {
   }
 
   @ApiBearerAuth(CONSTANTS.ACCESS_TOKEN)
-  @UseGuards(AuthGuard(CONSTANTS.AUTH.JWT))
   @Get()
   @ApiOperation({ summary: 'Get all products' })
   @ApiResponse({
@@ -60,7 +59,6 @@ export class ProductsController {
   }
 
   @ApiBearerAuth(CONSTANTS.ACCESS_TOKEN)
-  @UseGuards(AuthGuard(CONSTANTS.AUTH.JWT))
   @Get(':id')
   @ApiOperation({ summary: 'Get product by id' })
   @ApiResponse({
@@ -72,7 +70,6 @@ export class ProductsController {
   }
 
   @ApiBearerAuth(CONSTANTS.ACCESS_TOKEN)
-  @UseGuards(AuthGuard(CONSTANTS.AUTH.JWT))
   @Patch(':id')
   @ApiOperation({ summary: 'Update product by id' })
   @ApiResponse({
@@ -84,7 +81,6 @@ export class ProductsController {
   }
 
   @ApiBearerAuth(CONSTANTS.ACCESS_TOKEN)
-  @UseGuards(AuthGuard(CONSTANTS.AUTH.JWT))
   @Delete(':id')
   @ApiOperation({ summary: 'Delete product by id' })
   @ApiResponse({

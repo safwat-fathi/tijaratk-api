@@ -70,11 +70,8 @@ export class AuthController {
   @UseGuards(AuthGuard(CONSTANTS.AUTH.FACEBOOK))
   async facebookLoginCallback(@Req() req) {
     // Successful authentication here
-    // You can generate JWT tokens or perform additional signup/login logic here
     const user = req.user;
 
-    // Possibly use AuthService to create tokens or update user data
-    // return this.authService.createJwtForUser(user);
     return await this.authService.afterLogin(user);
   }
 }

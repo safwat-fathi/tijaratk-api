@@ -34,11 +34,12 @@ export class FacebookService {
    * @returns An object containing Facebook pages data.
    */
   async getUserPages(facebookId: string) {
-    const user = await this.userRepo.findOne({
-      where: { facebookId },
-      relations: { facebook_pages: true },
-      select: ['fb_access_token'],
-    });
+    const user = await this.userRepo
+      .createQueryBuilder('user')
+      .leftJoinAndSelect('user.facebook_pages', 'facebookPage')
+      .addSelect('user.fb_access_token')
+      .where('user.facebookId = :facebookId', { facebookId })
+      .getOne();
 
     if (!user || !user.fb_access_token) {
       this.logger.warn(
@@ -72,7 +73,7 @@ export class FacebookService {
       // ?? should i check if the page is already in the database
 
       const existingPages = await this.facebookPageRepo.find({
-        where: { user },
+        where: { user: { facebookId } },
       });
 
       const newPages: FacebookPage[] = [];
@@ -105,11 +106,13 @@ export class FacebookService {
 
   // exchange short-lived access token for long-lived access token
   async getLongLivedAccessToken(facebookId: string): Promise<void> {
+    let errorMsg = '';
     try {
-      const user = await this.userRepo.findOne({
-        where: { facebookId },
-        select: { fb_access_token: true },
-      });
+      const user = await this.userRepo
+        .createQueryBuilder('user')
+        .addSelect('user.fb_access_token')
+        .where('user.facebookId = :facebookId', { facebookId })
+        .getOne();
 
       if (!user || !user.fb_access_token) {
         this.logger.warn(
@@ -135,10 +138,9 @@ export class FacebookService {
         );
 
       if (!response.access_token) {
-        this.logger.warn(
-          `Failed to exchange short-lived access token with long-lived access token for user with facebook ID ${facebookId}.`,
-        );
-        throw new UnauthorizedException('Failed to fetch Facebook pages');
+        errorMsg = `Failed to exchange short-lived access token for long-lived access token for user with facebook ID ${facebookId}.`;
+        this.logger.warn(errorMsg);
+        throw new UnauthorizedException(errorMsg);
       }
 
       await this.userRepo.update(
@@ -146,10 +148,9 @@ export class FacebookService {
         { fb_access_token: response.access_token },
       );
     } catch (error) {
-      this.logger.error(
-        `Failed to exchange short-lived access token with long-lived access token for user with facebook ID ${facebookId}: ${error.message}`,
-      );
-      throw new UnauthorizedException('Failed to fetch Facebook pages');
+      errorMsg = `Failed to exchange short-lived access token for long-lived access token for user with facebook ID ${facebookId}: ${error.message}`;
+      this.logger.error(errorMsg);
+      throw new UnauthorizedException(errorMsg);
     }
   }
 }

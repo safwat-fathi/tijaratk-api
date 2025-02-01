@@ -3,14 +3,17 @@ import { decrypt, encrypt } from 'src/common/utils/encryption.util';
 import {
   Column,
   CreateDateColumn,
+  DeleteDateColumn,
   Entity,
   ManyToOne,
   PrimaryGeneratedColumn,
   Relation,
+  Unique,
   UpdateDateColumn,
 } from 'typeorm';
 
 @Entity('facebook_pages')
+@Unique(['page_id', 'user'])
 export class FacebookPage {
   @PrimaryGeneratedColumn()
   id: string;
@@ -45,4 +48,7 @@ export class FacebookPage {
 
   @UpdateDateColumn()
   updated_at: Date;
+
+  @DeleteDateColumn()
+  deleted_at: Date;
 }
