@@ -14,10 +14,11 @@ export class FacebookStrategy extends PassportStrategy(
     super({
       clientID: process.env.FACEBOOK_APP_ID,
       clientSecret: process.env.FACEBOOK_APP_SECRET,
-      callbackURL:
-        process.env.NODE_ENV === 'production'
-          ? process.env.PROD_FACEBOOK_CALLBACK_URL
-          : process.env.DEV_FACEBOOK_CALLBACK_URL,
+      callbackURL: process.env.FACEBOOK_CALLBACK_URL,
+      // callbackURL:
+      //   process.env.NODE_ENV === 'production'
+      //     ? process.env.PROD_FACEBOOK_CALLBACK_URL
+      //     : process.env.DEV_FACEBOOK_CALLBACK_URL,
       profileFields: ['id', 'emails', 'name'], // specify fields you need
       scope: [
         'email',

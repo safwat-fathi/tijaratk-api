@@ -9,9 +9,11 @@ import { FacebookModule } from './facebook/facebook.module';
 import { HealthController } from './health/health.controller';
 import { ProductsModule } from './products/products.module';
 
+const ENV = process.env.NODE_ENV;
+
 @Module({
   imports: [
-    ConfigModule.forRoot({ isGlobal: true }),
+    ConfigModule.forRoot({ isGlobal: true, envFilePath: `.env.${ENV}` }),
     TypeOrmModule.forRoot(databaseConfig),
     ThrottlerModule.forRoot([
       {
