@@ -73,7 +73,7 @@ async function bootstrap() {
   const options = new DocumentBuilder()
     .setTitle('Tijaratk API')
     .setDescription('The Tijaratk API description')
-    .setVersion('1.0')
+    .setVersion('0.1')
     .addBearerAuth(
       {
         type: 'http',
