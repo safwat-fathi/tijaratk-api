@@ -1,4 +1,12 @@
-import { Controller, Get, Redirect, Req, UseGuards } from '@nestjs/common';
+import {
+  Controller,
+  Get,
+  HttpCode,
+  HttpStatus,
+  Req,
+  Res,
+  UseGuards,
+} from '@nestjs/common';
 import { AuthGuard } from '@nestjs/passport';
 import { ApiTags } from '@nestjs/swagger';
 import CONSTANTS from 'src/common/constants';
@@ -68,16 +76,16 @@ export class AuthController {
   // Facebook Callback URL
   @Get('facebook/callback')
   @UseGuards(AuthGuard(CONSTANTS.AUTH.FACEBOOK))
-  @Redirect(`${process.env.CLIENT_URL}/auth/facebook`, 302)
-  async facebookLoginCallback(@Req() req) {
+  @HttpCode(HttpStatus.MOVED_PERMANENTLY)
+  async facebookLoginCallback(@Req() req, @Res() res) {
     // Successful authentication here
     const user = req.user;
 
     // return await this.authService.afterLogin(user);
     const tokens = await this.authService.afterLogin(user);
 
-    return {
-      url: `${process.env.CLIENT_URL}/auth/facebook?access_token=${tokens.access_token}&refresh_token=${tokens.refresh_token}`,
-    };
+    return res.redirect(
+      `${process.env.CLIENT_URL}/auth/facebook?access_token=${tokens.access_token}&refresh_token=${tokens.refresh_token}`,
+    );
   }
 }
