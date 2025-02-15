@@ -76,7 +76,7 @@ export class AuthController {
   // Facebook Callback URL
   @Get('facebook/callback')
   @UseGuards(AuthGuard(CONSTANTS.AUTH.FACEBOOK))
-  @HttpCode(HttpStatus.MOVED_PERMANENTLY)
+  @HttpCode(HttpStatus.FOUND)
   async facebookLoginCallback(@Req() req, @Res() res) {
     // Successful authentication here
     const user = req.user;
