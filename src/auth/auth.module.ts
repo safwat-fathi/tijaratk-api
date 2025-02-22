@@ -6,10 +6,10 @@ import CONSTANTS from 'src/common/constants';
 import { FacebookPage } from 'src/facebook/entities/facebook-page.entity';
 import { FacebookService } from 'src/facebook/facebook.service';
 
+import { User } from '../users/entities/user.entity';
+import { UserSession } from '../users/entities/user-session.entity';
 import { AuthController } from './auth.controller';
 import { AuthService } from './auth.service';
-import { User } from './entities/user.entity';
-import { UserSession } from './entities/user-session.entity';
 import { FacebookStrategy } from './strategies/facebook.strategy';
 import { JwtStrategy } from './strategies/jwt.strategy';
 

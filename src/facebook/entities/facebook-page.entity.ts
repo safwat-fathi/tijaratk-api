@@ -1,5 +1,5 @@
-import { User } from 'src/auth/entities/user.entity';
 import { decrypt, encrypt } from 'src/common/utils/encryption.util';
+import { User } from 'src/users/entities/user.entity';
 import {
   Column,
   CreateDateColumn,
@@ -42,6 +42,9 @@ export class FacebookPage {
     },
   })
   access_token?: string;
+
+  @Column({ type: 'timestamp', default: () => 'CURRENT_TIMESTAMP' })
+  last_updated: Date;
 
   @CreateDateColumn()
   created_at: Date;

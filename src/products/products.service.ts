@@ -1,7 +1,7 @@
 import { BadRequestException, Injectable } from '@nestjs/common';
 import { InjectRepository } from '@nestjs/typeorm';
-import { User } from 'src/auth/entities/user.entity';
-import { ILike, QueryFailedError, Repository } from 'typeorm';
+import { User } from 'src/users/entities/user.entity';
+import { ILike, Repository } from 'typeorm';
 
 import { CreateProductDto } from './dto/create-product.dto';
 import { ListProductsDto } from './dto/list-products.dto';
@@ -20,27 +20,16 @@ export class ProductsService {
     const user = await this.userRepo.findOne({
       where: { facebookId },
     });
-
     if (!user) {
       throw new BadRequestException('User not found');
     }
 
-    const savedProduct = this.productRepo.create({ ...dto, user });
+    const newProduct = this.productRepo.create({ ...dto, user });
 
-    try {
-      return await this.productRepo.save(savedProduct);
-    } catch (error) {
-      // Check if the error is a unique constraint violation
-      if (
-        error instanceof QueryFailedError &&
-        (error as any).code === '23505' // PostgreSQL unique violation code
-      ) {
-        // Optionally, further inspect error.message or error.detail if needed
-        throw new BadRequestException('Product already exists');
-      }
-      // Re-throw unhandled errors
-      throw error;
-    }
+    const savedProduct = await this.productRepo.save(newProduct);
+    delete savedProduct.user;
+
+    return savedProduct;
   }
 
   async findAll(ListProductsDto: ListProductsDto) {
@@ -49,7 +38,7 @@ export class ProductsService {
     const skip = (page - 1) * limit;
 
     // Retrieve data
-    const [results, total] = await this.productRepo.findAndCount({
+    const [items, total] = await this.productRepo.findAndCount({
       where: keyword ? { name: ILike(`%${keyword}%`) } : undefined,
       skip,
       take: limit,
@@ -62,7 +51,7 @@ export class ProductsService {
       page,
       limit,
       last_page: Math.ceil(total / limit),
-      data: results,
+      items,
     };
   }
 

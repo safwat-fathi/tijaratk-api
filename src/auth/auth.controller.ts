@@ -8,7 +8,8 @@ import {
   UseGuards,
 } from '@nestjs/common';
 import { AuthGuard } from '@nestjs/passport';
-import { ApiTags } from '@nestjs/swagger';
+import { ApiBearerAuth, ApiExcludeEndpoint, ApiTags } from '@nestjs/swagger';
+import { Request } from 'express';
 import CONSTANTS from 'src/common/constants';
 
 import { AuthService } from './auth.service';
@@ -68,12 +69,25 @@ export class AuthController {
   //   return this.authService.refresh(facebookId, body.refresh_token);
   // }
 
+  // logout
+  @ApiBearerAuth(CONSTANTS.ACCESS_TOKEN)
+  @UseGuards(AuthGuard(CONSTANTS.AUTH.JWT))
+  @Get('/logout')
+  @HttpCode(HttpStatus.NO_CONTENT)
+  async logout(@Req() req: Request) {
+    const { facebookId } = req.user;
+
+    await this.authService.logout(facebookId);
+  }
+
   // Initiate Facebook Authentication
+  @ApiExcludeEndpoint()
   @Get('facebook')
   @UseGuards(AuthGuard(CONSTANTS.AUTH.FACEBOOK))
   async facebookLogin() {}
 
   // Facebook Callback URL
+  @ApiExcludeEndpoint()
   @Get('facebook/callback')
   @UseGuards(AuthGuard(CONSTANTS.AUTH.FACEBOOK))
   @HttpCode(HttpStatus.FOUND)

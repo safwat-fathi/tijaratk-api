@@ -1,6 +1,7 @@
 import { ApiProperty } from '@nestjs/swagger';
-import { Transform } from 'class-transformer';
-import { IsNumber, IsOptional, IsString, MaxLength } from 'class-validator';
+import { IsEnum, IsNotEmpty, IsNumber, IsString } from 'class-validator';
+
+import { ProductStatus } from '../entities/product.entity';
 
 export class CreateProductDto {
   @ApiProperty({
@@ -9,38 +10,37 @@ export class CreateProductDto {
     example: 'Product 1',
     required: true,
   })
+  @IsNotEmpty()
   @IsString()
   name: string;
 
   @ApiProperty({
-    type: String,
-    description: 'Product description',
-    example: 'Product 1 description',
-    required: false,
+    enum: ProductStatus,
+    description: 'Product status',
+    example: ProductStatus.ACTIVE,
+    required: true,
   })
-  @IsOptional()
-  @IsString()
-  @MaxLength(500, { message: 'Description must not exceed 500 characters' })
-  @Transform(({ value }) => (typeof value === 'string' ? value.trim() : value))
-  description?: string;
+  @IsNotEmpty()
+  @IsEnum(ProductStatus, { message: 'Invalid status value' })
+  status: ProductStatus;
 
   @ApiProperty({
     type: Number,
     description: 'Product price',
     example: 100,
-    required: false,
+    required: true,
   })
-  @IsOptional()
+  @IsNotEmpty()
   @IsNumber()
-  price?: number;
+  price: number;
 
   @ApiProperty({
     type: Number,
-    description: 'Product quantity',
+    description: 'Product stock',
     example: 10,
-    required: false,
+    required: true,
   })
-  @IsOptional()
+  @IsNotEmpty()
   @IsNumber()
-  quantity?: number;
+  stock: number;
 }

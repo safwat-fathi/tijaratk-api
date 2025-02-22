@@ -1,9 +1,20 @@
-export interface FetchWrapperOptions extends RequestInit {
+import { RequestTimeoutException } from '@nestjs/common';
+
+export interface HttpServiceOptions extends RequestInit {
   baseUrl?: string;
   timeout?: number; // in milliseconds
 }
 
-export class FetchWrapper {
+enum HttpMethod {
+  GET = 'GET',
+  POST = 'POST',
+  PUT = 'PUT',
+  DELETE = 'DELETE',
+}
+
+type HttpResponse<T> = [T | null, Error | null];
+
+export class HttpService {
   private baseUrl: string;
   private timeout: number;
 
@@ -36,9 +47,9 @@ export class FetchWrapper {
     endpoint: string,
     params?: Record<string, any>,
     options?: RequestInit,
-  ): Promise<T> {
+  ): Promise<HttpResponse<T>> {
     const url = this.buildUrl(endpoint, params);
-    return this.request<T>(url, { ...options, method: 'GET' });
+    return this.request<T>(url, { ...options, method: HttpMethod.GET });
   }
 
   /**
@@ -47,12 +58,13 @@ export class FetchWrapper {
   public post<T>(
     endpoint: string,
     body: any,
+    params?: Record<string, any>,
     options?: RequestInit,
-  ): Promise<T> {
-    const url = this.buildUrl(endpoint);
+  ): Promise<HttpResponse<T>> {
+    const url = this.buildUrl(endpoint, params);
     return this.request<T>(url, {
       ...options,
-      method: 'POST',
+      method: HttpMethod.POST,
       headers: {
         'Content-Type': 'application/json',
         ...(options?.headers || {}),
@@ -67,12 +79,13 @@ export class FetchWrapper {
   public put<T>(
     endpoint: string,
     body: any,
+    params?: Record<string, any>,
     options?: RequestInit,
-  ): Promise<T> {
-    const url = this.buildUrl(endpoint);
+  ): Promise<HttpResponse<T>> {
+    const url = this.buildUrl(endpoint, params);
     return this.request<T>(url, {
       ...options,
-      method: 'PUT',
+      method: HttpMethod.PUT,
       headers: {
         'Content-Type': 'application/json',
         ...(options?.headers || {}),
@@ -88,9 +101,9 @@ export class FetchWrapper {
     endpoint: string,
     params?: Record<string, any>,
     options?: RequestInit,
-  ): Promise<T> {
+  ): Promise<HttpResponse<T>> {
     const url = this.buildUrl(endpoint, params);
-    return this.request<T>(url, { ...options, method: 'DELETE' });
+    return this.request<T>(url, { ...options, method: HttpMethod.DELETE });
   }
 
   /**
@@ -98,8 +111,8 @@ export class FetchWrapper {
    */
   private async request<T>(
     url: string,
-    options: FetchWrapperOptions,
-  ): Promise<T> {
+    options: HttpServiceOptions,
+  ): Promise<HttpResponse<T>> {
     const controller = new AbortController();
     const id = setTimeout(
       () => controller.abort(),
@@ -112,23 +125,33 @@ export class FetchWrapper {
         signal: controller.signal,
       });
 
-      clearTimeout(id);
-
       if (!response.ok) {
         const errorBody = await response.text();
         throw new Error(
-          `HTTP error! status: ${response.status}, body: ${errorBody}`,
+          `HTTP error status: ${response.status}, body: ${errorBody}`,
         );
+      }
+
+      if (response.status === 204) {
+        return [{} as T, null];
       }
 
       // Assuming JSON response
       const data = await response.json();
-      return data as T;
+      return [data as T, null];
     } catch (error) {
       if (error.name === 'AbortError') {
-        throw new Error(`Request to ${url} timed out after ${this.timeout}ms`);
+        return [
+          null,
+          new RequestTimeoutException(
+            `Request to ${url} timed out after ${this.timeout}ms`,
+          ),
+        ];
       }
-      throw error;
+
+      return [null, error];
+    } finally {
+      clearTimeout(id);
     }
   }
 }

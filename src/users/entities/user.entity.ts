@@ -1,9 +1,11 @@
 import { decrypt, encrypt } from 'src/common/utils/encryption.util';
 import { FacebookPage } from 'src/facebook/entities/facebook-page.entity';
+import { FacebookPageSubscription } from 'src/facebook-page-subscription/entities/facebook-page-subscription.entity';
 import { Product } from 'src/products/entities/product.entity';
 import {
   Column,
   CreateDateColumn,
+  DeleteDateColumn,
   Entity,
   ManyToOne,
   OneToMany,
@@ -23,11 +25,14 @@ export class User {
   @Column({ nullable: true })
   email?: string;
 
-  @Column({ type: 'varchar', unique: true })
+  @Column({ type: 'varchar' })
   facebookId: string;
 
   @OneToMany(() => FacebookPage, (page) => page.user)
   facebook_pages?: Relation<FacebookPage[]>;
+
+  @OneToMany(() => FacebookPageSubscription, (pageSub) => pageSub.user)
+  facebook_page_subscriptions?: Relation<FacebookPageSubscription[]>;
 
   @Column()
   first_name: string;
@@ -63,4 +68,7 @@ export class User {
 
   @UpdateDateColumn()
   updated_at: Date;
+
+  @DeleteDateColumn()
+  deleted_at: Date;
 }

@@ -3,36 +3,29 @@ import {
   Injectable,
   UnauthorizedException,
 } from '@nestjs/common';
+import { EventEmitter2 } from '@nestjs/event-emitter';
 import { JwtService } from '@nestjs/jwt';
 import { InjectRepository } from '@nestjs/typeorm';
 import CONSTANTS from 'src/common/constants';
+import { Events } from 'src/common/enums/events.enum';
+import { UserLoginEvent } from 'src/events/user-login.event';
 import { FacebookService } from 'src/facebook/facebook.service';
 import { FacebookUser } from 'src/types/facebook-user.interface';
 import { Repository } from 'typeorm';
 
-import { User } from './entities/user.entity';
-import { UserSession } from './entities/user-session.entity';
-
+import { User } from '../users/entities/user.entity';
+import { UserSession } from '../users/entities/user-session.entity';
 @Injectable()
 export class AuthService {
   constructor(
     @InjectRepository(User)
     private readonly userRepository: Repository<User>,
-    private readonly jwtService: JwtService,
-    private readonly facebookService: FacebookService,
-    // private readonly emailService: EmailService,
-
     @InjectRepository(UserSession)
     private readonly sessionRepository: Repository<UserSession>,
+    private readonly jwtService: JwtService,
+    private readonly facebookService: FacebookService,
+    private readonly eventEmitter: EventEmitter2,
   ) {}
-
-  // async sessionExist(facebookId: string) {
-  //   const exists = await this.sessionRepository.exists({
-  //     where: { user: { facebookId: facebookId } },
-  //   });
-
-  //   return exists;
-  // }
 
   async validateRefreshToken(facebookId: string, refreshToken: string) {
     const session = await this.sessionRepository.findOne({
@@ -86,6 +79,15 @@ export class AuthService {
 
   // after login get user pages, get long-lived access token and create jwt
   async afterLogin(user: FacebookUser) {
+    const existingUser = await this.userRepository.findOne({
+      where: { facebookId: user.facebookId },
+    });
+    // Trigger login event
+    this.eventEmitter.emit(
+      Events.USER_LOGGED_IN,
+      new UserLoginEvent(existingUser.id),
+    );
+
     const jwt = await this.createJwtForUser(user);
     await this.facebookService.getLongLivedAccessToken(user.facebookId);
     await this.facebookService.getUserPages(user.facebookId);
@@ -93,6 +95,17 @@ export class AuthService {
     delete jwt.user.accessToken;
 
     return jwt;
+  }
+
+  async logout(facebookId: string) {
+    const user = await this.userRepository.findOne({
+      where: { facebookId },
+    });
+    if (!user) {
+      return;
+    }
+
+    await this.sessionRepository.delete({ user: { id: user.id } });
   }
 
   async createJwtForUser(user: FacebookUser) {
@@ -146,7 +159,7 @@ export class AuthService {
 
     // We store the "refresh token" or session token with 10 minutes validity in DB
     const refresh_token = this.jwtService.sign(payload, {
-      expiresIn: CONSTANTS.SESSION.EXPIRATION_TIME,
+      expiresIn: CONSTANTS.SESSION.REFRESH_TOKEN_EXPIRATION_TIME,
     });
 
     // 8. Create a new session record with 10-minute expiry in mind

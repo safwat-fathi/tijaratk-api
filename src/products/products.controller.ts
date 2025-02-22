@@ -15,6 +15,7 @@ import {
 import { AuthGuard } from '@nestjs/passport';
 import {
   ApiBearerAuth,
+  ApiBody,
   ApiOperation,
   ApiResponse,
   ApiTags,
@@ -28,26 +29,26 @@ import { UpdateProductDto } from './dto/update-product.dto';
 import { ProductsService } from './products.service';
 
 @ApiTags('Products')
+@ApiBearerAuth(CONSTANTS.ACCESS_TOKEN)
 @UseGuards(AuthGuard(CONSTANTS.AUTH.JWT))
 @Controller('products')
 export class ProductsController {
   constructor(private readonly productsService: ProductsService) {}
 
-  @ApiBearerAuth(CONSTANTS.ACCESS_TOKEN)
   @Post()
   @HttpCode(HttpStatus.CREATED)
+  @ApiBody({ description: 'Create product', type: CreateProductDto })
   @ApiOperation({ summary: 'Create product' })
   @ApiResponse({
     status: HttpStatus.CREATED,
     description: 'The product has been successfully created.',
   })
-  create(@Req() req: Request, @Body() dto: CreateProductDto) {
+  create(@Body() data: CreateProductDto, @Req() req: Request) {
     const { facebookId } = req.user;
 
-    return this.productsService.create(facebookId, dto);
+    return this.productsService.create(facebookId, data);
   }
 
-  @ApiBearerAuth(CONSTANTS.ACCESS_TOKEN)
   @Get()
   @ApiOperation({ summary: 'Get all products' })
   @ApiResponse({
@@ -58,7 +59,6 @@ export class ProductsController {
     return this.productsService.findAll(listProducts);
   }
 
-  @ApiBearerAuth(CONSTANTS.ACCESS_TOKEN)
   @Get(':id')
   @ApiOperation({ summary: 'Get product by id' })
   @ApiResponse({
@@ -69,7 +69,6 @@ export class ProductsController {
     return this.productsService.findOne(id);
   }
 
-  @ApiBearerAuth(CONSTANTS.ACCESS_TOKEN)
   @Patch(':id')
   @ApiOperation({ summary: 'Update product by id' })
   @ApiResponse({
@@ -80,7 +79,6 @@ export class ProductsController {
     return this.productsService.update(id, dto);
   }
 
-  @ApiBearerAuth(CONSTANTS.ACCESS_TOKEN)
   @Delete(':id')
   @ApiOperation({ summary: 'Delete product by id' })
   @ApiResponse({
