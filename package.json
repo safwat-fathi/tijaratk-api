@@ -20,8 +20,10 @@
     "migration:generate:prod": "yarn typeorm:prod  migration:generate -d src/config/orm.config.ts",
     "migration:run:prod": "yarn typeorm:prod  migration:run -d src/config/orm.config.ts",
     "migration:revert:prod": "yarn typeorm:prod  migration:revert -d src/config/orm.config.ts",
-    "schema:drop": "yarn typeorm:dev schema:drop -d src/config/orm.config.ts",
-    "schema:sync": "yarn typeorm:dev schema:sync -d src/config/orm.config.ts",
+    "schema:drop:dev": "yarn typeorm:dev schema:drop -d src/config/orm.config.ts",
+    "schema:drop:prod": "yarn typeorm:prod schema:drop -d src/config/orm.config.ts",
+    "schema:sync:dev": "yarn typeorm:dev schema:sync -d src/config/orm.config.ts",
+    "schema:sync:prod": "yarn typeorm:prod schema:sync -d src/config/orm.config.ts",
     "lint": "eslint \"{src,apps,libs,test}/**/*.ts\" fix",
     "prepare": "husky install"
   },
