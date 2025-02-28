@@ -6,6 +6,7 @@ import {
 } from '@nestjs/common';
 import { NestFactory } from '@nestjs/core';
 import { DocumentBuilder, SwaggerModule } from '@nestjs/swagger';
+import session from 'express-session';
 import { readFileSync } from 'fs';
 import helmet from 'helmet';
 import path from 'path';
@@ -32,20 +33,22 @@ async function bootstrap() {
   } else {
     // In production, HTTPS termination is often handled by a proxy or load balancer.
     app = await NestFactory.create(AppModule);
-    // console.log(
-    //   'Running in production mode without direct HTTPS configuration.',
-    // );
   }
 
-  //  await NestFactory.create(AppModule);
+  app.use(
+    session({
+      secret: process.env.SESSION_SECRET,
+      resave: false,
+      saveUninitialized: false,
+      cookie: { secure: true, httpOnly: true, sameSite: 'none' },
+    }),
+  );
+
   // Remove COOP header to fix Swagger UI issues
   app.use((_req, res, next) => {
     res.removeHeader('Cross-Origin-Opener-Policy');
     next();
   });
-
-  // Set global prefix
-  // app.setGlobalPrefix('api');
 
   // remove header x-powered-by
   app.use((_, res, next) => {
@@ -63,9 +66,9 @@ async function bootstrap() {
 
   // cors
   app.enableCors({
-    origin: true,
+    origin: '*',
     methods: 'GET,HEAD,PUT,PATCH,POST,DELETE,OPTIONS',
-    credentials: true,
+    credentials: false,
     allowedHeaders: 'Content-Type, Accept, Authorization',
   });
 
