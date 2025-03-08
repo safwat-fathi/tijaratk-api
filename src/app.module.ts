@@ -8,8 +8,10 @@ import { TypeOrmModule } from '@nestjs/typeorm';
 import { AuthModule } from './auth/auth.module';
 import dataSource from './config/orm.config';
 import { FacebookModule } from './facebook/facebook.module';
+import { FacebookEventsModule } from './facebook-events/facebook-events.module';
 import { FacebookPageSubscriptionModule } from './facebook-page-subscription/facebook-page-subscription.module';
 import { HealthController } from './health/health.controller';
+import { NotificationsModule } from './notifications/notifications.module';
 import { ProductsModule } from './products/products.module';
 import { UsersModule } from './users/users.module';
 
@@ -35,6 +37,8 @@ const ENV = process.env.NODE_ENV;
     FacebookModule,
     FacebookPageSubscriptionModule,
     UsersModule,
+    FacebookEventsModule,
+    NotificationsModule,
   ],
   controllers: [HealthController],
 })

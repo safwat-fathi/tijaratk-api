@@ -1,6 +1,7 @@
 import { decrypt, encrypt } from 'src/common/utils/encryption.util';
 import { FacebookPage } from 'src/facebook/entities/facebook-page.entity';
 import { FacebookPageSubscription } from 'src/facebook-page-subscription/entities/facebook-page-subscription.entity';
+import { Notification } from 'src/notifications/entities/notification.entity';
 import { Product } from 'src/products/entities/product.entity';
 import {
   Column,
@@ -45,6 +46,9 @@ export class User {
     nullable: true,
   })
   products?: Relation<Product[]>;
+
+  @OneToMany(() => Notification, (notification) => notification.user)
+  notifications: Relation<Notification[]>;
 
   @Column({
     select: false,

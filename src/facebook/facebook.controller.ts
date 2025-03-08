@@ -10,13 +10,16 @@ import {
 import { ApiExcludeEndpoint, ApiTags } from '@nestjs/swagger';
 import { Response } from 'express';
 
+import { FacebookService } from './facebook.service';
+
 @ApiTags('Facebook')
 @Controller('facebook')
 export class FacebookController {
   private readonly logger = new Logger(FacebookController.name);
   private readonly verifyToken = process.env.FACEBOOK_WEBHOOK_VERIFY_TOKEN; // Replace with your Verify Token
+  constructor(private readonly facebookService: FacebookService) {}
 
-  // constructor(private readonly facebookService: FacebookService) {}
+  // constructor() {}
   // @ApiBearerAuth(CONSTANTS.ACCESS_TOKEN)
   // @UseGuards(AuthGuard(CONSTANTS.AUTH.JWT))
   // @Get('pages')
@@ -44,21 +47,8 @@ export class FacebookController {
 
   @ApiExcludeEndpoint()
   @Post('/webhook')
-  handleWebhook(@Body() body: any, @Res() res: Response) {
-    this.logger.log('Webhook Event Received:', JSON.stringify(body, null, 2));
-    // Handle the event (e.g., comments, messages)
-    if (body.object === 'page') {
-      body.entry.forEach((entry) => {
-        entry.messaging?.forEach((event) => {
-          this.logger.log('Message event:', event);
-        });
-
-        entry.changes?.forEach((change) => {
-          this.logger.log('Change event:', change);
-        });
-      });
-    }
-
+  async handleWebhook(@Body() body: any, @Res() res: Response) {
+    await this.facebookService.handleWebhook(body);
     return res.sendStatus(200);
   }
 }

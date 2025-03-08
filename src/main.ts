@@ -6,7 +6,6 @@ import {
 } from '@nestjs/common';
 import { NestFactory } from '@nestjs/core';
 import { DocumentBuilder, SwaggerModule } from '@nestjs/swagger';
-import session from 'express-session';
 import { readFileSync } from 'fs';
 import helmet from 'helmet';
 import path from 'path';
@@ -14,6 +13,7 @@ import path from 'path';
 import { AppModule } from './app.module';
 import CONSTANTS from './common/constants';
 import { AllExceptionFilter } from './common/filters/all-exception.filter';
+import { AuthExceptionFilter } from './common/filters/auth-exceptions.filter';
 import { QueryFailedExceptionFilter } from './common/filters/db-exception.filter';
 import { FBExceptionFilter } from './common/filters/fb-exception.filter';
 import { ValidationExceptionFilter } from './common/filters/validation-exception.filter';
@@ -34,15 +34,6 @@ async function bootstrap() {
     // In production, HTTPS termination is often handled by a proxy or load balancer.
     app = await NestFactory.create(AppModule);
   }
-
-  app.use(
-    session({
-      secret: process.env.SESSION_SECRET,
-      resave: false,
-      saveUninitialized: false,
-      cookie: { secure: true, httpOnly: true, sameSite: 'none' },
-    }),
-  );
 
   // Remove COOP header to fix Swagger UI issues
   app.use((_req, res, next) => {
@@ -134,9 +125,10 @@ async function bootstrap() {
   // Global Exception Filter for error responses
   const filters: ExceptionFilter[] = [
     new ValidationExceptionFilter(),
-    new AllExceptionFilter(),
-    new QueryFailedExceptionFilter(),
     new FBExceptionFilter(),
+    new AuthExceptionFilter(),
+    new QueryFailedExceptionFilter(),
+    new AllExceptionFilter(),
   ];
   app.useGlobalFilters(...filters);
 
