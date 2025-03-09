@@ -1,3 +1,4 @@
+import { FacebookPage } from 'src/facebook/entities/facebook-page.entity';
 import { User } from 'src/users/entities/user.entity';
 import {
   Column,
@@ -31,6 +32,15 @@ export class Notification {
 
   @ManyToOne(() => User, (user) => user.notifications)
   user: Relation<User>;
+
+  @Column({ type: 'varchar' })
+  sender_id: string;
+
+  @Column({ type: 'varchar', nullable: true })
+  sender_name: string;
+
+  @ManyToOne(() => FacebookPage, (facebookPage) => facebookPage.notifications)
+  facebook_page: Relation<FacebookPage>;
 
   @CreateDateColumn()
   created_at: Date;

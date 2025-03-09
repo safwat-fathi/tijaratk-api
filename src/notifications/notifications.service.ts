@@ -3,7 +3,8 @@ import { InjectRepository } from '@nestjs/typeorm';
 import { User } from 'src/users/entities/user.entity';
 import { Repository } from 'typeorm';
 
-import { Notification } from './entities/notification.entity';
+import { ListNotificationsDto } from './dto/list-notifications.dto';
+import { Notification, NotificationType } from './entities/notification.entity';
 
 @Injectable()
 export class NotificationsService {
@@ -14,18 +15,19 @@ export class NotificationsService {
 
   /**
    * Retrieves a paginated list of notifications for a specific user.
-   * @param userId - The ID of the user.
+   * @param facebookId - The Facebook ID of the user.
    * @param page - The current page number (default is 1).
    * @param limit - Number of notifications per page (default is 10).
    * @returns Object containing notifications data and total count.
    */
   async getUserNotifications(
-    userId: string,
-    page = 1,
-    limit = 10,
+    facebookId: string,
+    listNotificationsDto: ListNotificationsDto,
   ): Promise<{ data: Notification[]; total: number }> {
+    const { page = 1, limit = 10 } = listNotificationsDto;
+
     const [data, total] = await this.notificationRepository.findAndCount({
-      where: { user: { id: userId } },
+      where: { user: { facebookId } },
       order: { created_at: 'DESC' },
       skip: (page - 1) * limit,
       take: limit,
@@ -45,8 +47,9 @@ export class NotificationsService {
     if (!notification) {
       throw new NotFoundException('Notification not found');
     }
+
     notification.is_read = true;
-    return this.notificationRepository.save(notification);
+    return await this.notificationRepository.save(notification);
   }
 
   /**
@@ -64,7 +67,7 @@ export class NotificationsService {
       throw new NotFoundException('Notification not found');
     }
     notification.is_read = false;
-    return this.notificationRepository.save(notification);
+    return await this.notificationRepository.save(notification);
   }
 
   // Additional utility methods you might consider:
@@ -75,13 +78,18 @@ export class NotificationsService {
    * @param content - The notification content.
    * @returns The newly created notification.
    */
-  async createNotification(user: User, content: string): Promise<Notification> {
+  async createNotification(
+    user: User,
+    content: string,
+    type: NotificationType,
+  ): Promise<Notification> {
     const notification = this.notificationRepository.create({
+      type,
       user,
       content,
       is_read: false,
     });
-    return this.notificationRepository.save(notification);
+    return await this.notificationRepository.save(notification);
   }
 
   /**
@@ -97,28 +105,46 @@ export class NotificationsService {
 
   /**
    * Marks all notifications for a user as read.
-   * @param userId - The ID of the user.
+   * @param facebookId - The Facebook ID of the user.
    */
-  async markAllAsRead(userId: string): Promise<void> {
+  async markAllAsRead(facebookId: string): Promise<void> {
     await this.notificationRepository
       .createQueryBuilder()
       .update(Notification)
       .set({ is_read: true })
-      .where('userId = :userId', { userId })
+      .where(
+        `"userId" IN (SELECT id FROM "users" WHERE "facebookId" = :facebookId)`,
+        { facebookId },
+      )
       .execute();
   }
 
   /**
    * Returns the count of unread notifications for a specific user.
-   * @param userId - The ID of the user.
+   * @param facebookId - The Facebook ID of the user.
    * @returns A promise resolving to the number of unread notifications.
    */
-  async countUnreadNotifications(userId: string): Promise<number> {
+  async countUnreadNotifications(facebookId: string): Promise<number> {
     return await this.notificationRepository.count({
       where: {
-        user: { id: userId },
+        user: { facebookId },
         is_read: false,
       },
     });
+  }
+
+  /**
+   * Clear all notifications for a user.
+   * @param facebookId - The Facebook ID of the user.
+   */
+  async clearNotifications(facebookId: string): Promise<void> {
+    await this.notificationRepository
+      .createQueryBuilder('notification')
+      .delete()
+      .where(
+        `"userId" IN (SELECT id FROM "users" WHERE "facebookId" = :facebookId)`,
+        { facebookId },
+      )
+      .execute();
   }
 }

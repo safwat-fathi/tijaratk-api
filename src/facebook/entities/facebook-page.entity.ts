@@ -1,4 +1,5 @@
 import { decrypt, encrypt } from 'src/common/utils/encryption.util';
+import { Notification } from 'src/notifications/entities/notification.entity';
 import { User } from 'src/users/entities/user.entity';
 import {
   Column,
@@ -6,7 +7,8 @@ import {
   DeleteDateColumn,
   Entity,
   ManyToOne,
-  PrimaryGeneratedColumn,
+  OneToMany,
+  PrimaryColumn,
   Relation,
   Unique,
   UpdateDateColumn,
@@ -15,8 +17,8 @@ import {
 @Entity('facebook_pages')
 @Unique(['page_id', 'user'])
 export class FacebookPage {
-  @PrimaryGeneratedColumn()
-  id: string;
+  @PrimaryColumn({ type: 'varchar' })
+  page_id: string;
 
   @ManyToOne(() => User, (user) => user.facebook_pages, {
     cascade: true,
@@ -27,11 +29,11 @@ export class FacebookPage {
   @Column()
   name: string;
 
-  @Column({ nullable: true })
-  category: string;
+  @OneToMany(() => Notification, (notification) => notification.facebook_page)
+  notifications: Relation<Notification[]>;
 
   @Column({ nullable: true })
-  page_id: string;
+  category: string;
 
   @Column({
     select: false,

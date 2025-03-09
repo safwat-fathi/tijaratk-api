@@ -3,7 +3,10 @@ import { Injectable, Logger, UnauthorizedException } from '@nestjs/common';
 import { InjectRepository } from '@nestjs/typeorm';
 import { HttpService } from 'src/common/utils/http-service';
 import { FacebookEventsGateway } from 'src/facebook-events/facebook-events.gateway';
-import { NotificationsService } from 'src/notifications/notifications.service';
+import {
+  Notification,
+  NotificationType,
+} from 'src/notifications/entities/notification.entity';
 import { User } from 'src/users/entities/user.entity';
 import { Repository } from 'typeorm';
 
@@ -13,7 +16,10 @@ import {
   FacebookPagesResponse,
 } from './interfaces/facebook-page.interface';
 import {
-  FormattedWebhookEvent,
+  CommentVerb,
+  FormattedWebhookCommentEvent,
+  FormattedWebhookEvents,
+  FormattedWebhookMessageEvent,
   WebhookEntry,
 } from './interfaces/facebook-webhook.interface';
 
@@ -22,14 +28,15 @@ export class FacebookService {
   private readonly logger = new Logger(FacebookService.name);
   private readonly CACHE_TTL = 3600; // 1 hour in seconds
   private readonly httpService: HttpService;
-  private readonly notificationsService: NotificationsService;
 
   constructor(
     @InjectRepository(User)
     private readonly userRepo: Repository<User>,
     @InjectRepository(FacebookPage)
     private readonly facebookPageRepo: Repository<FacebookPage>,
-    private readonly cacheManager: Cache, // Inject cache manager
+    @InjectRepository(Notification)
+    private readonly notificationRepo: Repository<Notification>,
+    private readonly cacheManager: Cache,
     private readonly eventsGateway: FacebookEventsGateway,
   ) {
     this.httpService = new HttpService({
@@ -70,7 +77,7 @@ export class FacebookService {
     if (!shouldRefreshPages) {
       const pages = await this.facebookPageRepo.find({
         where: { user: { facebookId } },
-        select: { id: true, access_token: true, page_id: true },
+        select: { access_token: true, page_id: true },
       });
 
       // Cache the results
@@ -217,67 +224,6 @@ export class FacebookService {
     }
   }
 
-  // async handleWebhook(body: any) {
-  //   this.logger.log('Webhook Event Received:', JSON.stringify(body, null, 2));
-
-  //   const formattedEvents: FormattedWebhookEvent[] = [];
-
-  //   // Process webhook events and create notifications accordingly.
-  //   // For this example, we assume that the webhook entry contains events with recipient or change info that maps to a user's facebookId.
-  //   if (body.object === 'page') {
-  //     for (const entry of body.entry) {
-  //       // Process messaging events
-  //       if (entry.messaging) {
-  //         for (const event of entry.messaging) {
-  //           this.logger.log('Message event:', event);
-  //           if (event.recipient && event.recipient.id) {
-  //             // format the event
-  //             const formattedEvent = this.formatWebhookEvent(event);
-  //             if (formattedEvent) formattedEvents.push(formattedEvent);
-
-  //             // create notification to user
-  //             const user = await this.userRepo.findOne({
-  //               where: { facebookId: event.recipient.id },
-  //             });
-  //             if (user) {
-  //               const message = `New message event: ${JSON.stringify(event)}`;
-  //               await this.notificationsService.createNotification(
-  //                 user,
-  //                 message,
-  //               );
-  //             }
-  //           }
-  //         }
-  //       }
-  //       // Process change events
-  //       if (entry.changes) {
-  //         for (const change of entry.changes) {
-  //           // format the event
-  //           this.logger.log('Change event:', change);
-  //           const formattedEvent = this.formatWebhookEvent(change);
-  //           if (formattedEvent) formattedEvents.push(formattedEvent);
-
-  //           // In this example, we assume change.value.userId maps to the user's facebookId.
-  //           if (change.value && change.value.userId) {
-  //             const user = await this.userRepo.findOne({
-  //               where: { facebookId: change.value.userId },
-  //             });
-  //             if (user) {
-  //               const message = `New change event: ${JSON.stringify(change)}`;
-  //               await this.notificationsService.createNotification(
-  //                 user,
-  //                 message,
-  //               );
-  //             }
-  //           }
-  //         }
-  //       }
-  //     }
-  //   }
-
-  //   this.eventsGateway.broadcast(formattedEvents);
-  // }
-
   async handleWebhook(body: any) {
     this.logger.log('Webhook Event Received:', JSON.stringify(body, null, 2));
 
@@ -286,13 +232,26 @@ export class FacebookService {
     }
 
     const formattedEvents = await this.processEntries(body.entry);
-    this.eventsGateway.broadcast(formattedEvents);
+
+    const user = await this.userRepo.findOne({
+      where: { facebook_pages: { page_id: formattedEvents[0].page_id } },
+      relations: { facebook_pages: true },
+    });
+
+    if (!user) {
+      this.logger.warn(
+        `User with page ID ${formattedEvents[0].page_id} not found.`,
+      );
+      return;
+    }
+
+    this.eventsGateway.sendToClient(user.facebookId, formattedEvents[0]);
   }
 
   private async processEntries(
     entries: WebhookEntry[],
-  ): Promise<FormattedWebhookEvent[]> {
-    const formattedEvents: FormattedWebhookEvent[] = [];
+  ): Promise<FormattedWebhookEvents[]> {
+    const formattedEvents: FormattedWebhookEvents[] = [];
 
     for (const entry of entries) {
       const messagingEvents = await this.processMessagingEvents(
@@ -308,8 +267,8 @@ export class FacebookService {
 
   private async processMessagingEvents(
     events: any[],
-  ): Promise<FormattedWebhookEvent[]> {
-    const formattedEvents: FormattedWebhookEvent[] = [];
+  ): Promise<FormattedWebhookEvents[]> {
+    const formattedEvents: FormattedWebhookEvents[] = [];
 
     for (const event of events) {
       this.logger.log('Message event:', event);
@@ -321,9 +280,9 @@ export class FacebookService {
       const formattedEvent = this.formatWebhookEvent(event);
       if (formattedEvent) {
         formattedEvents.push(formattedEvent);
+        if (formattedEvent.type === NotificationType.MESSAGE)
+          await this.createMessageNotification(formattedEvent);
       }
-
-      await this.createMessageNotification(event);
     }
 
     return formattedEvents;
@@ -331,8 +290,8 @@ export class FacebookService {
 
   private async processChangeEvents(
     changes: any[],
-  ): Promise<FormattedWebhookEvent[]> {
-    const formattedEvents: FormattedWebhookEvent[] = [];
+  ): Promise<FormattedWebhookEvents[]> {
+    const formattedEvents: FormattedWebhookEvents[] = [];
 
     for (const change of changes) {
       this.logger.log('Change event:', change);
@@ -340,9 +299,9 @@ export class FacebookService {
       const formattedEvent = this.formatWebhookEvent(change);
       if (formattedEvent) {
         formattedEvents.push(formattedEvent);
+        if (formattedEvent.type === NotificationType.COMMENT)
+          await this.createChangeNotification(formattedEvent);
       }
-
-      await this.createChangeNotification(change);
     }
 
     return formattedEvents;
@@ -352,57 +311,96 @@ export class FacebookService {
     return event.recipient && event.recipient.id;
   }
 
-  private async createMessageNotification(event: any): Promise<void> {
+  private async createMessageNotification(
+    event: FormattedWebhookMessageEvent,
+  ): Promise<void> {
     const user = await this.userRepo.findOne({
-      where: { facebookId: event.recipient.id },
+      where: { facebook_pages: { page_id: event.page_id } },
+      relations: { facebook_pages: true },
     });
 
     if (user) {
-      const message = `New message event: ${JSON.stringify(event)}`;
-      await this.notificationsService.createNotification(user, message);
+      const newNotification = this.notificationRepo.create({
+        content: event.content,
+        type: event.type,
+        user,
+        facebook_page: user.facebook_pages.find(
+          (page) => page.page_id === event.page_id,
+        ),
+        sender_id: event.sender_id,
+      });
+
+      await this.notificationRepo.save(newNotification);
     }
   }
 
-  private async createChangeNotification(change: any): Promise<void> {
-    if (!change.value?.userId) {
-      return;
-    }
-
+  private async createChangeNotification(
+    event: FormattedWebhookCommentEvent,
+  ): Promise<void> {
     const user = await this.userRepo.findOne({
-      where: { facebookId: change.value.userId },
+      where: { facebook_pages: { page_id: event.page_id } },
+      relations: { facebook_pages: true },
     });
 
     if (user) {
-      const message = `New change event: ${JSON.stringify(change)}`;
-      await this.notificationsService.createNotification(user, message);
+      const newNotification = this.notificationRepo.create({
+        content: event.content,
+        type: event.type,
+        user,
+        facebook_page: user.facebook_pages.find(
+          (page) => page.page_id === event.page_id,
+        ),
+        sender_id: event.sender_id,
+        sender_name: event.sender_name,
+      });
+
+      await this.notificationRepo.save(newNotification);
     }
   }
 
-  private formatWebhookEvent(event: any): FormattedWebhookEvent | null {
+  // Helper function to extract page_id
+  private extractPageId(post_id: string): string {
+    return post_id.split('_')[0];
+  }
+
+  // Updated formatter
+  private formatWebhookEvent(event: any): FormattedWebhookEvents | null {
     try {
       // Handle message events
       if (event.message) {
         return {
-          type: 'message',
+          type: NotificationType.MESSAGE,
           content: event.message.text || '',
           sender_id: event.sender.id,
-          recipient_id: event.recipient.id,
           timestamp: event.timestamp,
-          page_id: event.recipient.id, // For page messages, recipient ID is the page ID
+          message_id: event.message.mid,
+          page_id: event.recipient.id, // For messages, recipient_id is the page_id
         };
       }
 
-      // Handle comment events (from changes array)
-      if (event.value && event.value.item === 'comment') {
+      // Handle comment events
+      if (event.value && event.value.item === NotificationType.COMMENT) {
+        const page_id = this.extractPageId(event.value.post_id);
+
         return {
-          type: 'comment',
-          content: event.value.message || event.value.comment_text || '',
+          type: NotificationType.COMMENT,
+          content: event.value.message || '',
           sender_id: event.value.from.id,
+          sender_name: event.value.from.name,
+          timestamp: event.value.created_time,
+          page_id,
+          post: {
+            id: event.value.post.id,
+            status_type: event.value.post.status_type,
+            is_published: event.value.post.is_published,
+            updated_time: event.value.post.updated_time,
+            permalink_url: event.value.post.permalink_url,
+            promotion_status: event.value.post.promotion_status,
+          },
           post_id: event.value.post_id,
           comment_id: event.value.comment_id,
-          parent_comment_id: event.value.parent_id,
-          page_id: event.value.page_id,
-          timestamp: event.value.created_time,
+          parent_id: event.value.parent_id,
+          verb: event.value.verb as CommentVerb,
         };
       }
 

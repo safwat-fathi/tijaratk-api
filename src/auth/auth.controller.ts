@@ -95,11 +95,10 @@ export class AuthController {
     // Successful authentication here
     const user = req.user;
 
-    // return await this.authService.afterLogin(user);
     const tokens = await this.authService.afterLogin(user);
 
     return res.redirect(
-      `${process.env.CLIENT_URL}/auth/facebook?access_token=${tokens.access_token}&refresh_token=${tokens.refresh_token}`,
+      `${process.env.CLIENT_URL}/auth/facebook?access_token=${tokens.access_token}&refresh_token=${tokens.refresh_token}&facebook_id=${tokens.user.facebookId}`,
     );
   }
 }

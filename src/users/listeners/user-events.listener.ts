@@ -32,7 +32,7 @@ export class UserEventsListener {
         .catch((err) => {
           // Handle or log the error without affecting the login process.
           this.logger.error(
-            `Failed to subscribe page ${page.id} for user ${user.id}: ${err.message}`,
+            `Failed to subscribe page ${page.page_id} for user ${user.id}: ${err.message}`,
           );
         });
     });

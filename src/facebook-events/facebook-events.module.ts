@@ -1,9 +1,11 @@
 import { Global, Module } from '@nestjs/common';
+import { JwtModule } from '@nestjs/jwt';
 
 import { FacebookEventsGateway } from './facebook-events.gateway';
 
-@Global() // This decorator makes the module global
+@Global()
 @Module({
+  imports: [JwtModule],
   providers: [FacebookEventsGateway],
   exports: [FacebookEventsGateway],
 })

@@ -5,6 +5,7 @@ import { TypeOrmModule } from '@nestjs/typeorm';
 import CONSTANTS from 'src/common/constants';
 import { FacebookPage } from 'src/facebook/entities/facebook-page.entity';
 import { FacebookService } from 'src/facebook/facebook.service';
+import { Notification } from 'src/notifications/entities/notification.entity';
 
 import { User } from '../users/entities/user.entity';
 import { UserSession } from '../users/entities/user-session.entity';
@@ -15,7 +16,7 @@ import { JwtStrategy } from './strategies/jwt.strategy';
 
 @Module({
   imports: [
-    TypeOrmModule.forFeature([UserSession, User, FacebookPage]),
+    TypeOrmModule.forFeature([UserSession, User, FacebookPage, Notification]),
     PassportModule.register({ defaultStrategy: CONSTANTS.AUTH.JWT }),
     JwtModule.registerAsync({
       useFactory: () => ({
