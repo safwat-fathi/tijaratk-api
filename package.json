@@ -11,6 +11,8 @@
     "start:dev": "NODE_ENV=development nest start --watch",
     "start:debug": "nest start --debug --watch",
     "start:prod": "NODE_ENV=production node dist/main",
+    "seed:dev": "NODE_ENV=development dotenv_config_path=.env.development ts-node -r tsconfig-paths/register -r dotenv/config ./src/common/seed.ts",
+    "seed:prod": "NODE_ENV=production dotenv_config_path=.env.production ts-node -r tsconfig-paths/register -r dotenv/config ./src/common/seed.ts",
     "typeorm:dev": "NODE_ENV=development dotenv_config_path=.env.development ts-node -r dotenv/config ./node_modules/typeorm/cli.js",
     "typeorm:prod": "NODE_ENV=production dotenv_config_path=.env.production ts-node -r dotenv/config ./node_modules/typeorm/cli.js",
     "migration:create": "yarn typeorm:dev migration:create",
