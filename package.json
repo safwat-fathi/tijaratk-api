@@ -38,6 +38,7 @@
     "@nestjs/mapped-types": "*",
     "@nestjs/passport": "^10.0.3",
     "@nestjs/platform-express": "^10.0.0",
+    "@nestjs/schedule": "^5.0.1",
     "@nestjs/swagger": "^8.1.0",
     "@nestjs/throttler": "^6.3.0",
     "@nestjs/websockets": "^11.0.11",

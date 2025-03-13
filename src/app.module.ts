@@ -2,6 +2,7 @@ import { CacheModule } from '@nestjs/cache-manager';
 import { Module } from '@nestjs/common';
 import { ConfigModule } from '@nestjs/config';
 import { EventEmitterModule } from '@nestjs/event-emitter';
+import { ScheduleModule } from '@nestjs/schedule';
 import { ThrottlerModule } from '@nestjs/throttler';
 import { TypeOrmModule } from '@nestjs/typeorm';
 
@@ -12,6 +13,7 @@ import { FacebookEventsModule } from './facebook-events/facebook-events.module';
 import { FacebookPageSubscriptionModule } from './facebook-page-subscription/facebook-page-subscription.module';
 import { HealthController } from './health/health.controller';
 import { NotificationsModule } from './notifications/notifications.module';
+import { PostsModule } from './posts/posts.module';
 import { ProductsModule } from './products/products.module';
 import { UsersModule } from './users/users.module';
 
@@ -32,6 +34,7 @@ const ENV = process.env.NODE_ENV;
         limit: 10, // 10 requests
       },
     ]),
+    ScheduleModule.forRoot(),
     AuthModule,
     UsersModule,
     ProductsModule,
@@ -39,6 +42,7 @@ const ENV = process.env.NODE_ENV;
     FacebookPageSubscriptionModule,
     FacebookEventsModule,
     NotificationsModule,
+    PostsModule,
   ],
   controllers: [HealthController],
 })

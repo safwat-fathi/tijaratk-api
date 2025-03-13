@@ -1,5 +1,6 @@
 import { decrypt, encrypt } from 'src/common/utils/encryption.util';
 import { Notification } from 'src/notifications/entities/notification.entity';
+import { Post } from 'src/posts/entities/post.entity';
 import { User } from 'src/users/entities/user.entity';
 import {
   Column,
@@ -19,6 +20,10 @@ import {
 export class FacebookPage {
   @PrimaryColumn({ type: 'varchar' })
   page_id: string;
+
+  // one page can have multiple posts
+  @OneToMany(() => Post, (post) => post.facebook_page)
+  posts: Relation<Post[]>;
 
   @ManyToOne(() => User, (user) => user.facebook_pages, {
     cascade: true,

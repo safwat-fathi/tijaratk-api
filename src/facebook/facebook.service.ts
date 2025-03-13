@@ -1,5 +1,10 @@
 import { Cache } from '@nestjs/cache-manager';
-import { Injectable, Logger, UnauthorizedException } from '@nestjs/common';
+import {
+  Injectable,
+  InternalServerErrorException,
+  Logger,
+  UnauthorizedException,
+} from '@nestjs/common';
 import { InjectRepository } from '@nestjs/typeorm';
 import { HttpService } from 'src/common/utils/http-service';
 import { FacebookEventsGateway } from 'src/facebook-events/facebook-events.gateway';
@@ -7,6 +12,7 @@ import {
   Notification,
   NotificationType,
 } from 'src/notifications/entities/notification.entity';
+import { Post } from 'src/posts/entities/post.entity';
 import { User } from 'src/users/entities/user.entity';
 import { Repository } from 'typeorm';
 
@@ -222,6 +228,34 @@ export class FacebookService {
       this.logger.error(errorMsg);
       throw new UnauthorizedException(errorMsg);
     }
+  }
+
+  // publish post to facebook
+  async publishPost(post: Post, page_id: string): Promise<any> {
+    const formattedPost = {
+      message: `${post.title}\n\n${post.content || ''}`,
+      link: post.media_url,
+    };
+
+    const facebookPage = await this.facebookPageRepo.findOne({
+      where: { page_id },
+      select: ['access_token'],
+    });
+
+    const [response, error] = await this.httpService.post(
+      `/${page_id}/feed`,
+      formattedPost,
+      {
+        access_token: facebookPage.access_token,
+      },
+    );
+
+    if (error) {
+      this.logger.error('Failed to publish post:', error);
+      throw new InternalServerErrorException('Failed to publish post');
+    }
+
+    return response;
   }
 
   async handleWebhook(body: any) {

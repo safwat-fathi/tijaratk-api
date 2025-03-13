@@ -1,3 +1,4 @@
+import { Post } from 'src/posts/entities/post.entity';
 import { User } from 'src/users/entities/user.entity';
 import {
   Column,
@@ -5,6 +6,7 @@ import {
   DeleteDateColumn,
   Entity,
   ManyToOne,
+  OneToMany,
   PrimaryGeneratedColumn,
   Relation,
   Unique,
@@ -25,8 +27,8 @@ export class Product {
   @Column()
   name: string;
 
-  // @Column({ nullable: true })
-  // description?: string;
+  @OneToMany(() => Post, (post) => post.product)
+  posts: Relation<Post[]>;
 
   @Column()
   price: number;
