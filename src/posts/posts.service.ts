@@ -2,6 +2,7 @@
 import { Injectable, Logger, NotFoundException } from '@nestjs/common';
 import { Cron, CronExpression } from '@nestjs/schedule';
 import { InjectRepository } from '@nestjs/typeorm';
+import { FacebookPage } from 'src/facebook/entities/facebook-page.entity';
 import { FacebookService } from 'src/facebook/facebook.service';
 import { Product } from 'src/products/entities/product.entity';
 import { LessThanOrEqual, Repository } from 'typeorm';
@@ -19,29 +20,38 @@ export class PostsService {
     private readonly postRepository: Repository<Post>,
     @InjectRepository(Product)
     private readonly productRepository: Repository<Product>,
+    @InjectRepository(FacebookPage)
+    private readonly facebookPageRepository: Repository<FacebookPage>,
     private readonly facebookService: FacebookService,
   ) {}
 
   async create(createPostDto: CreatePostDto): Promise<Post> {
+    const { page_id, product_id, title, content, media_url, scheduled_at } =
+      createPostDto;
     // Ensure the selected product exists.
     const product = await this.productRepository.findOne({
-      where: { id: createPostDto.product_id },
+      where: { id: product_id },
     });
     if (!product) {
-      throw new NotFoundException(
-        `Product with ID ${createPostDto.product_id} not found`,
-      );
+      throw new NotFoundException(`Product with ID ${product_id} not found`);
+    }
+
+    // find the facebook page
+    const facebook_page = await this.facebookPageRepository.findOne({
+      where: { page_id: page_id },
+    });
+    if (!facebook_page) {
+      throw new NotFoundException(`Facebook page with ID ${page_id} not found`);
     }
 
     const post = this.postRepository.create({
-      title: createPostDto.title,
-      content: createPostDto.content,
-      media_url: createPostDto.media_url,
-      scheduled_at: createPostDto.scheduled_at
-        ? new Date(createPostDto.scheduled_at)
-        : null,
+      title: title,
+      content: content,
+      media_url: media_url,
+      scheduled_at: scheduled_at ? new Date(scheduled_at) : null,
       product,
       published: false,
+      facebook_page,
     });
     const savedPost = await this.postRepository.save(post);
 
