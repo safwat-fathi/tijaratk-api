@@ -1,4 +1,5 @@
 import { Injectable, Logger, OnModuleInit } from '@nestjs/common';
+import { INestApplication } from '@nestjs/common';
 import { IncomingMessage } from 'http';
 import WebSocket from 'ws';
 
@@ -10,9 +11,12 @@ export class FacebookEventsGateway implements OnModuleInit {
   private readonly logger = new Logger(FacebookEventsGateway.name);
   private clients: Map<string, AppWebSocket> = new Map();
 
+  constructor(private readonly app: INestApplication) {}
+
   onModuleInit() {
     this.server = new WebSocket.Server({
-      port: Number(process.env.WS_SERVER_PORT),
+      server: this.app.getHttpServer(),
+      path: '/',
     });
 
     this.server.on(
