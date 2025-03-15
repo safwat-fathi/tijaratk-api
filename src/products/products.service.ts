@@ -43,6 +43,20 @@ export class ProductsService {
       skip,
       take: limit,
       order: { created_at: 'DESC', name: 'DESC' },
+      relations: { posts: true },
+      select: {
+        id: true,
+        name: true,
+        deleted_at: true,
+        price: true,
+        status: true,
+        stock: true,
+        created_at: true,
+        updated_at: true,
+        posts: {
+          id: true,
+        },
+      },
     });
 
     // Return a structure that includes the results and pagination metadata
