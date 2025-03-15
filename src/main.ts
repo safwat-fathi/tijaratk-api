@@ -132,7 +132,7 @@ async function bootstrap() {
   ];
   app.useGlobalFilters(...filters);
 
-  await app.listen(process.env.HTTP_SERVER_PORT);
+  await app.listen(process.env.HTTP_SERVER_PORT, '0.0.0.0');
 }
 
 bootstrap();
