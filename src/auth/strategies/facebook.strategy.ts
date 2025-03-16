@@ -15,10 +15,6 @@ export class FacebookStrategy extends PassportStrategy(
       clientID: process.env.FACEBOOK_APP_ID,
       clientSecret: process.env.FACEBOOK_APP_SECRET,
       callbackURL: process.env.FACEBOOK_CALLBACK_URL,
-      // callbackURL:
-      //   process.env.NODE_ENV === 'production'
-      //     ? process.env.PROD_FACEBOOK_CALLBACK_URL
-      //     : process.env.DEV_FACEBOOK_CALLBACK_URL,
       profileFields: ['id', 'emails', 'name'], // specify fields you need
       scope: [
         'email',
@@ -36,7 +32,7 @@ export class FacebookStrategy extends PassportStrategy(
 
   async validate(
     accessToken: string,
-    refreshToken: string,
+    _refreshToken: string,
     profile: Profile,
     done: (error: any, user?: any, info?: any) => void,
   ): Promise<any> {

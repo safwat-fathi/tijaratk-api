@@ -27,7 +27,6 @@ export class FacebookPage {
 
   @ManyToOne(() => User, (user) => user.facebook_pages, {
     cascade: true,
-    nullable: true,
   })
   user: Relation<User>;
 

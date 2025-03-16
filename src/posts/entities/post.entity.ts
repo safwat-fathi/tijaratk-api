@@ -35,7 +35,7 @@ export class Post {
 
   // Indicates whether the post has been published on Facebook.
   @Column({ default: false })
-  published: boolean;
+  is_published: boolean;
 
   // For scheduled posts: if provided, this post should be published at this time.
   @Column({ type: 'timestamp', nullable: true })

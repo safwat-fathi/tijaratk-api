@@ -49,7 +49,7 @@ export class PostsService {
       media_url: media_url,
       scheduled_at: scheduled_at ? new Date(scheduled_at) : null,
       product,
-      published: false,
+      is_published: false,
       facebook_page,
     });
     const savedPost = await this.postRepository.save(post);
@@ -60,7 +60,7 @@ export class PostsService {
       savedPost.scheduled_at.getTime() <= Date.now()
     ) {
       await this.publish(savedPost, createPostDto.page_id);
-      savedPost.published = true;
+      savedPost.is_published = true;
       await this.postRepository.save(savedPost);
     }
 
@@ -76,13 +76,15 @@ export class PostsService {
     if (updatePostDto.scheduled_at) {
       post.scheduled_at = new Date(updatePostDto.scheduled_at);
       // Mark the post as unpublished if rescheduled.
-      post.published = false;
+      post.is_published = false;
     }
     return await this.postRepository.save(post);
   }
 
   async findAll(): Promise<Post[]> {
-    return this.postRepository.find({ relations: ['product'] });
+    return this.postRepository.find({
+      relations: { product: true, facebook_page: true },
+    });
   }
 
   async findOne(id: number): Promise<Post> {
@@ -111,7 +113,6 @@ export class PostsService {
     }
   }
 
-  // ! needs work
   // Scheduler: runs every minute and publishes posts whose scheduled time has arrived.
   @Cron(CronExpression.EVERY_MINUTE)
   async publishScheduledPosts(): Promise<void> {
@@ -119,7 +120,7 @@ export class PostsService {
     const posts = await this.postRepository.find({
       where: {
         scheduled_at: LessThanOrEqual(now),
-        published: false,
+        is_published: false,
       },
       relations: { facebook_page: true },
     });
@@ -128,7 +129,7 @@ export class PostsService {
 
     for (const post of posts) {
       await this.publish(post, post.facebook_page.page_id);
-      post.published = true;
+      post.is_published = true;
       await this.postRepository.save(post);
     }
   }

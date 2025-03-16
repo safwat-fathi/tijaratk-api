@@ -199,7 +199,7 @@ export class FacebookService {
 
       const accessToken = user.fb_access_token;
       // const fields = 'id,name,access_token,category';
-      //https://graph.facebook.com/v21.0/oauth/access_token?grant_type=fb_exchange_token&client_id=&client_secret=&fb_exchange_token=
+      //https://graph.facebook.com/v22.0/oauth/access_token?grant_type=fb_exchange_token&client_id=&client_secret=&fb_exchange_token=
 
       // Utilize the enhanced HttpService to pass query parameters
       const [response, error] =
