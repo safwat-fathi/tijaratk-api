@@ -15,6 +15,7 @@ import { HealthController } from './health/health.controller';
 import { NotificationsModule } from './notifications/notifications.module';
 import { PostsModule } from './posts/posts.module';
 import { ProductsModule } from './products/products.module';
+import { SubscriptionModule } from './subscription/subscription.module';
 import { UsersModule } from './users/users.module';
 
 const ENV = process.env.NODE_ENV;
@@ -43,6 +44,7 @@ const ENV = process.env.NODE_ENV;
     FacebookEventsModule,
     NotificationsModule,
     PostsModule,
+    SubscriptionModule,
   ],
   controllers: [HealthController],
 })

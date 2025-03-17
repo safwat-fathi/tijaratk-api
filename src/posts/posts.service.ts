@@ -1,9 +1,15 @@
-import { Injectable, Logger, NotFoundException } from '@nestjs/common';
+import {
+  BadRequestException,
+  Injectable,
+  Logger,
+  NotFoundException,
+} from '@nestjs/common';
 import { Cron, CronExpression } from '@nestjs/schedule';
 import { InjectRepository } from '@nestjs/typeorm';
 import { FacebookPage } from 'src/facebook/entities/facebook-page.entity';
 import { FacebookService } from 'src/facebook/facebook.service';
 import { Product } from 'src/products/entities/product.entity';
+import { User } from 'src/users/entities/user.entity';
 import { LessThanOrEqual, Repository } from 'typeorm';
 
 import { CreatePostDto } from './dto/create-post.dto';
@@ -15,6 +21,8 @@ export class PostsService {
   private readonly logger = new Logger(PostsService.name);
 
   constructor(
+    @InjectRepository(User)
+    private readonly userRepository: Repository<User>,
     @InjectRepository(Post)
     private readonly postRepository: Repository<Post>,
     @InjectRepository(Product)
@@ -24,9 +32,19 @@ export class PostsService {
     private readonly facebookService: FacebookService,
   ) {}
 
-  async create(createPostDto: CreatePostDto): Promise<Post> {
+  async create(
+    facebookId: string,
+    createPostDto: CreatePostDto,
+  ): Promise<Post> {
     const { page_id, product_id, title, content, media_url, scheduled_at } =
       createPostDto;
+    const user = await this.userRepository.findOne({
+      where: { facebookId },
+    });
+    if (!user) {
+      throw new NotFoundException(`User with ID ${facebookId} not found`);
+    }
+
     // Ensure the selected product exists.
     const product = await this.productRepository.findOne({
       where: { id: product_id },
@@ -41,6 +59,21 @@ export class PostsService {
     });
     if (!facebook_page) {
       throw new NotFoundException(`Facebook page with ID ${page_id} not found`);
+    }
+
+    const productCount = await this.productRepository.count({
+      where: { id: product_id },
+    });
+    // Check subscription plan limits (assuming user.subscription is loaded)
+    const subscription = user.subscription;
+    if (
+      subscription &&
+      subscription.post_limit !== null &&
+      productCount >= subscription.post_limit
+    ) {
+      throw new BadRequestException(
+        'You have reached your post limit for your current subscription plan',
+      );
     }
 
     const post = this.postRepository.create({

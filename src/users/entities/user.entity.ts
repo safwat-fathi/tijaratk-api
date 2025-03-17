@@ -3,6 +3,7 @@ import { FacebookPage } from 'src/facebook/entities/facebook-page.entity';
 import { FacebookPageSubscription } from 'src/facebook-page-subscription/entities/facebook-page-subscription.entity';
 import { Notification } from 'src/notifications/entities/notification.entity';
 import { Product } from 'src/products/entities/product.entity';
+import { Subscription } from 'src/subscription/entities/subscription.entity';
 import {
   Column,
   CreateDateColumn,
@@ -22,6 +23,11 @@ import {
 export class User {
   @PrimaryGeneratedColumn()
   id: string;
+
+  @ManyToOne(() => Subscription, (sub) => sub.users, {
+    onDelete: 'CASCADE',
+  })
+  subscription: Relation<Subscription>;
 
   @Column({ nullable: true })
   email?: string;

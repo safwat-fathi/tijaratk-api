@@ -7,6 +7,7 @@ import {
   Param,
   Patch,
   Post,
+  Req,
   UseGuards,
 } from '@nestjs/common';
 import { AuthGuard } from '@nestjs/passport';
@@ -16,6 +17,7 @@ import {
   ApiOperation,
   ApiResponse,
 } from '@nestjs/swagger';
+import { Request } from 'express';
 import CONSTANTS from 'src/common/constants';
 
 import { CreatePostDto } from './dto/create-post.dto';
@@ -36,8 +38,9 @@ export class PostsController {
     status: HttpStatus.CREATED,
     description: 'Post created successfully',
   })
-  create(@Body() createPostDto: CreatePostDto) {
-    return this.postsService.create(createPostDto);
+  create(@Body() createPostDto: CreatePostDto, @Req() req: Request) {
+    const { facebookId } = req.user;
+    return this.postsService.create(facebookId, createPostDto);
   }
 
   @Get()

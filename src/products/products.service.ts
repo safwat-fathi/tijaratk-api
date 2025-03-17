@@ -19,9 +19,25 @@ export class ProductsService {
   async create(facebookId: string, dto: CreateProductDto) {
     const user = await this.userRepo.findOne({
       where: { facebookId },
+      relations: { subscription: true },
     });
     if (!user) {
       throw new BadRequestException('User not found');
+    }
+
+    const productCount = await this.productRepo.count({
+      where: { user: { id: user.id } },
+    });
+    // Check subscription plan limits (assuming user.subscription is loaded)
+    const subscription = user.subscription;
+    if (
+      subscription &&
+      subscription.product_limit !== null &&
+      productCount >= subscription.product_limit
+    ) {
+      throw new BadRequestException(
+        'You have reached your product limit for your current subscription plan',
+      );
     }
 
     const newProduct = this.productRepo.create({ ...dto, user });
@@ -34,7 +50,6 @@ export class ProductsService {
 
   async findAll(ListProductsDto: ListProductsDto) {
     const { page = 1, limit = 10, keyword } = ListProductsDto;
-    // For the sake of clarity, you might do:
     const skip = (page - 1) * limit;
 
     // Retrieve data

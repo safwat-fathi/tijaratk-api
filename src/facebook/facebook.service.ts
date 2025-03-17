@@ -1,5 +1,6 @@
 import { Cache } from '@nestjs/cache-manager';
 import {
+  BadRequestException,
   Injectable,
   InternalServerErrorException,
   Logger,
@@ -277,6 +278,24 @@ export class FacebookService {
         `User with page ID ${formattedEvents[0].page_id} not found.`,
       );
       return;
+    }
+
+    const notificationCount = await this.notificationRepo.count({
+      where: {
+        user: { id: user.id },
+      },
+    });
+
+    const subscription = user.subscription;
+
+    if (
+      subscription &&
+      subscription.comment_message_limit !== null &&
+      notificationCount >= subscription.comment_message_limit
+    ) {
+      throw new BadRequestException(
+        'You have reached your comment message limit for your current subscription plan',
+      );
     }
 
     this.eventsGateway.sendToClient(user.facebookId, formattedEvents[0]);
