@@ -5,10 +5,14 @@ import {
   Logger,
   Post,
   Query,
+  Req,
   Res,
+  UseGuards,
 } from '@nestjs/common';
-import { ApiExcludeEndpoint, ApiTags } from '@nestjs/swagger';
-import { Response } from 'express';
+import { AuthGuard } from '@nestjs/passport';
+import { ApiBearerAuth, ApiExcludeEndpoint, ApiTags } from '@nestjs/swagger';
+import { Request, Response } from 'express';
+import CONSTANTS from 'src/common/constants';
 
 import { FacebookService } from './facebook.service';
 
@@ -19,15 +23,14 @@ export class FacebookController {
   private readonly verifyToken = process.env.FACEBOOK_WEBHOOK_VERIFY_TOKEN; // Replace with your Verify Token
   constructor(private readonly facebookService: FacebookService) {}
 
-  // constructor() {}
-  // @ApiBearerAuth(CONSTANTS.ACCESS_TOKEN)
-  // @UseGuards(AuthGuard(CONSTANTS.AUTH.JWT))
-  // @Get('pages')
-  // async getPages(@Request() req: ExpressRequest) {
-  //   const { facebookId } = req.user;
-  //   console.log('🚀 ~ FacebookController ~ getPages ~ facebookId:', facebookId);
-  //   return await this.facebookService.getUserPages(facebookId);
-  // }
+  @ApiBearerAuth(CONSTANTS.ACCESS_TOKEN)
+  @UseGuards(AuthGuard(CONSTANTS.AUTH.JWT))
+  @Get('pages')
+  async getPages(@Req() req: Request) {
+    const { facebookId } = req.user;
+
+    return await this.facebookService.getUserPages(facebookId);
+  }
 
   @ApiExcludeEndpoint()
   @Get('/webhook')

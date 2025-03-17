@@ -84,7 +84,12 @@ export class FacebookService {
     if (!shouldRefreshPages) {
       const pages = await this.facebookPageRepo.find({
         where: { user: { facebookId } },
-        select: { access_token: true, page_id: true },
+        select: {
+          access_token: true,
+          page_id: true,
+          name: true,
+          category: true,
+        },
       });
 
       // Cache the results
