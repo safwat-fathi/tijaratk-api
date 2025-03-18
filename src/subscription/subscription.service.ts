@@ -1,5 +1,9 @@
-import { Injectable, NotFoundException } from '@nestjs/common';
+import { Injectable, Logger, NotFoundException } from '@nestjs/common';
+import { OnEvent } from '@nestjs/event-emitter';
 import { InjectRepository } from '@nestjs/typeorm';
+import { Events } from 'src/common/enums/events.enum';
+import { UserLoginEvent } from 'src/events/user-login.event';
+import { User } from 'src/users/entities/user.entity';
 import { Repository } from 'typeorm';
 
 import { CreateSubscriptionDto } from './dto/create-subscription.dto';
@@ -8,9 +12,12 @@ import { Subscription } from './entities/subscription.entity';
 
 @Injectable()
 export class SubscriptionService {
+  private readonly logger = new Logger(SubscriptionService.name);
   constructor(
     @InjectRepository(Subscription)
     private readonly subscriptionRepository: Repository<Subscription>,
+    @InjectRepository(User)
+    private readonly userRepository: Repository<User>,
   ) {}
 
   // Retrieve all subscriptions
@@ -53,5 +60,30 @@ export class SubscriptionService {
   async remove(id: number): Promise<void> {
     const subscription = await this.findOne(id);
     await this.subscriptionRepository.remove(subscription);
+  }
+
+  @OnEvent(Events.USER_LOGGED_IN)
+  async handleUserLoginEvent(payload: UserLoginEvent) {
+    this.logger.debug(
+      `Received user.logged_in event for userId=${payload.userId}`,
+    );
+
+    // check if user has a subscription
+    const subscription = await this.subscriptionRepository.findOne({
+      where: { users: { id: payload.userId } },
+      relations: { users: true },
+    });
+    if (!subscription) {
+      // add free subscription
+      const freeSubscription = await this.subscriptionRepository.findOne({
+        where: { name: 'Free' },
+      });
+      const user = await this.userRepository.findOne({
+        where: { id: payload.userId },
+      });
+
+      user.subscription = freeSubscription;
+      await this.userRepository.save(user);
+    }
   }
 }
