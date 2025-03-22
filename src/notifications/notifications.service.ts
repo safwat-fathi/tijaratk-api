@@ -29,6 +29,7 @@ export class NotificationsService {
     const [data, total] = await this.notificationRepository.findAndCount({
       where: { user: { facebookId } },
       order: { created_at: 'DESC' },
+      relations: { facebook_page: true },
       skip: (page - 1) * limit,
       take: limit,
     });
