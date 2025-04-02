@@ -1,4 +1,4 @@
-name: Deploy to DigitalOcean
+name: Deploy to production
 
 on:
   push:
@@ -15,21 +15,24 @@ jobs:
       - name: Setup Node.js
         uses: actions/setup-node@v3
         with:
-          node-version: 18.20.6
+          node-version: 20.18.3
 
       - name: Install Dependencies
-        run: yarn install
+        run: npm install
 
       - name: Build Project
-        run: yarn build
+        run: npm run build
 
       - name: Deploy to DigitalOcean via SSH
         uses: appleboy/ssh-action@master
         with:
           host: ${{ secrets.DIGITALOCEAN_DROPLET }}
-          username: root
+          username: ${{ secrets.SSH_USER }}
           key: ${{ secrets.SSH_PRIVATE_KEY }}
           script: |
+            export NVM_DIR="$HOME/.nvm"
+            [ -s "$NVM_DIR/nvm.sh" ] && . "$NVM_DIR/nvm.sh"
+            nvm use node
             cd tijaratk-api
             git pull origin main
             yarn install
