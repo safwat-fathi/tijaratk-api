@@ -35,6 +35,5 @@ jobs:
             nvm use node
             cd tijaratk-api
             git pull origin main
-            yarn install
-            yarn build
+            yarn && yarn build
             pm2 restart API || pm2 start "yarn start:prod" --name "API" 
