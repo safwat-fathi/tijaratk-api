@@ -14,7 +14,7 @@ const dbConfig: DataSourceOptions = {
   database: process.env.DB_NAME,
   entities: [__dirname + '/../**/*.entity{.ts,.js}'],
   migrations: ['dist/migrations/*.js'],
-  migrationsRun: true,
+  migrationsRun: false,
   migrationsTableName: process.env.MIGRATIONS_TABLE_NAME,
   synchronize: false,
   logging: process.env.NODE_ENV === 'development',
