@@ -4,6 +4,7 @@ import { PassportModule } from '@nestjs/passport';
 import { TypeOrmModule } from '@nestjs/typeorm';
 import CONSTANTS from 'src/common/constants';
 import { FacebookPage } from 'src/facebook/entities/facebook-page.entity';
+import { FacebookModule } from 'src/facebook/facebook.module';
 import { FacebookService } from 'src/facebook/facebook.service';
 import { Notification } from 'src/notifications/entities/notification.entity';
 
@@ -24,6 +25,7 @@ import { JwtStrategy } from './strategies/jwt.strategy';
         signOptions: { expiresIn: CONSTANTS.SESSION.EXPIRATION_TIME },
       }),
     }),
+    FacebookModule,
   ],
   providers: [AuthService, JwtStrategy, FacebookStrategy, FacebookService],
   controllers: [AuthController],

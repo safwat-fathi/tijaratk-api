@@ -1,6 +1,7 @@
 import { Module } from '@nestjs/common';
 import { TypeOrmModule } from '@nestjs/typeorm';
 import { FacebookPage } from 'src/facebook/entities/facebook-page.entity';
+import { FacebookModule } from 'src/facebook/facebook.module';
 import { FacebookService } from 'src/facebook/facebook.service';
 import { FacebookPageSubscription } from 'src/facebook-page-subscription/entities/facebook-page-subscription.entity';
 import { FacebookPageSubscriptionService } from 'src/facebook-page-subscription/facebook-page-subscription.service';
@@ -21,6 +22,7 @@ import { UsersService } from './users.service';
       FacebookPageSubscription,
       Notification,
     ]),
+    FacebookModule,
   ],
   controllers: [UsersController],
   providers: [

@@ -42,6 +42,12 @@ export class Notification {
   @ManyToOne(() => FacebookPage, (facebookPage) => facebookPage.notifications)
   facebook_page: Relation<FacebookPage>;
 
+  @Column({ nullable: true })
+  sentiment: string;
+
+  @Column({ nullable: true })
+  classification: string;
+
   @CreateDateColumn()
   created_at: Date;
 

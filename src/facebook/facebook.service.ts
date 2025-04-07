@@ -7,6 +7,7 @@ import {
   UnauthorizedException,
 } from '@nestjs/common';
 import { InjectRepository } from '@nestjs/typeorm';
+import { TextAnalysisService } from 'src/common/services/text-analysis.service';
 import { HttpService } from 'src/common/utils/http-service';
 import { FacebookEventsGateway } from 'src/facebook-events/facebook-events.gateway';
 import {
@@ -45,6 +46,7 @@ export class FacebookService {
     private readonly notificationRepo: Repository<Notification>,
     private readonly cacheManager: Cache,
     private readonly eventsGateway: FacebookEventsGateway,
+    private readonly textAnalysisService: TextAnalysisService,
   ) {
     this.httpService = new HttpService({
       baseUrl: process.env.FACEBOOK_GRAPH_API_BASE_URL,
@@ -378,6 +380,11 @@ export class FacebookService {
     });
 
     if (user) {
+      // Analyze the message content
+      const analysis = await this.textAnalysisService.analyzeText(
+        event.content,
+      );
+
       const newNotification = this.notificationRepo.create({
         content: event.content,
         type: event.type,
@@ -386,6 +393,8 @@ export class FacebookService {
           (page) => page.page_id === event.page_id,
         ),
         sender_id: event.sender_id,
+        sentiment: analysis.sentiment,
+        classification: analysis.classification,
       });
 
       await this.notificationRepo.save(newNotification);
@@ -401,6 +410,11 @@ export class FacebookService {
     });
 
     if (user) {
+      // Analyze the comment content
+      const analysis = await this.textAnalysisService.analyzeText(
+        event.content,
+      );
+
       const newNotification = this.notificationRepo.create({
         content: event.content,
         type: event.type,
@@ -410,6 +424,8 @@ export class FacebookService {
         ),
         sender_id: event.sender_id,
         sender_name: event.sender_name,
+        sentiment: analysis.sentiment,
+        classification: analysis.classification,
       });
 
       await this.notificationRepo.save(newNotification);

@@ -41,6 +41,55 @@ export class HttpService {
   }
 
   /**
+   * General request method handling timeout and baseUrl.
+   */
+  private async request<T>(
+    url: string,
+    options: HttpServiceOptions,
+  ): Promise<HttpResponse<T>> {
+    const controller = new AbortController();
+    const id = setTimeout(
+      () => controller.abort(),
+      options.timeout || this.timeout,
+    );
+
+    try {
+      const response = await fetch(url, {
+        ...options,
+        signal: controller.signal,
+      });
+
+      if (!response.ok) {
+        const errorBody = await response.text();
+        throw new Error(
+          `HTTP error status: ${response.status}, body: ${errorBody}`,
+        );
+      }
+
+      if (response.status === 204) {
+        return [{} as T, null];
+      }
+
+      // Assuming JSON response
+      const data = await response.json();
+      return [data as T, null];
+    } catch (error) {
+      if (error.name === 'AbortError') {
+        return [
+          null,
+          new RequestTimeoutException(
+            `Request to ${url} timed out after ${this.timeout}ms`,
+          ),
+        ];
+      }
+
+      return [null, error];
+    } finally {
+      clearTimeout(id);
+    }
+  }
+
+  /**
    * Makes a GET request.
    */
   public get<T>(
@@ -104,54 +153,5 @@ export class HttpService {
   ): Promise<HttpResponse<T>> {
     const url = this.buildUrl(endpoint, params);
     return this.request<T>(url, { ...options, method: HttpMethod.DELETE });
-  }
-
-  /**
-   * General request method handling timeout and baseUrl.
-   */
-  private async request<T>(
-    url: string,
-    options: HttpServiceOptions,
-  ): Promise<HttpResponse<T>> {
-    const controller = new AbortController();
-    const id = setTimeout(
-      () => controller.abort(),
-      options.timeout || this.timeout,
-    );
-
-    try {
-      const response = await fetch(url, {
-        ...options,
-        signal: controller.signal,
-      });
-
-      if (!response.ok) {
-        const errorBody = await response.text();
-        throw new Error(
-          `HTTP error status: ${response.status}, body: ${errorBody}`,
-        );
-      }
-
-      if (response.status === 204) {
-        return [{} as T, null];
-      }
-
-      // Assuming JSON response
-      const data = await response.json();
-      return [data as T, null];
-    } catch (error) {
-      if (error.name === 'AbortError') {
-        return [
-          null,
-          new RequestTimeoutException(
-            `Request to ${url} timed out after ${this.timeout}ms`,
-          ),
-        ];
-      }
-
-      return [null, error];
-    } finally {
-      clearTimeout(id);
-    }
   }
 }
