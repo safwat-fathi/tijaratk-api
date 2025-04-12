@@ -1,3 +1,27 @@
+#!/usr/bin/env sh
+
+# Check if gitleaks is installed
+if ! command -v gitleaks >/dev/null 2>&1; then
+  echo "❌ gitleaks is not installed."
+  echo "👉 Please install it: https://github.com/gitleaks/gitleaks or run: brew install gitleaks"
+  echo "🛑 Commit aborted."
+  exit 1
+fi
+
+# Run gitleaks
+gitleaks detect --no-git -v --config .gitleaks.toml
+status=$?
+
+if [ $status -ne 0 ]; then
+  echo "❌ Potential secrets detected!"
+  echo "🛑 Commit aborted."
+  exit 1
+fi
+
+echo "✅ No secrets found."
+
+echo "🎯 Running lint-staged to check code style..."
+
 case `uname` in
   *CYGWIN*|*MINGW*|*MSYS*)
     npx.cmd lint-staged --config .lintstagedrc.mjs # bug on Windows/Github Desktop: add `.cmd` extension fixes it
@@ -6,3 +30,5 @@ case `uname` in
     npx lint-staged --config .lintstagedrc.mjs
   ;;
 esac
+
+echo "✅ Pre-commit checks passed. Proceeding with commit."

@@ -1,0 +1,6 @@
+[allowlist]
+files = [
+  "**/.env",
+  "**/.env.production",
+  "**/.env.*"
+]
