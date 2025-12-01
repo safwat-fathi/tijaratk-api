@@ -1,7 +1,7 @@
 import { BadRequestException, Injectable, NotFoundException } from '@nestjs/common';
 import { InjectRepository } from '@nestjs/typeorm';
 import { User } from 'src/users/entities/user.entity';
-import { ILike, Not, Repository } from 'typeorm';
+import { FindOptionsWhere, ILike, Not, Repository } from 'typeorm';
 
 import { Product, ProductStatus } from 'src/products/entities/product.entity';
 import { ListStorefrontProductsDto } from './dto/list-storefront-products.dto';
@@ -24,6 +24,13 @@ export class StorefrontsService {
     const user = await this.userRepo.findOne({ where: { facebookId } });
     if (!user) {
       throw new BadRequestException('User not found');
+    }
+
+    const existingCount = await this.storefrontRepo.count({
+      where: { user: { id: user.id } },
+    });
+    if (existingCount > 0) {
+      throw new BadRequestException('You already have a storefront configured');
     }
 
     const slugBase = (dto.slug ?? dto.name)
@@ -51,10 +58,14 @@ export class StorefrontsService {
       suffix += 1;
     }
 
+    const { is_published: _ignoredIsPublished, ...rest } = dto;
+
     const storefront = this.storefrontRepo.create({
-      ...dto,
+      ...rest,
       slug,
       user,
+      // Only system admins can publish; user-created storefronts start unpublished
+      is_published: false,
     });
 
     return this.storefrontRepo.save(storefront);
@@ -124,7 +135,9 @@ export class StorefrontsService {
       storefront.slug = slug;
     }
 
-    Object.assign(storefront, dto);
+    const { is_published: _ignoredIsPublished, ...rest } = dto;
+
+    Object.assign(storefront, rest);
 
     return this.storefrontRepo.save(storefront);
   }
@@ -144,6 +157,21 @@ export class StorefrontsService {
       where: { user: { id: userId } },
       order: { created_at: 'DESC' },
     });
+  }
+
+  async isSlugAvailable(slug: string, excludeId?: number) {
+    const where: FindOptionsWhere<Storefront> = { slug };
+
+    if (excludeId) {
+      where.id = Not(excludeId);
+    }
+
+    const exists = await this.storefrontRepo.exist({
+      where,
+      withDeleted: true,
+    });
+
+    return { available: !exists };
   }
 
   async getPublicStorefront(slug: string) {

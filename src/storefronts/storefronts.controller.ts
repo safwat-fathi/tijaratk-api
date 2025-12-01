@@ -8,6 +8,7 @@ import {
   Patch,
   Post,
   Req,
+  Query,
   UseGuards,
 } from '@nestjs/common';
 import { AuthGuard } from '@nestjs/passport';
@@ -21,6 +22,7 @@ import {
 import { Request } from 'express';
 import CONSTANTS from 'src/common/constants';
 
+import { CheckSlugDto } from './dto/check-slug.dto';
 import { CreateStorefrontDto } from './dto/create-storefront.dto';
 import { UpdateStorefrontDto } from './dto/update-storefront.dto';
 import { StorefrontsService } from './storefronts.service';
@@ -58,6 +60,18 @@ export class StorefrontsController {
     return this.storefrontsService.findForUser(facebookId);
   }
 
+  @Get('slug/check')
+  @ApiOperation({ summary: 'Check storefront slug availability' })
+  @ApiResponse({
+    status: HttpStatus.OK,
+    description: 'Whether the slug is available',
+  })
+  checkSlug(@Req() _req: Request, @Query() query: CheckSlugDto) {
+    const { slug, excludeId } = query;
+
+    return this.storefrontsService.isSlugAvailable(slug, excludeId);
+  }
+
   @Patch(':id')
   @ApiOperation({ summary: 'Update storefront by id' })
   @ApiResponse({
@@ -74,4 +88,3 @@ export class StorefrontsController {
     return this.storefrontsService.updateForUser(facebookId, id, dto);
   }
 }
-

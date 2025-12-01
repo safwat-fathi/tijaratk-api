@@ -33,6 +33,19 @@
   - Design validation and basic abuse protections, such as rate limiting hooks, maximum items per order, and required contact fields.
   - Decide how orders integrate with existing fulfilment and notifications (for example, trigger notifications to the store owner).
 
+### Owner order management and protections (extension)
+
+- Owner-facing order listing:
+  - Add a DTO (for example, `ListOrdersDto`) that supports pagination and filters such as `status`, `created_from`, `created_to`, `buyer_name`, `buyer_email`, and `buyer_phone`, along with sort options (for example, `sort_by` and `sort_order`).
+  - Expose authenticated endpoints for store owners to list and retrieve orders per storefront.
+- Order status management:
+  - Add endpoints for accepting and rejecting orders and for updating order status generically (for example, `pending`, `confirmed`, `shipped`, `cancelled`), with basic transition rules.
+- Rate limiting and spam/fraud rules:
+  - Apply rate limiting to public order creation (`POST /public/storefronts/:slug/orders`) with a policy of a maximum of 5 orders per 10 minutes per IP.
+  - Implement simple spam/fraud checks in order creation, including:
+    - Using `buyer_phone` as the main identifier for detecting repeated orders in a short time window (since email is optional).
+    - Enforcing a minimum total order amount and caps on items per order and per-item quantity.
+
 ## Phase 3 – Performance, Security, and Rollout
 
 - Performance and caching:

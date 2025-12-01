@@ -4,7 +4,6 @@ import {
   IsEmail,
   IsInt,
   IsNotEmpty,
-  IsNumber,
   IsOptional,
   IsPositive,
   IsString,
@@ -38,15 +37,13 @@ export class CreateOrderDto {
   @IsNotEmpty()
   @IsString()
   buyer_name: string;
-
-	@ApiProperty({
-		description: 'Phone number of the buyer',
-		example: '+201234567890',
-		required: true,
-	})
-	@IsString()
-	buyer_phone: string;
-	
+  @ApiProperty({
+    description: 'Phone number of the buyer',
+    example: '+201234567890',
+    required: true,
+  })
+  @IsString()
+  buyer_phone: string;
   @ApiProperty({
     description: 'Email address of the buyer',
     example: 'john@example.com',
