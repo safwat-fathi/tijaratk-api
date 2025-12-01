@@ -1,5 +1,5 @@
 import { ApiProperty } from '@nestjs/swagger';
-import { IsEnum, IsNotEmpty, IsNumber, IsString } from 'class-validator';
+import { IsEnum, IsNotEmpty, IsNumber, IsOptional, IsString } from 'class-validator';
 
 import { ProductStatus } from '../entities/product.entity';
 
@@ -13,6 +13,16 @@ export class CreateProductDto {
   @IsNotEmpty()
   @IsString()
   name: string;
+
+  @ApiProperty({
+    type: String,
+    description: 'Product SKU (stock keeping unit)',
+    example: 'SKU-12345',
+    required: false,
+  })
+  @IsOptional()
+  @IsString()
+  sku?: string;
 
   @ApiProperty({
     enum: ProductStatus,

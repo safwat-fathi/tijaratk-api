@@ -20,12 +20,19 @@ export enum ProductStatus {
 
 @Entity('products')
 @Unique(['user', 'name'])
+@Unique(['user', 'slug'])
 export class Product {
   @PrimaryGeneratedColumn()
   id: number;
 
   @Column()
   name: string;
+
+  @Column({ type: 'varchar', length: 64, nullable: true })
+  sku?: string;
+
+  @Column({ type: 'varchar', length: 255, nullable: true })
+  slug?: string;
 
   @OneToMany(() => Post, (post) => post.product)
   posts: Relation<Post[]>;

@@ -40,7 +40,35 @@ export class ProductsService {
       );
     }
 
-    const newProduct = this.productRepo.create({ ...dto, user });
+    const slugBase = dto.name
+      .toLowerCase()
+      .trim()
+      .replace(/[^a-z0-9]+/g, '-')
+      .replace(/^-+|-+$/g, '');
+
+    let slug = slugBase;
+    let suffix = 1;
+
+    // Ensure slug is unique per user
+    // eslint-disable-next-line no-constant-condition
+    while (true) {
+      const exists = await this.productRepo.exist({
+        where: { user: { id: user.id }, slug },
+      });
+
+      if (!exists) {
+        break;
+      }
+
+      slug = `${slugBase}-${suffix}`;
+      suffix += 1;
+    }
+
+    const newProduct = this.productRepo.create({
+      ...dto,
+      slug,
+      user,
+    });
 
     const savedProduct = await this.productRepo.save(newProduct);
     delete savedProduct.user;
@@ -62,6 +90,8 @@ export class ProductsService {
       select: {
         id: true,
         name: true,
+        sku: true,
+        slug: true,
         deleted_at: true,
         price: true,
         status: true,

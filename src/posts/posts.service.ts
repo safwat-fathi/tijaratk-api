@@ -147,7 +147,7 @@ export class PostsService {
   }
 
   // Scheduler: runs every minute and publishes posts whose scheduled time has arrived.
-  @Cron(CronExpression.EVERY_MINUTE)
+  @Cron(CronExpression.EVERY_30_MINUTES)
   async publishScheduledPosts(): Promise<void> {
     const now = new Date();
     const posts = await this.postRepository.find({

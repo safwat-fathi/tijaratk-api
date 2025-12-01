@@ -12,9 +12,11 @@ import { FacebookModule } from './facebook/facebook.module';
 import { FacebookEventsModule } from './facebook-events/facebook-events.module';
 import { FacebookPageSubscriptionModule } from './facebook-page-subscription/facebook-page-subscription.module';
 import { HealthController } from './health/health.controller';
+import { OrdersModule } from './orders/orders.module';
 import { NotificationsModule } from './notifications/notifications.module';
 import { PostsModule } from './posts/posts.module';
 import { ProductsModule } from './products/products.module';
+import { StorefrontsModule } from './storefronts/storefronts.module';
 import { SubscriptionModule } from './subscription/subscription.module';
 import { UsersModule } from './users/users.module';
 
@@ -44,6 +46,8 @@ const ENV = process.env.NODE_ENV;
     FacebookEventsModule,
     NotificationsModule,
     PostsModule,
+    OrdersModule,
+    StorefrontsModule,
     SubscriptionModule,
   ],
   controllers: [HealthController],

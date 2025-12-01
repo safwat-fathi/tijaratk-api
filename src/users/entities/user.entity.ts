@@ -3,6 +3,7 @@ import { FacebookPage } from 'src/facebook/entities/facebook-page.entity';
 import { FacebookPageSubscription } from 'src/facebook-page-subscription/entities/facebook-page-subscription.entity';
 import { Notification } from 'src/notifications/entities/notification.entity';
 import { Product } from 'src/products/entities/product.entity';
+import { Storefront } from 'src/storefronts/entities/storefront.entity';
 import { Subscription } from 'src/subscription/entities/subscription.entity';
 import {
   Column,
@@ -55,6 +56,9 @@ export class User {
 
   @OneToMany(() => Notification, (notification) => notification.user)
   notifications: Relation<Notification[]>;
+
+  @OneToMany(() => Storefront, (storefront) => storefront.user)
+  storefronts?: Relation<Storefront[]>;
 
   @Column({
     select: false,
