@@ -20,7 +20,7 @@ export class OrdersPublicController {
   constructor(private readonly ordersService: OrdersService) {}
 
   @Post(':slug/orders')
-  @Throttle({ default: { limit: 5, ttl: 600 } }) // max 5 orders per 10 minutes per IP
+  @Throttle({ default: { limit: 5, ttl: 60 * 15 } }) // max 5 orders per 10 minutes per IP
   @HttpCode(HttpStatus.CREATED)
   @ApiBody({
     description: 'Create an order for a storefront',

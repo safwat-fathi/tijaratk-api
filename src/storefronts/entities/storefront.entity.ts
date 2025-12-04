@@ -4,7 +4,8 @@ import {
   CreateDateColumn,
   DeleteDateColumn,
   Entity,
-  ManyToOne,
+  JoinColumn,
+  OneToOne,
   PrimaryGeneratedColumn,
   Relation,
   Unique,
@@ -29,10 +30,14 @@ export class Storefront {
   @Column({ default: false })
   is_published: boolean;
 
-  @ManyToOne(() => User, (user) => user.storefronts, {
+  @Column({ name: 'userId', unique: true })
+  userId: number;
+
+  @OneToOne(() => User, (user) => user.storefront, {
     onDelete: 'CASCADE',
     nullable: false,
   })
+  @JoinColumn({ name: 'userId' })
   user: Relation<User>;
 
   @Column({ type: 'varchar', length: 255, nullable: true })
@@ -68,4 +73,3 @@ export class Storefront {
   @DeleteDateColumn()
   deleted_at: Date;
 }
-

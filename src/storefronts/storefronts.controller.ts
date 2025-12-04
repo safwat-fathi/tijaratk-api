@@ -49,10 +49,10 @@ export class StorefrontsController {
   }
 
   @Get()
-  @ApiOperation({ summary: 'Get storefronts for the authenticated user' })
+  @ApiOperation({ summary: 'Get storefront for the authenticated user' })
   @ApiResponse({
     status: HttpStatus.OK,
-    description: 'List of storefronts for the authenticated user.',
+    description: 'Storefront for the authenticated user.',
   })
   findMine(@Req() req: Request) {
     const { facebookId } = req.user;

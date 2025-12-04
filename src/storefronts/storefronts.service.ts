@@ -26,10 +26,10 @@ export class StorefrontsService {
       throw new BadRequestException('User not found');
     }
 
-    const existingCount = await this.storefrontRepo.count({
+    const existing = await this.storefrontRepo.findOne({
       where: { user: { id: user.id } },
     });
-    if (existingCount > 0) {
+    if (existing) {
       throw new BadRequestException('You already have a storefront configured');
     }
 
@@ -79,9 +79,8 @@ export class StorefrontsService {
       throw new BadRequestException('User not found');
     }
 
-    return this.storefrontRepo.find({
+    return this.storefrontRepo.findOne({
       where: { user: { id: user.id } },
-      order: { created_at: 'DESC' },
     });
   }
 
@@ -152,10 +151,9 @@ export class StorefrontsService {
     });
   }
 
-  async findUserStorefronts(userId: string) {
-    return this.storefrontRepo.find({
+  async findUserStorefront(userId: string) {
+    return this.storefrontRepo.findOne({
       where: { user: { id: userId } },
-      order: { created_at: 'DESC' },
     });
   }
 

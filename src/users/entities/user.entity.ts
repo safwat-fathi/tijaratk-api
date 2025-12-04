@@ -12,6 +12,7 @@ import {
   Entity,
   ManyToOne,
   OneToMany,
+  OneToOne,
   PrimaryGeneratedColumn,
   Relation,
   Unique,
@@ -57,8 +58,8 @@ export class User {
   @OneToMany(() => Notification, (notification) => notification.user)
   notifications: Relation<Notification[]>;
 
-  @OneToMany(() => Storefront, (storefront) => storefront.user)
-  storefronts?: Relation<Storefront[]>;
+  @OneToOne(() => Storefront, (storefront) => storefront.user)
+  storefront?: Relation<Storefront>;
 
   @Column({
     select: false,
