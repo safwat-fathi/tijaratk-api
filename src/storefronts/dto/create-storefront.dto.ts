@@ -107,16 +107,4 @@ export class CreateStorefrontDto {
   @IsString()
   google_analytics_measurement_id?: string;
 
-  @ApiPropertyOptional({
-    description:
-      'Theme configuration for the storefront (colors, layout, etc.)',
-    example: {
-      primaryColor: '#ff0000',
-      layout: 'grid',
-    },
-  })
-  @IsOptional()
-  // eslint-disable-next-line @typescript-eslint/no-explicit-any
-  theme_config?: Record<string, any>;
 }
-

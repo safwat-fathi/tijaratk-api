@@ -23,17 +23,17 @@ async function bootstrap() {
   const isDev = process.env.NODE_ENV !== 'production';
   let app: INestApplication;
 
-  if (isDev) {
-    // Only load HTTPS options in development.
-    const httpsOptions = {
-      key: readFileSync(path.join(__dirname, '../localhost-key.pem')), // adjust path if needed
-      cert: readFileSync(path.join(__dirname, '../localhost.pem')), // adjust path if needed
-    };
-    app = await NestFactory.create(AppModule, { httpsOptions });
-  } else {
-    // In production, HTTPS termination is often handled by a proxy or load balancer.
-    app = await NestFactory.create(AppModule);
-  }
+  // if (isDev) {
+  //   // Only load HTTPS options in development.
+  //   const httpsOptions = {
+  //     key: readFileSync(path.join(__dirname, '../localhost-key.pem')), // adjust path if needed
+  //     cert: readFileSync(path.join(__dirname, '../localhost.pem')), // adjust path if needed
+  //   };
+  //   app = await NestFactory.create(AppModule, { httpsOptions });
+  // } else {
+  // In production, HTTPS termination is often handled by a proxy or load balancer.
+  app = await NestFactory.create(AppModule);
+  // }
 
   // Remove COOP header to fix Swagger UI issues
   app.use((_req, res, next) => {

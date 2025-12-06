@@ -5,6 +5,7 @@ import {
   Subscription,
   SupportType,
 } from 'src/subscription/entities/subscription.entity';
+import { seedProducts } from 'src/products/products.seed';
 
 async function bootstrap() {
   const logger = new Logger('Seed');
@@ -75,6 +76,7 @@ async function bootstrap() {
 
   try {
     await subscriptionRepository.save(subscriptionPlans);
+    await seedProducts(dataSource);
     logger.log('Seeding completed successfully.');
   } catch (error) {
     logger.error('Seeding error:', error);

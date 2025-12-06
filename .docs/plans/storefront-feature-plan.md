@@ -4,10 +4,11 @@
 
 ## Phase 1 – Core Domain & API Design
 
-- Define domain ownership: each `Storefront` is owned by a `User` (one-to-one or one-to-many, depending on the product vision).
+- Define domain ownership: enforce exactly one `Storefront` per `User`, so ownership is strictly one-to-one.
 - Decide how storefronts expose products: reuse existing `Product` entities, with a clear scoping rule (for example, the store shows only products owned by that storefront’s user and marked as “published”).
 - Update the `Product` entity to include `sku` and `slug` fields so products can be uniquely identified and exposed via clean storefront URLs.
 - Design a minimal `Order` model: includes buyer contact info (name, email, phone), shipping details (address, city, country, and so on), ordered items (product id, quantity, price at time of order), and order status (for example, `pending`, `confirmed`, `shipped`, `cancelled`).
+- Define the anonymous ordering principle: shoppers never need an account, and the system never issues customer-specific tokens—every order instead receives a unique `order_id` (generated as a public-safe random string) that becomes the sole identifier a shopper can use to look up status.
 - Shape NestJS modules and boundaries:
   - `StorefrontsModule` for storefront configuration, ownership, SEO, and tracking.
   - Reuse `ProductsModule` for catalog exposure, with a service method like `findForStorefront(storefrontId, filters)`.
@@ -30,8 +31,9 @@
   - Decide how the storefront frontend consumes this config to render different layouts and styles.
 - Checkout and minimal order flow:
   - Define DTOs for anonymous order creation, including cart line items, contact and shipping details, and optional notes.
+  - Ensure order tracking depends exclusively on the generated `order_id`; when a shopper submits an order, immediately send the `order_id` via email/SMS and require it for all subsequent status queries.
   - Design validation and basic abuse protections, such as rate limiting hooks, maximum items per order, and required contact fields.
-  - Decide how orders integrate with existing fulfilment and notifications (for example, trigger notifications to the store owner).
+  - Decide how orders integrate with existing fulfillment and notifications (for example, trigger notifications to the store owner).
 
 ### Owner order management and protections (extension)
 

@@ -87,4 +87,20 @@ export class StorefrontsController {
 
     return this.storefrontsService.updateForUser(facebookId, id, dto);
   }
+
+  @Post(':id/theme-editor-session')
+  @HttpCode(HttpStatus.CREATED)
+  @ApiOperation({ summary: 'Create a scoped theme editor session' })
+  @ApiResponse({
+    status: HttpStatus.CREATED,
+    description: 'Theme editor token issued successfully.',
+  })
+  createThemeEditorSession(@Param('id') id: number, @Req() req: Request) {
+    const { facebookId } = req.user;
+
+    return this.storefrontsService.createThemeEditorSession(
+      facebookId,
+      Number(id),
+    );
+  }
 }

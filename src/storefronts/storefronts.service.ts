@@ -1,4 +1,9 @@
-import { BadRequestException, Injectable, NotFoundException } from '@nestjs/common';
+import {
+  BadRequestException,
+  ForbiddenException,
+  Injectable,
+  NotFoundException,
+} from '@nestjs/common';
 import { InjectRepository } from '@nestjs/typeorm';
 import { User } from 'src/users/entities/user.entity';
 import { FindOptionsWhere, ILike, Not, Repository } from 'typeorm';
@@ -8,6 +13,14 @@ import { ListStorefrontProductsDto } from './dto/list-storefront-products.dto';
 import { Storefront } from './entities/storefront.entity';
 import { CreateStorefrontDto } from './dto/create-storefront.dto';
 import { UpdateStorefrontDto } from './dto/update-storefront.dto';
+import {
+  DEFAULT_STOREFRONT_THEME,
+  StorefrontThemeConfig,
+} from './types/theme-config';
+import {
+  ThemeEditorTokenService,
+  THEME_EDITOR_SCOPE,
+} from './theme-editor-token.service';
 
 @Injectable()
 export class StorefrontsService {
@@ -18,6 +31,7 @@ export class StorefrontsService {
     private readonly productRepo: Repository<Product>,
     @InjectRepository(User)
     private readonly userRepo: Repository<User>,
+    private readonly themeEditorTokenService: ThemeEditorTokenService,
   ) {}
 
   async createForUser(facebookId: string, dto: CreateStorefrontDto) {
@@ -62,6 +76,7 @@ export class StorefrontsService {
 
     const storefront = this.storefrontRepo.create({
       ...rest,
+      theme_config: { ...DEFAULT_STOREFRONT_THEME },
       slug,
       user,
       // Only system admins can publish; user-created storefronts start unpublished
@@ -136,9 +151,138 @@ export class StorefrontsService {
 
     const { is_published: _ignoredIsPublished, ...rest } = dto;
 
-    Object.assign(storefront, rest);
+    Object.assign(storefront, {
+      ...rest,
+    });
 
     return this.storefrontRepo.save(storefront);
+  }
+
+  async createThemeEditorSession(facebookId: string, id: number) {
+    const user = await this.userRepo.findOne({ where: { facebookId } });
+    if (!user) {
+      throw new BadRequestException('User not found');
+    }
+
+    const storefront = await this.storefrontRepo.findOne({
+      where: { id, user: { id: user.id } },
+    });
+
+    if (!storefront) {
+      throw new NotFoundException('Storefront not found');
+    }
+
+    const token = this.themeEditorTokenService.sign({
+      sub: user.id,
+      storefrontId: storefront.id,
+      scope: [THEME_EDITOR_SCOPE],
+    });
+
+    const expiresAt = this.themeEditorTokenService.expiresAtFromNow();
+    const previewUrl = this.buildThemeEditorUrl(storefront.id, token);
+
+    return {
+      token,
+      expires_at: expiresAt.toISOString(),
+      preview_url: previewUrl,
+    };
+  }
+
+  async getStorefrontTheme(id: number) {
+    const storefront = await this.storefrontRepo.findOne({ where: { id } });
+
+    if (!storefront) {
+      throw new NotFoundException('Storefront not found');
+    }
+
+    return {
+      storefront: this.sanitizeStorefront(storefront),
+      theme_config: this.mergeThemeConfig(storefront.theme_config),
+    };
+  }
+
+  async updateStorefrontTheme(
+    id: number,
+    theme?: StorefrontThemeConfig,
+  ) {
+    const storefront = await this.storefrontRepo.findOne({ where: { id } });
+
+    if (!storefront) {
+      throw new NotFoundException('Storefront not found');
+    }
+
+    const mergedTheme = this.mergeThemeConfig(
+      theme ?? storefront.theme_config,
+    );
+    storefront.theme_config = mergedTheme;
+    await this.storefrontRepo.save(storefront);
+
+    return {
+      storefront: this.sanitizeStorefront(storefront),
+      theme_config: mergedTheme,
+    };
+  }
+
+  async getStorefrontThemeBySlug(slug: string, expectedStorefrontId?: number) {
+    let storefront = await this.storefrontRepo.findOne({ where: { slug } });
+
+    if (!storefront && expectedStorefrontId) {
+      storefront = await this.storefrontRepo.findOne({
+        where: { id: Number(expectedStorefrontId) },
+      });
+    }
+
+    if (!storefront) {
+      throw new NotFoundException('Storefront not found');
+    }
+
+    if (
+      expectedStorefrontId &&
+      storefront.id !== Number(expectedStorefrontId)
+    ) {
+      throw new ForbiddenException('Invalid storefront access');
+    }
+
+    return {
+      storefront: this.sanitizeStorefront(storefront),
+      theme_config: this.mergeThemeConfig(storefront.theme_config),
+    };
+  }
+
+  async updateStorefrontThemeBySlug(
+    slug: string,
+    theme?: StorefrontThemeConfig,
+    expectedStorefrontId?: number,
+  ) {
+    let storefront = await this.storefrontRepo.findOne({ where: { slug } });
+
+    if (!storefront && expectedStorefrontId) {
+      storefront = await this.storefrontRepo.findOne({
+        where: { id: Number(expectedStorefrontId) },
+      });
+    }
+
+    if (!storefront) {
+      throw new NotFoundException('Storefront not found');
+    }
+
+    if (
+      expectedStorefrontId &&
+      storefront.id !== Number(expectedStorefrontId)
+    ) {
+      throw new ForbiddenException('Invalid storefront access');
+    }
+
+    const mergedTheme = this.mergeThemeConfig(
+      theme ?? storefront.theme_config,
+    );
+    storefront.theme_config = mergedTheme;
+    await this.storefrontRepo.save(storefront);
+
+    return {
+      storefront: this.sanitizeStorefront(storefront),
+      theme_config: mergedTheme,
+    };
   }
 
   async findBySlug(slug: string, includeUnpublished = false) {
@@ -164,7 +308,7 @@ export class StorefrontsService {
       where.id = Not(excludeId);
     }
 
-    const exists = await this.storefrontRepo.exist({
+    const exists = await this.storefrontRepo.exists({
       where,
       withDeleted: true,
     });
@@ -173,15 +317,24 @@ export class StorefrontsService {
   }
 
   async getPublicStorefront(slug: string) {
-    const storefront = await this.findBySlug(slug);
+    const storefront = await this.storefrontRepo.findOne({
+      where: {
+        slug,
+        is_published: true,
+      },
+    });
+
     if (!storefront) {
       throw new NotFoundException('Storefront not found');
     }
 
-    // Do not expose user relation in the public response
-    const { user, ...rest } = storefront;
+    // Do not expose user relation & userId in the public response
+    const { user, userId, ...rest } = storefront;
 
-    return rest;
+    return {
+      ...rest,
+      theme_config: this.mergeThemeConfig(rest.theme_config),
+    };
   }
 
   async getPublicStorefrontProducts(
@@ -257,5 +410,47 @@ export class StorefrontsService {
     }
 
     return product;
+  }
+
+  private mergeThemeConfig(
+    provided?: StorefrontThemeConfig | null,
+  ): StorefrontThemeConfig {
+    if (!provided) {
+      return { ...DEFAULT_STOREFRONT_THEME };
+    }
+
+    return {
+      ...DEFAULT_STOREFRONT_THEME,
+      ...provided,
+      palette: {
+        ...DEFAULT_STOREFRONT_THEME.palette,
+        ...provided.palette,
+      },
+    };
+  }
+
+  private buildThemeEditorUrl(storefrontId: number, token: string) {
+    const baseUrl =
+      process.env.THEME_EDITOR_PREVIEW_URL ||
+      process.env.PREVIEW_STOREFRONT_URL;
+    if (!baseUrl) {
+      return null;
+    }
+
+    const normalizedBase = baseUrl.endsWith('/')
+      ? baseUrl.slice(0, -1)
+      : baseUrl;
+    const search = new URLSearchParams({ storeId: String(storefrontId) });
+
+    return `${normalizedBase}/preview/editor?${search.toString()}#token=${token}`;
+  }
+
+  private sanitizeStorefront(storefront: Storefront) {
+    return {
+      id: storefront.id,
+      name: storefront.name,
+      slug: storefront.slug,
+      description: storefront.description,
+    };
   }
 }

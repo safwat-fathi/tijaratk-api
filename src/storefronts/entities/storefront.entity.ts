@@ -1,4 +1,5 @@
 import { User } from 'src/users/entities/user.entity';
+import { StorefrontThemeConfig } from '../types/theme-config';
 import {
   Column,
   CreateDateColumn,
@@ -62,7 +63,7 @@ export class Storefront {
   google_analytics_measurement_id?: string;
 
   @Column({ type: 'json', nullable: true })
-  theme_config?: Record<string, unknown>;
+  theme_config?: StorefrontThemeConfig;
 
   @CreateDateColumn()
   created_at: Date;

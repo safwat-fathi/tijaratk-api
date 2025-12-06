@@ -144,6 +144,52 @@ export class OrdersService {
     return savedOrder;
   }
 
+  async getPublicOrder(orderId: number) {
+    const order = await this.orderRepo.findOne({
+      where: { id: orderId },
+      relations: {
+        items: { product: true },
+        storefront: true,
+      },
+    });
+
+    if (!order || !order.storefront?.is_published) {
+      throw new NotFoundException('Order not found');
+    }
+
+    return {
+      id: order.id,
+      status: order.status,
+      buyer_name: order.buyer_name,
+      buyer_phone: order.buyer_phone,
+      buyer_email: order.buyer_email,
+      shipping_city: order.shipping_city,
+      shipping_state: order.shipping_state,
+      shipping_postal_code: order.shipping_postal_code,
+      total_amount: order.total_amount,
+      created_at: order.created_at,
+      storefront: {
+        id: order.storefront.id,
+        name: order.storefront.name,
+        slug: order.storefront.slug,
+      },
+      items:
+        order.items?.map((item) => ({
+          id: item.id,
+          quantity: item.quantity,
+          total_price: item.total_price,
+          unit_price: item.unit_price,
+          product: item.product
+            ? {
+                id: item.product.id,
+                name: item.product.name,
+                price: item.product.price,
+              }
+            : undefined,
+        })) ?? [],
+    };
+  }
+
   async findForStorefrontOwner(
     facebookId: string,
     storefrontId: number,
