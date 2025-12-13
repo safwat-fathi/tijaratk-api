@@ -10,9 +10,10 @@ import { FacebookPage } from 'src/facebook/entities/facebook-page.entity';
 import { FacebookService } from 'src/facebook/facebook.service';
 import { Product } from 'src/products/entities/product.entity';
 import { User } from 'src/users/entities/user.entity';
-import { LessThanOrEqual, Repository } from 'typeorm';
+import { ILike, LessThanOrEqual, Repository } from 'typeorm';
 
 import { CreatePostDto } from './dto/create-post.dto';
+import { ListPostsDto, SortOrder } from './dto/list-posts.dto';
 import { UpdatePostDto } from './dto/update-post.dto';
 import { Post } from './entities/post.entity';
 
@@ -114,10 +115,40 @@ export class PostsService {
     return await this.postRepository.save(post);
   }
 
-  async findAll(): Promise<Post[]> {
-    return this.postRepository.find({
+  async findAll(listPostsDto: ListPostsDto) {
+    const {
+      page = 1,
+      limit = 10,
+      keyword,
+      sortBy = SortOrder.NEWEST,
+    } = listPostsDto;
+    const skip = (page - 1) * limit;
+
+    // Determine sort order
+    const order = sortBy === SortOrder.NEWEST ? 'DESC' : 'ASC';
+
+    // Build where clause for search
+    const whereClause = keyword
+      ? [{ title: ILike(`%${keyword}%`) }, { content: ILike(`%${keyword}%`) }]
+      : undefined;
+
+    // Retrieve data with pagination
+    const [items, total] = await this.postRepository.findAndCount({
+      where: whereClause,
+      skip,
+      take: limit,
+      order: { created_at: order },
       relations: { product: true, facebook_page: true },
     });
+
+    // Return paginated response
+    return {
+      total,
+      page,
+      limit,
+      last_page: Math.ceil(total / limit),
+      items,
+    };
   }
 
   async findOne(id: number): Promise<Post> {

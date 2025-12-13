@@ -1,11 +1,16 @@
 import { ApiProperty, ApiPropertyOptional } from '@nestjs/swagger';
 import {
+  IsArray,
   IsBoolean,
+  IsInt,
   IsNotEmpty,
   IsOptional,
   IsString,
   IsUrl,
+  ValidateNested,
 } from 'class-validator';
+import { Type } from 'class-transformer';
+import { SubCategoryDto } from './sub-category.dto';
 
 export class CreateStorefrontDto {
   @ApiProperty({
@@ -107,4 +112,27 @@ export class CreateStorefrontDto {
   @IsString()
   google_analytics_measurement_id?: string;
 
+  @ApiPropertyOptional({
+    description: 'Primary Category ID',
+  })
+  @IsOptional()
+  @IsInt()
+  primaryCategoryId?: number;
+
+  @ApiPropertyOptional({
+    description: 'Secondary Category ID',
+  })
+  @IsOptional()
+  @IsInt()
+  secondaryCategoryId?: number;
+
+  @ApiPropertyOptional({
+    description: 'List of sub-categories',
+    type: [SubCategoryDto],
+  })
+  @IsOptional()
+  @IsArray()
+  @ValidateNested({ each: true })
+  @Type(() => SubCategoryDto)
+  subCategories?: SubCategoryDto[];
 }

@@ -21,6 +21,8 @@ import {
   ThemeEditorTokenService,
   THEME_EDITOR_SCOPE,
 } from './theme-editor-token.service';
+import { StorefrontCategory } from './entities/storefront-category.entity';
+import { SubCategory } from './entities/sub-category.entity';
 
 @Injectable()
 export class StorefrontsService {
@@ -31,6 +33,10 @@ export class StorefrontsService {
     private readonly productRepo: Repository<Product>,
     @InjectRepository(User)
     private readonly userRepo: Repository<User>,
+    @InjectRepository(StorefrontCategory)
+    private readonly storefrontCategoryRepo: Repository<StorefrontCategory>,
+    @InjectRepository(SubCategory)
+    private readonly subCategoryRepo: Repository<SubCategory>,
     private readonly themeEditorTokenService: ThemeEditorTokenService,
   ) {}
 
@@ -83,7 +89,30 @@ export class StorefrontsService {
       is_published: false,
     });
 
-    return this.storefrontRepo.save(storefront);
+    const savedStorefront = await this.storefrontRepo.save(storefront);
+
+    if (dto.primaryCategoryId) {
+      const sfCat = this.storefrontCategoryRepo.create({
+        storefrontId: savedStorefront.id,
+        primaryCategoryId: dto.primaryCategoryId,
+        secondaryCategoryId: dto.secondaryCategoryId,
+      });
+      await this.storefrontCategoryRepo.save(sfCat);
+    }
+
+    if (dto.subCategories && dto.subCategories.length > 0) {
+      const subs = dto.subCategories.map((sub) =>
+        this.subCategoryRepo.create({
+          storefrontId: savedStorefront.id,
+          categoryId: sub.categoryId,
+          name: sub.name,
+          is_custom: sub.is_custom,
+        }),
+      );
+      await this.subCategoryRepo.save(subs);
+    }
+
+    return savedStorefront;
   }
 
   async findForUser(facebookId: string) {
@@ -96,6 +125,10 @@ export class StorefrontsService {
 
     return this.storefrontRepo.findOne({
       where: { user: { id: user.id } },
+      relations: {
+        storefrontCategory: true,
+        subCategories: true,
+      },
     });
   }
 
@@ -155,7 +188,45 @@ export class StorefrontsService {
       ...rest,
     });
 
-    return this.storefrontRepo.save(storefront);
+    const savedStorefront = await this.storefrontRepo.save(storefront);
+
+    if (dto.primaryCategoryId) {
+      const existingCat = await this.storefrontCategoryRepo.findOne({
+        where: { storefrontId: savedStorefront.id },
+      });
+
+      if (existingCat) {
+        existingCat.primaryCategoryId = dto.primaryCategoryId;
+        existingCat.secondaryCategoryId = dto.secondaryCategoryId;
+        await this.storefrontCategoryRepo.save(existingCat);
+      } else {
+        const sfCat = this.storefrontCategoryRepo.create({
+          storefrontId: savedStorefront.id,
+          primaryCategoryId: dto.primaryCategoryId,
+          secondaryCategoryId: dto.secondaryCategoryId,
+        });
+        await this.storefrontCategoryRepo.save(sfCat);
+      }
+    }
+
+    if (dto.subCategories) {
+      // Replace all sub-categories
+      await this.subCategoryRepo.delete({ storefrontId: savedStorefront.id });
+
+      if (dto.subCategories.length > 0) {
+        const subs = dto.subCategories.map((sub) =>
+          this.subCategoryRepo.create({
+            storefrontId: savedStorefront.id,
+            categoryId: sub.categoryId,
+            name: sub.name,
+            is_custom: sub.is_custom,
+          }),
+        );
+        await this.subCategoryRepo.save(subs);
+      }
+    }
+
+    return savedStorefront;
   }
 
   async createThemeEditorSession(facebookId: string, id: number) {
@@ -201,19 +272,14 @@ export class StorefrontsService {
     };
   }
 
-  async updateStorefrontTheme(
-    id: number,
-    theme?: StorefrontThemeConfig,
-  ) {
+  async updateStorefrontTheme(id: number, theme?: StorefrontThemeConfig) {
     const storefront = await this.storefrontRepo.findOne({ where: { id } });
 
     if (!storefront) {
       throw new NotFoundException('Storefront not found');
     }
 
-    const mergedTheme = this.mergeThemeConfig(
-      theme ?? storefront.theme_config,
-    );
+    const mergedTheme = this.mergeThemeConfig(theme ?? storefront.theme_config);
     storefront.theme_config = mergedTheme;
     await this.storefrontRepo.save(storefront);
 
@@ -273,9 +339,7 @@ export class StorefrontsService {
       throw new ForbiddenException('Invalid storefront access');
     }
 
-    const mergedTheme = this.mergeThemeConfig(
-      theme ?? storefront.theme_config,
-    );
+    const mergedTheme = this.mergeThemeConfig(theme ?? storefront.theme_config);
     storefront.theme_config = mergedTheme;
     await this.storefrontRepo.save(storefront);
 
@@ -321,6 +385,15 @@ export class StorefrontsService {
       where: {
         slug,
         is_published: true,
+      },
+      relations: {
+        storefrontCategory: {
+          primaryCategory: true,
+          secondaryCategory: true,
+        },
+        subCategories: {
+          category: true,
+        },
       },
     });
 

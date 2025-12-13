@@ -8,6 +8,8 @@ import { NestFactory } from '@nestjs/core';
 import { DocumentBuilder, SwaggerModule } from '@nestjs/swagger';
 import { readFileSync } from 'fs';
 import helmet from 'helmet';
+import * as express from 'express';
+import { join } from 'path';
 import path from 'path';
 
 import { AppModule } from './app.module';
@@ -62,6 +64,9 @@ async function bootstrap() {
     credentials: true,
     allowedHeaders: ['Content-Type', 'Accept', 'Authorization'],
   });
+
+  // serve static files
+  app.use('/uploads', express.static(join(process.cwd(), 'uploads')));
 
   // swagger docs
   const options = new DocumentBuilder()

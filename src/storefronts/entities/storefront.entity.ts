@@ -1,11 +1,14 @@
 import { User } from 'src/users/entities/user.entity';
 import { StorefrontThemeConfig } from '../types/theme-config';
+import { SubCategory } from './sub-category.entity';
+import { StorefrontCategory } from './storefront-category.entity';
 import {
   Column,
   CreateDateColumn,
   DeleteDateColumn,
   Entity,
   JoinColumn,
+  OneToMany,
   OneToOne,
   PrimaryGeneratedColumn,
   Relation,
@@ -73,4 +76,13 @@ export class Storefront {
 
   @DeleteDateColumn()
   deleted_at: Date;
+
+  @OneToMany(() => SubCategory, (subCategory) => subCategory.storefront)
+  subCategories: Relation<SubCategory[]>;
+
+  @OneToOne(
+    () => StorefrontCategory,
+    (storefrontCategory) => storefrontCategory.storefront,
+  )
+  storefrontCategory: Relation<StorefrontCategory>;
 }

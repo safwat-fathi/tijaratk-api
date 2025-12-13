@@ -7,6 +7,7 @@ import {
   Param,
   Patch,
   Post,
+  Query,
   Req,
   UseGuards,
 } from '@nestjs/common';
@@ -14,15 +15,22 @@ import { AuthGuard } from '@nestjs/passport';
 import {
   ApiBearerAuth,
   ApiBody,
+  ApiConsumes,
   ApiOperation,
   ApiResponse,
 } from '@nestjs/swagger';
 import { Request } from 'express';
 import CONSTANTS from 'src/common/constants';
+import { createPaginatedDto } from 'src/common/dto/paginated-response.dto';
 
 import { CreatePostDto } from './dto/create-post.dto';
+import { ListPostsDto } from './dto/list-posts.dto';
 import { UpdatePostDto } from './dto/update-post.dto';
 import { PostsService } from './posts.service';
+import { UploadFile } from 'src/common/decorators/upload-file.decorator';
+import { imageFileFilter } from 'src/common/utils/file-filters';
+import { UploadedFile } from '@nestjs/common';
+import { Post as PostEntity } from './entities/post.entity';
 
 @Controller('posts')
 @ApiBearerAuth(CONSTANTS.ACCESS_TOKEN)
@@ -43,15 +51,46 @@ export class PostsController {
     return this.postsService.create(facebookId, createPostDto);
   }
 
+  @Post('upload')
+  @HttpCode(HttpStatus.OK)
+  @ApiConsumes('multipart/form-data')
+  @UploadFile('file', {
+    fileFilter: imageFileFilter,
+    limits: { fileSize: 1024 * 1024 * 5 }, // 5MB
+  })
+  @ApiResponse({
+    status: HttpStatus.CREATED,
+    description: 'Image uploaded successfully',
+  })
+  @ApiBody({
+    schema: {
+      type: 'object',
+      properties: {
+        file: {
+          type: 'string',
+          format: 'binary',
+        },
+      },
+    },
+  })
+  @ApiOperation({ summary: 'Upload an image' })
+  upload(@UploadedFile() file: Express.Multer.File, @Req() req: Request) {
+    const protocol = req.protocol;
+    const host = req.get('host');
+    const url = `${protocol}://${host}/uploads/${file.filename}`;
+    return { url };
+  }
+
   @Get()
   @HttpCode(HttpStatus.OK)
   @ApiResponse({
     status: HttpStatus.OK,
     description: 'Posts found successfully',
+    type: createPaginatedDto(PostEntity),
   })
-  @ApiOperation({ summary: 'Get all posts' })
-  findAll() {
-    return this.postsService.findAll();
+  @ApiOperation({ summary: 'Get all posts with pagination and sorting' })
+  findAll(@Query() listPostsDto: ListPostsDto) {
+    return this.postsService.findAll(listPostsDto);
   }
 
   @Get(':id')

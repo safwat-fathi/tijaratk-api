@@ -11,14 +11,31 @@ import { StorefrontThemeEditorController } from './storefront-theme-editor.contr
 import { ThemeEditorTokenService } from './theme-editor-token.service';
 import { ThemeEditorAuthGuard } from './guards/theme-editor.guard';
 
+import { Category } from 'src/categories/entities/category.entity';
+import { StorefrontCategory } from './entities/storefront-category.entity';
+import { SubCategory } from './entities/sub-category.entity';
+
 @Module({
-  imports: [TypeOrmModule.forFeature([Storefront, User, Product])],
+  imports: [
+    TypeOrmModule.forFeature([
+      Storefront,
+      User,
+      Product,
+      StorefrontCategory,
+      SubCategory,
+      Category,
+    ]),
+  ],
   controllers: [
     StorefrontsController,
     StorefrontsPublicController,
     StorefrontThemeEditorController,
   ],
-  providers: [StorefrontsService, ThemeEditorTokenService, ThemeEditorAuthGuard],
+  providers: [
+    StorefrontsService,
+    ThemeEditorTokenService,
+    ThemeEditorAuthGuard,
+  ],
   exports: [StorefrontsService],
 })
 export class StorefrontsModule {}

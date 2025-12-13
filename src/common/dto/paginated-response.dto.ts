@@ -25,7 +25,7 @@ export class PaginatedResponseDto<T> {
   })
   last_page: number;
 
-  data: T[];
+  items: T[];
 }
 
 ///////////////////////////////////////////////////////////////////
@@ -45,7 +45,7 @@ export const createPaginatedDto = <TModel extends new (...args: any[]) => any>(
       type: model,
       description: 'List of items of the given DTO',
     })
-    data: InstanceType<TModel>[];
+    items: InstanceType<TModel>[];
   }
 
   // This is needed so Nest can pick up all metadata from the 'model' type

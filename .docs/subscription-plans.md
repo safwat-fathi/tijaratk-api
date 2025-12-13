@@ -198,6 +198,93 @@ Free users get limited to **10 products**, forcing early conversion.
 
 ---
 
+## **4.4 AI Bot Add-ons (Phase 2)**
+
+## **4.4 AI Bot Add-ons (Phase 2 – Requires Additional Development)**
+
+AI automation add-ons are powerful tools that enhance communication efficiency and increase sales conversion, but they require deeper technical work and compliance with platform policies. They will be introduced in **Phase 2** after core system stability.
+
+---
+
+### **4.4.1 WhatsApp AI Bot Add-on (Phase 2)**
+
+#### **Purpose:**
+Automate customer communication on WhatsApp using AI-powered replies and optional workflows.
+
+#### **What it gives:**
+* Instant AI-generated answers to FAQs (delivery, price, availability)
+* Product recommendation bot
+* Lead qualification
+* Optional order-taking flow (TBD)
+* Pre-trained workflows or AI-only mode
+* Reduced customer service workload
+
+#### **Market Fit:**
+WhatsApp is the highest-demand sales channel in Egypt. An AI-powered bot directly addresses merchants' pain points of slow replies and repetitive questions.
+
+#### **Pricing (Suggested for Egyptian Market):**
+* **199 EGP/month** (basic)
+* **349 EGP/month** (pro version with enhanced capabilities)
+
+#### **Concerns & Risks:**
+* WhatsApp API setup complexity and message cost
+* Meta policy restrictions
+* AI hallucination risks
+* Requires strong safety layers
+* Not part of MVP — Phase 2 only
+
+#### **Open Questions (To Finalize Before Development):**
+1. Should the bot support order-taking, or only Q&A?
+2. Should it use store data only, or allow general AI reasoning?
+3. Should merchants customize bot tone (Egyptian Arabic, English, etc.)?
+4. Should there be a monthly message cap or unlimited usage?
+5. Should it support a simple template system or full hybrid rules?
+
+---
+
+### **4.4.2 Facebook Messenger AI Bot Add-on (Phase 2)**
+
+#### **Purpose:**
+Provide automated replies to Facebook inbox messages, helping merchants respond faster and reduce workload.
+
+#### **What it gives:**
+* AI-powered FAQ replies
+* Delivery information automation
+* Product inquiry handling
+* Lead qualification
+* Works seamlessly with the existing Omnichannel Inbox
+
+#### **Market Fit:**
+Messenger usage remains strong in Egypt, especially for marketplace sellers, though lower than WhatsApp.
+
+#### **Pricing (Suggested for Egyptian Market):**
+* **99 EGP/month**
+
+#### **Concerns & Risks:**
+* Must follow Meta’s automated messaging rules
+* AI hallucinations must be minimized
+* Needs high-quality product + policy data ingestion
+
+#### **Open Questions:**
+1. Should merchants be able to enable/disable AI per channel?
+2. Should the bot escalate to human agents based on confidence levels?
+3. Should responses be restricted to store data only?
+
+---
+
+### **4.4.3 Recommended Release Strategy**
+
+AI Bot add-ons require:
+* Integration with WhatsApp Business API (Phase 2 per SRS)
+* A robust message pipeline
+* A hybrid AI + rules fallback system
+* Safety filters and tone control
+
+Therefore:  
+➡️ **Both AI Bots are officially part of Phase 2 and must not be exposed in MVP UI except as “Coming Soon”.**
+
+---
+
 # **5. How Plan Levels Affect Theme Customization**
 
 ---
