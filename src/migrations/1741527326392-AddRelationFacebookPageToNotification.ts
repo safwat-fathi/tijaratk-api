@@ -1,8 +1,6 @@
 import { MigrationInterface, QueryRunner } from 'typeorm';
 
-export class AddRelationFacebookPageToNotification1741527326392
-  implements MigrationInterface
-{
+export class AddRelationFacebookPageToNotification1741527326392 implements MigrationInterface {
   name = 'AddRelationFacebookPageToNotification1741527326392';
 
   public async up(queryRunner: QueryRunner): Promise<void> {

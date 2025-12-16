@@ -1,6 +1,7 @@
-import { DataSource } from 'typeorm';
-import { Category } from './entities/category.entity';
 import { Logger } from '@nestjs/common';
+import { DataSource } from 'typeorm';
+
+import { Category } from './entities/category.entity';
 
 export const seedCategories = async (dataSource: DataSource) => {
   const logger = new Logger('SeedCategories');

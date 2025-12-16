@@ -2,6 +2,7 @@ import { Controller, Get, Req, UseGuards } from '@nestjs/common';
 import { AuthGuard } from '@nestjs/passport';
 import { ApiBearerAuth } from '@nestjs/swagger';
 import CONSTANTS from 'src/common/constants';
+
 import { UsersService } from './users.service';
 
 @Controller('users')

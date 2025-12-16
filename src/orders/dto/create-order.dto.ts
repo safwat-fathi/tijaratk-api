@@ -1,4 +1,5 @@
 import { ApiProperty } from '@nestjs/swagger';
+import { Type } from 'class-transformer';
 import {
   IsArray,
   IsEmail,
@@ -9,7 +10,6 @@ import {
   IsString,
   ValidateNested,
 } from 'class-validator';
-import { Type } from 'class-transformer';
 
 class CreateOrderItemDto {
   @ApiProperty({
@@ -52,7 +52,6 @@ export class CreateOrderDto {
   @IsOptional()
   @IsEmail()
   buyer_email?: string;
-
 
   @ApiProperty({
     description: 'Shipping address line 1',

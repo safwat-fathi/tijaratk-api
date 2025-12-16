@@ -1,8 +1,6 @@
 import { MigrationInterface, QueryRunner } from 'typeorm';
 
-export class UpdateFacebookPagesPrimaryKey1741408150257
-  implements MigrationInterface
-{
+export class UpdateFacebookPagesPrimaryKey1741408150257 implements MigrationInterface {
   name = 'UpdateFacebookPagesPrimaryKey1741408150257';
 
   public async up(queryRunner: QueryRunner): Promise<void> {

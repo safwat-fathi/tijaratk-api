@@ -1,8 +1,6 @@
 import { MigrationInterface, QueryRunner } from 'typeorm';
 
-export class AddNullableToSenderNameInNotification1741527416780
-  implements MigrationInterface
-{
+export class AddNullableToSenderNameInNotification1741527416780 implements MigrationInterface {
   name = 'AddNullableToSenderNameInNotification1741527416780';
 
   public async up(queryRunner: QueryRunner): Promise<void> {

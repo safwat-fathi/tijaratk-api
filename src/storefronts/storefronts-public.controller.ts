@@ -42,7 +42,9 @@ export class StorefrontsPublicController {
     @Param('slug') slug: string,
     @Param('productSlug') productSlug: string,
   ) {
-    return this.storefrontsService.getPublicStorefrontProduct(slug, productSlug);
+    return this.storefrontsService.getPublicStorefrontProduct(
+      slug,
+      productSlug,
+    );
   }
 }
-

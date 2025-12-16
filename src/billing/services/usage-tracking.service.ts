@@ -1,8 +1,4 @@
-import {
-  ForbiddenException,
-  Injectable,
-  Logger,
-} from '@nestjs/common';
+import { ForbiddenException, Injectable, Logger } from '@nestjs/common';
 import { InjectRepository } from '@nestjs/typeorm';
 import { Product } from 'src/products/entities/product.entity';
 import { Repository } from 'typeorm';
@@ -30,7 +26,7 @@ export class UsageTrackingService {
 
   async getCurrentUsage(userId: number): Promise<UsageTracking> {
     const periodMonth = this.getCurrentPeriodMonth();
-    
+
     let usage = await this.usageTrackingRepository.findOne({
       where: { userId, period_month: periodMonth },
     });
@@ -103,7 +99,7 @@ export class UsageTrackingService {
   async getUserUsageStats(userId: number): Promise<UsageStatsResponseDto> {
     const limits = await this.userSubscriptionsService.getUserLimits(userId);
     const usage = await this.getCurrentUsage(userId);
-    
+
     const productCount = await this.productRepository.count({
       where: { user: { id: userId } },
     });
@@ -111,7 +107,9 @@ export class UsageTrackingService {
     const sub = await this.userSubscriptionsService.getUserSubscription(userId);
     const now = new Date();
     const nextBilling = sub.current_period_end;
-    const daysUntilReset = Math.ceil((nextBilling.getTime() - now.getTime()) / (1000 * 60 * 60 * 24));
+    const daysUntilReset = Math.ceil(
+      (nextBilling.getTime() - now.getTime()) / (1000 * 60 * 60 * 24),
+    );
 
     return {
       period_month: usage.period_month,
@@ -130,33 +128,35 @@ export class UsageTrackingService {
   // Called via Cron or event on billing cycle
   async resetUserMonthlyUsage(userId: number): Promise<void> {
     // Reset means we basically just ensure a new record starts fresh for new period
-    // Since periods are user-specific, the consumption logic uses `getCurrentUsage` 
+    // Since periods are user-specific, the consumption logic uses `getCurrentUsage`
     // which checks `period_month`.
     // Wait, `period_month` is YYYY-MM.
     // But if billing cycle is e.g. 15th to 15th, `YYYY-MM` bucket is tricky.
     // If strict billing cycle reset: we should probably zero out the usage record related to the user?
     // OR have `current_period_usage` on UserSubscription directly?
     // The plan said: "For each user, check if their current billing period has ended... reset messages_received and posts_created to 0... Create new monthly usage record with updated period_month"
-    
+
     // If we use YYYY-MM bucket, limits reset on the 1st of the month regardless of billing date?
-    // Plan update said: "User-specific monthly reset logic". 
+    // Plan update said: "User-specific monthly reset logic".
     // And "this approach ensures... limits reset on their specific billing anniversary".
-    
+
     // If so, `period_month` in database (YYYY-MM) might be misleading if it doesn't align with calendar.
     // Maybe we track usage by `billing_period_start` date instead of month string?
     // Or just clear the counters on the record associated with "Active Period".
-    
-    // Let's implement reset by: 
+
+    // Let's implement reset by:
     // 1. Archiving current counters (optional, or just log)
     // 2. Resetting them to 0.
-    
+
     const usage = await this.getCurrentUsage(userId);
-    
+
     this.logger.log(`Resetting usage for user ${userId}`);
-    
+
     // Archive via log
-    this.logger.log(`Archived usage: Msg=${usage.messages_received}, Post=${usage.posts_created}`);
-    
+    this.logger.log(
+      `Archived usage: Msg=${usage.messages_received}, Post=${usage.posts_created}`,
+    );
+
     usage.messages_received = 0;
     usage.posts_created = 0;
     // We update period_month to current month if we rely on it, but usage logic `getCurrentUsage` uses YYYY-MM.
@@ -166,8 +166,8 @@ export class UsageTrackingService {
     // If we reset it to 0 mid-month, `getCurrentUsage` will return the Reset record (Same ID).
     // So limits will reset.
     // But `period_month` key might be ambiguous if we want historical data.
-    // For MVP, resetting the counters in place is fine. 
-    
+    // For MVP, resetting the counters in place is fine.
+
     await this.usageTrackingRepository.save(usage);
   }
 }

@@ -1,9 +1,9 @@
 import { Logger } from '@nestjs/common';
+import { Subscription } from 'src/subscription/entities/subscription.entity';
+import { User } from 'src/users/entities/user.entity';
 import { DataSource } from 'typeorm';
 
 import { Product, ProductStatus } from './entities/product.entity';
-import { User } from 'src/users/entities/user.entity';
-import { Subscription } from 'src/subscription/entities/subscription.entity';
 
 const logger = new Logger('SeedProducts');
 
@@ -14,9 +14,7 @@ function buildSlug(base: string) {
     .replace(/^-+|-+$/g, '');
 }
 
-async function ensureSeedUser(
-  dataSource: DataSource,
-): Promise<User | null> {
+async function ensureSeedUser(dataSource: DataSource): Promise<User | null> {
   const userRepository = dataSource.getRepository(User);
   const subscriptionRepository = dataSource.getRepository(Subscription);
 

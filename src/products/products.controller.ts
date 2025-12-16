@@ -23,18 +23,18 @@ import {
   ApiTags,
 } from '@nestjs/swagger';
 import { Request } from 'express';
+import * as path from 'path';
 import CONSTANTS from 'src/common/constants';
 import { UploadFile } from 'src/common/decorators/upload-file.decorator';
-import { imageFileFilter } from 'src/common/utils/file-filters';
 import { ImageProcessorService } from 'src/common/services/image-processor.service';
-import * as path from 'path';
+import { imageFileFilter } from 'src/common/utils/file-filters';
 
+import { CheckLimit } from '../billing/guards/limit.decorator';
+import { PlanLimitGuard } from '../billing/guards/plan-limit.guard';
 import { CreateProductDto } from './dto/create-product.dto';
 import { ListProductsDto } from './dto/list-products.dto';
 import { UpdateProductDto } from './dto/update-product.dto';
 import { ProductsService } from './products.service';
-import { PlanLimitGuard } from '../billing/guards/plan-limit.guard';
-import { CheckLimit } from '../billing/guards/limit.decorator';
 
 @ApiTags('Products')
 @ApiBearerAuth(CONSTANTS.ACCESS_TOKEN)

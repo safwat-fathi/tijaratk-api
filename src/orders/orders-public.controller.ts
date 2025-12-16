@@ -9,8 +9,8 @@ import {
   Post,
   UseGuards,
 } from '@nestjs/common';
-import { ThrottlerGuard, Throttle } from '@nestjs/throttler';
 import { ApiBody, ApiOperation, ApiResponse, ApiTags } from '@nestjs/swagger';
+import { Throttle, ThrottlerGuard } from '@nestjs/throttler';
 
 import { CreateOrderDto } from './dto/create-order.dto';
 import { OrdersService } from './orders.service';

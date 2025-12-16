@@ -10,4 +10,3 @@ export class ListStorefrontProductsDto extends PaginationDto {
   @IsOptional()
   keyword?: string;
 }
-

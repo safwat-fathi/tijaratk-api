@@ -1,8 +1,6 @@
 import { MigrationInterface, QueryRunner } from 'typeorm';
 
-export class UpdatePostsfacebookPostIdToNullable1741909048531
-  implements MigrationInterface
-{
+export class UpdatePostsfacebookPostIdToNullable1741909048531 implements MigrationInterface {
   name = 'UpdatePostsfacebookPostIdToNullable1741909048531';
 
   public async up(queryRunner: QueryRunner): Promise<void> {

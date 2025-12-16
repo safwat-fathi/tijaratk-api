@@ -6,9 +6,9 @@ import {
 } from '@nestjs/common';
 import { NestFactory } from '@nestjs/core';
 import { DocumentBuilder, SwaggerModule } from '@nestjs/swagger';
+import * as express from 'express';
 import { readFileSync } from 'fs';
 import helmet from 'helmet';
-import * as express from 'express';
 import { join } from 'path';
 import path from 'path';
 

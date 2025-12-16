@@ -1,10 +1,6 @@
-import {
-  Controller,
-  Get,
-  Param,
-  Query,
-} from '@nestjs/common';
+import { Controller, Get, Param, Query } from '@nestjs/common';
 import { ApiTags } from '@nestjs/swagger';
+
 import { PlansService } from '../services/plans.service';
 
 @ApiTags('Billing')
@@ -18,10 +14,7 @@ export class PlansController {
   }
 
   @Get('compare')
-  compare(
-    @Query('current') current: string,
-    @Query('target') target: string,
-  ) {
+  compare(@Query('current') current: string, @Query('target') target: string) {
     return this.plansService.comparePlans(+current, +target);
   }
 

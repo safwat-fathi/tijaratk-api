@@ -1,4 +1,5 @@
 import { ApiProperty, ApiPropertyOptional } from '@nestjs/swagger';
+import { Type } from 'class-transformer';
 import {
   IsArray,
   IsBoolean,
@@ -9,7 +10,7 @@ import {
   IsUrl,
   ValidateNested,
 } from 'class-validator';
-import { Type } from 'class-transformer';
+
 import { SubCategoryDto } from './sub-category.dto';
 
 export class CreateStorefrontDto {

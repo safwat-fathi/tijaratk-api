@@ -1,11 +1,6 @@
 import { ApiPropertyOptional } from '@nestjs/swagger';
 import { Type } from 'class-transformer';
-import {
-  IsDate,
-  IsEnum,
-  IsOptional,
-  IsString,
-} from 'class-validator';
+import { IsDate, IsEnum, IsOptional, IsString } from 'class-validator';
 import { PaginationDto } from 'src/common/dto/pagination.dto';
 import { SortOrder } from 'src/common/enums/sort.enums';
 
@@ -80,4 +75,3 @@ export class ListOrdersDto extends PaginationDto {
   @IsEnum(SortOrder)
   sort_order?: SortOrder;
 }
-

@@ -11,9 +11,10 @@ import {
 import { AuthGuard } from '@nestjs/passport';
 import { ApiBearerAuth, ApiTags } from '@nestjs/swagger';
 import CONSTANTS from 'src/common/constants';
+
+import { PurchaseAddonDto } from '../dto/purchase-addon.dto';
 import { AddonsService } from '../services/addons.service';
 import { BillingService } from '../services/billing.service';
-import { PurchaseAddonDto } from '../dto/purchase-addon.dto';
 
 @ApiTags('Billing')
 @ApiBearerAuth(CONSTANTS.ACCESS_TOKEN)

@@ -3,11 +3,11 @@ import { InjectRepository } from '@nestjs/typeorm';
 import { User } from 'src/users/entities/user.entity';
 import { ILike, Repository } from 'typeorm';
 
+import { UsageTrackingService } from '../billing/services/usage-tracking.service';
 import { CreateProductDto } from './dto/create-product.dto';
 import { ListProductsDto } from './dto/list-products.dto';
 import { UpdateProductDto } from './dto/update-product.dto';
 import { Product } from './entities/product.entity';
-import { UsageTrackingService } from '../billing/services/usage-tracking.service';
 
 @Injectable()
 export class ProductsService {

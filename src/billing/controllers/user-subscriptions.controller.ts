@@ -9,11 +9,12 @@ import {
 } from '@nestjs/common';
 import { AuthGuard } from '@nestjs/passport';
 import { ApiBearerAuth, ApiTags } from '@nestjs/swagger';
+import CONSTANTS from 'src/common/constants';
+
+import { DowngradeSubscriptionDto } from '../dto/downgrade-subscription.dto';
+import { UpgradeSubscriptionDto } from '../dto/upgrade-subscription.dto';
 import { BillingService } from '../services/billing.service';
 import { UserSubscriptionsService } from '../services/user-subscriptions.service';
-import { UpgradeSubscriptionDto } from '../dto/upgrade-subscription.dto';
-import { DowngradeSubscriptionDto } from '../dto/downgrade-subscription.dto';
-import CONSTANTS from 'src/common/constants';
 
 @ApiTags('Billing')
 @ApiBearerAuth(CONSTANTS.ACCESS_TOKEN)
@@ -28,7 +29,8 @@ export class UserSubscriptionsController {
   @Get()
   async getSubscription(@Req() req) {
     const userId = Number(req.user.id);
-    const subscription = await this.userSubscriptionsService.getUserSubscription(userId);
+    const subscription =
+      await this.userSubscriptionsService.getUserSubscription(userId);
     const limits = await this.userSubscriptionsService.getUserLimits(userId);
     return { ...subscription, limits };
   }

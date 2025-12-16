@@ -1,9 +1,9 @@
 import {
   BadRequestException,
+  forwardRef,
   Inject,
   Injectable,
   NotFoundException,
-  forwardRef,
 } from '@nestjs/common';
 import { InjectRepository } from '@nestjs/typeorm';
 import { LessThanOrEqual, MoreThanOrEqual, Repository } from 'typeorm';
@@ -39,7 +39,7 @@ export class UserSubscriptionsService {
 
   async createFreeSubscription(userId: number): Promise<UserSubscription> {
     const freePlan = await this.plansService.findBySlug('free');
-    
+
     // Monthly cycle by default
     const now = new Date();
     const nextMonth = new Date(now);
@@ -70,7 +70,7 @@ export class UserSubscriptionsService {
     );
 
     const now = new Date();
-    let nextBilling = new Date(now);
+    const nextBilling = new Date(now);
     if (plan.billing_cycle === 'monthly') {
       nextBilling.setMonth(nextBilling.getMonth() + 1);
     } else {
@@ -94,7 +94,10 @@ export class UserSubscriptionsService {
     return this.createSubscription(userId, planId);
   }
 
-  async downgradePlan(userId: number, planId: number): Promise<UserSubscription> {
+  async downgradePlan(
+    userId: number,
+    planId: number,
+  ): Promise<UserSubscription> {
     return this.createSubscription(userId, planId);
   }
 
@@ -130,13 +133,15 @@ export class UserSubscriptionsService {
     // Add-ons aggregation
     for (const addon of addons) {
       if (addon.addon.addon_type === 'product_pack') {
-        if (max_products !== null) max_products += addon.addon.provides_quantity;
+        if (max_products !== null)
+          max_products += addon.addon.provides_quantity;
       } else if (addon.addon.addon_type === 'posts_pack') {
         if (max_posts !== null) max_posts += addon.addon.provides_quantity;
       } else if (addon.addon.addon_type === 'message_pack') {
-        if (max_messages !== null) max_messages += addon.addon.provides_quantity;
+        if (max_messages !== null)
+          max_messages += addon.addon.provides_quantity;
       } else if (addon.addon.addon_type === 'staff_seat') {
-         max_staff += addon.addon.provides_quantity;
+        max_staff += addon.addon.provides_quantity;
       }
     }
 

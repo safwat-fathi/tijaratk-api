@@ -5,6 +5,7 @@ import {
   Logger,
 } from '@nestjs/common';
 import { Reflector } from '@nestjs/core';
+
 import { UsageTrackingService } from '../services/usage-tracking.service';
 import { LIMIT_KEY, LimitType } from './limit.decorator';
 
@@ -50,9 +51,9 @@ export class PlanLimitGuard implements CanActivate {
           await this.usageTrackingService.checkMessageLimit(userId);
           break;
         case 'staff':
-            // await this.usageTrackingService.checkStaffLimit(userId);
-            // Staff limit logic not fully implemented yet in usage service
-            break;
+          // await this.usageTrackingService.checkStaffLimit(userId);
+          // Staff limit logic not fully implemented yet in usage service
+          break;
       }
       return true;
     } catch (error) {

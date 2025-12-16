@@ -21,4 +21,3 @@ export class CheckSlugDto {
   @Min(1)
   excludeId?: number;
 }
-

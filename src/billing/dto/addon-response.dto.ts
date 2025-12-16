@@ -1,4 +1,5 @@
 import { ApiProperty } from '@nestjs/swagger';
+
 import { AddonType } from '../entities/addon.entity';
 
 export class AddonResponseDto {

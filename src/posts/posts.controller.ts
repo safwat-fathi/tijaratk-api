@@ -11,6 +11,7 @@ import {
   Req,
   UseGuards,
 } from '@nestjs/common';
+import { UploadedFile } from '@nestjs/common';
 import { AuthGuard } from '@nestjs/passport';
 import {
   ApiBearerAuth,
@@ -20,19 +21,18 @@ import {
   ApiResponse,
 } from '@nestjs/swagger';
 import { Request } from 'express';
+import * as path from 'path';
 import CONSTANTS from 'src/common/constants';
+import { UploadFile } from 'src/common/decorators/upload-file.decorator';
 import { createPaginatedDto } from 'src/common/dto/paginated-response.dto';
+import { ImageProcessorService } from 'src/common/services/image-processor.service';
+import { imageFileFilter } from 'src/common/utils/file-filters';
 
 import { CreatePostDto } from './dto/create-post.dto';
 import { ListPostsDto } from './dto/list-posts.dto';
 import { UpdatePostDto } from './dto/update-post.dto';
-import { PostsService } from './posts.service';
-import { UploadFile } from 'src/common/decorators/upload-file.decorator';
-import { imageFileFilter } from 'src/common/utils/file-filters';
-import { UploadedFile } from '@nestjs/common';
 import { Post as PostEntity } from './entities/post.entity';
-import { ImageProcessorService } from 'src/common/services/image-processor.service';
-import * as path from 'path';
+import { PostsService } from './posts.service';
 
 @Controller('posts')
 @ApiBearerAuth(CONSTANTS.ACCESS_TOKEN)

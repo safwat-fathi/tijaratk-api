@@ -6,6 +6,7 @@ import {
   Logger,
 } from '@nestjs/common';
 import { Reflector } from '@nestjs/core';
+
 import { UserSubscriptionsService } from '../services/user-subscriptions.service';
 import { FEATURE_KEY, FeatureType } from './feature.decorator';
 
@@ -19,10 +20,10 @@ export class FeatureAccessGuard implements CanActivate {
   ) {}
 
   async canActivate(context: ExecutionContext): Promise<boolean> {
-    const featureType = this.reflector.getAllAndOverride<FeatureType>(FEATURE_KEY, [
-      context.getHandler(),
-      context.getClass(),
-    ]);
+    const featureType = this.reflector.getAllAndOverride<FeatureType>(
+      FEATURE_KEY,
+      [context.getHandler(), context.getClass()],
+    );
 
     if (!featureType) {
       return true;
@@ -34,19 +35,21 @@ export class FeatureAccessGuard implements CanActivate {
     if (!user || !user.id) {
       return true;
     }
-    
+
     const userId = user.id;
     const limits = await this.userSubscriptionsService.getUserLimits(userId);
 
     switch (featureType) {
       case 'theme_access':
         if (!limits.has_theme_access) {
-           throw new ForbiddenException('Upgrade to Pro plan to access themes');
+          throw new ForbiddenException('Upgrade to Pro plan to access themes');
         }
         break;
       case 'custom_domain':
         if (!limits.has_custom_domain) {
-            throw new ForbiddenException('Upgrade to Pro plan to use custom domains');
+          throw new ForbiddenException(
+            'Upgrade to Pro plan to use custom domains',
+          );
         }
         break;
       case 'branding_removal':

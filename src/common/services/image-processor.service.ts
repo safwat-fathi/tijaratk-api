@@ -1,7 +1,7 @@
 import { Injectable, Logger } from '@nestjs/common';
-import sharp from 'sharp';
 import * as fs from 'fs';
 import * as path from 'path';
+import sharp from 'sharp';
 
 @Injectable()
 export class ImageProcessorService {

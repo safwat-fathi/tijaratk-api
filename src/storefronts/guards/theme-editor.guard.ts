@@ -8,8 +8,8 @@ import {
 import { Request } from 'express';
 
 import {
-  ThemeEditorTokenService,
   THEME_EDITOR_SCOPE,
+  ThemeEditorTokenService,
 } from '../theme-editor-token.service';
 
 @Injectable()
@@ -45,7 +45,8 @@ export class ThemeEditorAuthGuard implements CanActivate {
   }
 
   private extractToken(request: Request) {
-    const header = request.headers['authorization'] || request.headers['Authorization'];
+    const header =
+      request.headers['authorization'] || request.headers['Authorization'];
     if (!header || Array.isArray(header)) {
       return null;
     }

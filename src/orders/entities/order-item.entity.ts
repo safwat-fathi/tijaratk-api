@@ -35,4 +35,3 @@ export class OrderItem {
   @Column({ type: 'numeric', precision: 10, scale: 2 })
   total_price: number;
 }
-

@@ -1,12 +1,8 @@
-import {
-  Controller,
-  Get,
-  Req,
-  UseGuards,
-} from '@nestjs/common';
+import { Controller, Get, Req, UseGuards } from '@nestjs/common';
 import { AuthGuard } from '@nestjs/passport';
 import { ApiBearerAuth, ApiTags } from '@nestjs/swagger';
 import CONSTANTS from 'src/common/constants';
+
 import { UsageTrackingService } from '../services/usage-tracking.service';
 
 @ApiTags('Billing')

@@ -161,7 +161,11 @@ export class AuthService {
 
     // 7. Generate an access token (short-lived) and a refresh token (or same token) here
     // Include the numeric user id in the payload for controllers that need it
-    const payload = { sub: user.facebookId, email: user.email, userId: dbUser.id };
+    const payload = {
+      sub: user.facebookId,
+      email: user.email,
+      userId: dbUser.id,
+    };
     // const access_token = user.accessToken;
     const access_token = this.jwtService.sign(payload, {
       expiresIn: CONSTANTS.SESSION.EXPIRATION_TIME,

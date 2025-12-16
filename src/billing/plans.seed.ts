@@ -1,9 +1,9 @@
 import { Logger } from '@nestjs/common';
+import { User } from 'src/users/entities/user.entity';
 import { DataSource } from 'typeorm';
 
-import { Plan } from '../billing/entities/plan.entity';
 import { Addon, AddonType } from '../billing/entities/addon.entity';
-import { User } from 'src/users/entities/user.entity';
+import { Plan } from '../billing/entities/plan.entity';
 import { UserSubscription } from './entities/user-subscription.entity';
 
 const logger = new Logger('SeedPlans');
@@ -11,7 +11,10 @@ const logger = new Logger('SeedPlans');
 export async function seedPlans(dataSource: DataSource) {
   const planRepository = dataSource.getRepository(Plan);
 
-  const plansData: Omit<Plan, 'id' | 'created_at' | 'updated_at' | 'deleted_at' | 'subscriptions'>[] = [
+  const plansData: Omit<
+    Plan,
+    'id' | 'created_at' | 'updated_at' | 'deleted_at' | 'subscriptions'
+  >[] = [
     {
       name: 'Free',
       slug: 'free',
@@ -51,7 +54,9 @@ export async function seedPlans(dataSource: DataSource) {
   ];
 
   for (const planData of plansData) {
-    const exists = await planRepository.findOne({ where: { slug: planData.slug } });
+    const exists = await planRepository.findOne({
+      where: { slug: planData.slug },
+    });
     if (!exists) {
       await planRepository.save(planRepository.create(planData));
       logger.log(`Seeded plan: ${planData.name}`);
@@ -104,7 +109,9 @@ export async function seedPlans(dataSource: DataSource) {
   ];
 
   for (const addonData of addonsData) {
-    const exists = await addonRepository.findOne({ where: { slug: addonData.slug } });
+    const exists = await addonRepository.findOne({
+      where: { slug: addonData.slug },
+    });
     if (!exists) {
       await addonRepository.save(addonRepository.create(addonData as any));
       logger.log(`Seeded addon: ${addonData.name}`);

@@ -1,7 +1,4 @@
 import { User } from 'src/users/entities/user.entity';
-import { StorefrontThemeConfig } from '../types/theme-config';
-import { SubCategory } from './sub-category.entity';
-import { StorefrontCategory } from './storefront-category.entity';
 import {
   Column,
   CreateDateColumn,
@@ -15,6 +12,10 @@ import {
   Unique,
   UpdateDateColumn,
 } from 'typeorm';
+
+import { StorefrontThemeConfig } from '../types/theme-config';
+import { StorefrontCategory } from './storefront-category.entity';
+import { SubCategory } from './sub-category.entity';
 
 @Entity('storefronts')
 @Unique(['slug'])

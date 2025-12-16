@@ -7,20 +7,20 @@ import { ThrottlerModule } from '@nestjs/throttler';
 import { TypeOrmModule } from '@nestjs/typeorm';
 
 import { AuthModule } from './auth/auth.module';
+import { BillingModule } from './billing/billing.module';
+import { CategoriesModule } from './categories/categories.module';
 import dataSource from './config/orm.config';
 import { FacebookModule } from './facebook/facebook.module';
 import { FacebookEventsModule } from './facebook-events/facebook-events.module';
 import { FacebookPageSubscriptionModule } from './facebook-page-subscription/facebook-page-subscription.module';
 import { HealthController } from './health/health.controller';
-import { OrdersModule } from './orders/orders.module';
 import { NotificationsModule } from './notifications/notifications.module';
+import { OrdersModule } from './orders/orders.module';
 import { PostsModule } from './posts/posts.module';
 import { ProductsModule } from './products/products.module';
 import { StorefrontsModule } from './storefronts/storefronts.module';
 import { SubscriptionModule } from './subscription/subscription.module';
 import { UsersModule } from './users/users.module';
-import { BillingModule } from './billing/billing.module';
-import { CategoriesModule } from './categories/categories.module';
 
 const ENV = process.env.NODE_ENV;
 

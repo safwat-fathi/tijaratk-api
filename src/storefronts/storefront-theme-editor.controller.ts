@@ -12,9 +12,9 @@ import {
 import { ApiOperation, ApiResponse, ApiTags } from '@nestjs/swagger';
 import { Request } from 'express';
 
+import { UpdateStorefrontThemeDto } from './dto/update-storefront-theme.dto';
 import { ThemeEditorAuthGuard } from './guards/theme-editor.guard';
 import { StorefrontsService } from './storefronts.service';
-import { UpdateStorefrontThemeDto } from './dto/update-storefront-theme.dto';
 
 @ApiTags('Storefront Theme Editor')
 @Controller('storefronts')
