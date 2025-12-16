@@ -1,0 +1,24 @@
+#!/usr/bin/env sh
+. "$(dirname -- "$0")/_/husky.sh"
+
+# Fix for Windows/GitHub Desktop: add .cmd extension
+command_exists() {
+  command -v "$1" >/dev/null 2>&1
+}
+
+if command_exists pnpm.cmd; then
+  PNPM_CMD="pnpm.cmd"
+else
+  PNPM_CMD="pnpm"
+fi
+
+echo "🚀 Running pre-push checks..."
+echo "---------------"
+
+echo "🏗️  Building project..."
+$PNPM_CMD build || {
+  echo "❌ Build failed. Please fix the errors before pushing."
+  exit 1
+}
+
+echo "✅ Pre-push checks passed. Proceeding with push."
