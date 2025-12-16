@@ -11,8 +11,8 @@
 
 // export default config;
 const config = {
-  'src/**/*.(ts|js)': ['yarn eslint --fix', 'yarn prettier --write'],
-  '**/*.(md|json)': ['yarn prettier --write'],
+  'src/**/*.(ts|js)': ['pnpm eslint --fix', 'pnpm prettier --write'],
+  '**/*.(md|json)': ['pnpm prettier --write'],
 };
 
 export default config;

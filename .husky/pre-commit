@@ -19,6 +19,8 @@ if [ $status -ne 0 ]; then
 fi
 
 echo "✅ No secrets found."
+echo "---------------"
+echo "---------------"
 
 echo "🎯 Running lint-staged to check code style..."
 
