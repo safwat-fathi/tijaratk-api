@@ -21,7 +21,6 @@ async function ensureSeedUser(
   const subscriptionRepository = dataSource.getRepository(Subscription);
 
   const existingUser = await userRepository.findOne({
-    relations: { subscription: true },
     where: {},
   });
 
@@ -43,11 +42,9 @@ async function ensureSeedUser(
   }
 
   const demoUser = userRepository.create({
-    email: 'demo+storefront@tijaratk.test',
     facebookId: 'demo-storefront-user',
     first_name: 'Demo',
     last_name: 'Merchant',
-    subscription,
   });
 
   return userRepository.save(demoUser);

@@ -15,7 +15,7 @@ export class FacebookPollingService {
   private httpService: HttpService;
 
   // Map to store intervals for each user by their ID
-  private pollingIntervals = new Map<string, NodeJS.Timeout>();
+  private pollingIntervals = new Map<number, NodeJS.Timeout>();
 
   constructor(
     @InjectRepository(FacebookPage)
@@ -66,7 +66,7 @@ export class FacebookPollingService {
     }
   }
 
-  async pollFacebookFeed(userId: string) {
+  async pollFacebookFeed(userId: number) {
     this.logger.debug('Polling Facebook Graph API (using HttpService)...');
     try {
       const pages = await this.facebookPageRepo.find({

@@ -31,12 +31,17 @@ import { UploadFile } from 'src/common/decorators/upload-file.decorator';
 import { imageFileFilter } from 'src/common/utils/file-filters';
 import { UploadedFile } from '@nestjs/common';
 import { Post as PostEntity } from './entities/post.entity';
+import { ImageProcessorService } from 'src/common/services/image-processor.service';
+import * as path from 'path';
 
 @Controller('posts')
 @ApiBearerAuth(CONSTANTS.ACCESS_TOKEN)
 @UseGuards(AuthGuard(CONSTANTS.AUTH.JWT))
 export class PostsController {
-  constructor(private readonly postsService: PostsService) {}
+  constructor(
+    private readonly postsService: PostsService,
+    private readonly imageProcessor: ImageProcessorService,
+  ) {}
 
   @Post()
   @HttpCode(HttpStatus.CREATED)
@@ -74,10 +79,13 @@ export class PostsController {
     },
   })
   @ApiOperation({ summary: 'Upload an image' })
-  upload(@UploadedFile() file: Express.Multer.File, @Req() req: Request) {
+  async upload(@UploadedFile() file: Express.Multer.File, @Req() req: Request) {
+    const filePath = path.join(process.cwd(), 'uploads', file.filename);
+    const webpFilename = await this.imageProcessor.convertToWebP(filePath);
+
     const protocol = req.protocol;
     const host = req.get('host');
-    const url = `${protocol}://${host}/uploads/${file.filename}`;
+    const url = `${protocol}://${host}/uploads/${webpFilename}`;
     return { url };
   }
 

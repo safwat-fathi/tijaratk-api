@@ -31,6 +31,7 @@ Enterprise is a **Phase 2 release** for large sellers.
 | Feature / Limit     | **Free Plan**                             | **Pro Plan ($15/mo)**    | **Enterprise (Phase 2)** |
 | ------------------- | ----------------------------------------- | ------------------------ | ------------------------ |
 | Max Products        | **10 products**                           | Unlimited                | Unlimited                |
+| Facebook Posts      | **5 posts/month**                         | **50 posts/month**       | Unlimited                |
 | Color Palettes      | **20 predefined palettes**                | All palettes + customize | Advanced theme designer  |
 | Theme Layouts       | **Product layout options only** (limited) | **10 full themes**       | Advanced modular themes  |
 | Custom Domain       | ✖                                         | ✔                        | ✔ (multi-domain)         |
@@ -38,6 +39,7 @@ Enterprise is a **Phase 2 release** for large sellers.
 | Inbox Channels      | FB + IG                                   | FB + IG                  | FB + IG + WhatsApp       |
 | Message Limit       | **50/month**                              | 3,000/month              | Unlimited                |
 | Extra Message Pack  | ✔                                         | ✔                        | Not needed               |
+| Extra Posts Pack    | ✔                                         | ✔                        | Not needed               |
 | Staff Users         | 1 admin                                   | 1 admin + 2 staff        | Full team roles          |
 | Extra Staff Seat    | ✔                                         | ✔                        | Not needed               |
 | Extra Product Pack  | ✔                                         | Not needed               | Not needed               |
@@ -59,6 +61,7 @@ The Free Plan provides a **starting point** for small and new sellers.
 ### ✅ What Free Plan includes:
 
 * **Up to 10 products**
+* **5 Facebook posts per month** (immediate or scheduled, can be linked to products)
 * **50 messages per month** (Inbox)
 * Basic admin tools (Products, Orders, Inventory)
 * **Theme customization limitations:**
@@ -97,6 +100,7 @@ Pro is the MVP’s **premium tier**, offering full store branding.
 ### ⭐ What Pro adds:
 
 * **Unlimited products**
+* **50 Facebook posts per month** (immediate or scheduled, can be linked to products)
 * **3,000 inbox messages per month**
 * **10 professional themes** (full-theme switching)
 * **Custom domains**
@@ -198,15 +202,37 @@ Free users get limited to **10 products**, forcing early conversion.
 
 ---
 
-## **4.4 AI Bot Add-ons (Phase 2)**
+## **4.4 Extra Posts Pack — $3 for +50 posts**
 
-## **4.4 AI Bot Add-ons (Phase 2 – Requires Additional Development)**
+### Purpose:
+
+Free users are limited to **5 Facebook posts per month**, and Pro users to **50 posts per month**. This add-on allows users to increase their posting capacity without upgrading their entire plan.
+
+### What it gives:
+
+* +50 Facebook posts added to monthly limit
+* Posts can be immediate or scheduled
+* Posts can be linked to products
+* Renews monthly
+
+### Why this works:
+
+* Active sellers hit posting limits quickly, especially during promotional campaigns
+* Allows Free users to scale their social media presence incrementally
+* Pro users running heavy campaigns can also benefit
+* Captures revenue from high-engagement users
+
+---
+
+## **4.5 AI Bot Add-ons (Phase 2)**
+
+## **4.5 AI Bot Add-ons (Phase 2 – Requires Additional Development)**
 
 AI automation add-ons are powerful tools that enhance communication efficiency and increase sales conversion, but they require deeper technical work and compliance with platform policies. They will be introduced in **Phase 2** after core system stability.
 
 ---
 
-### **4.4.1 WhatsApp AI Bot Add-on (Phase 2)**
+### **4.5.1 WhatsApp AI Bot Add-on (Phase 2)**
 
 #### **Purpose:**
 Automate customer communication on WhatsApp using AI-powered replies and optional workflows.
@@ -242,7 +268,7 @@ WhatsApp is the highest-demand sales channel in Egypt. An AI-powered bot directl
 
 ---
 
-### **4.4.2 Facebook Messenger AI Bot Add-on (Phase 2)**
+### **4.5.2 Facebook Messenger AI Bot Add-on (Phase 2)**
 
 #### **Purpose:**
 Provide automated replies to Facebook inbox messages, helping merchants respond faster and reduce workload.
@@ -272,7 +298,7 @@ Messenger usage remains strong in Egypt, especially for marketplace sellers, tho
 
 ---
 
-### **4.4.3 Recommended Release Strategy**
+### **4.5.3 Recommended Release Strategy**
 
 AI Bot add-ons require:
 * Integration with WhatsApp Business API (Phase 2 per SRS)

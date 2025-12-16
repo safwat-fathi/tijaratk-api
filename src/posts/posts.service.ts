@@ -65,17 +65,10 @@ export class PostsService {
     const productCount = await this.productRepository.count({
       where: { id: product_id },
     });
-    // Check subscription plan limits (assuming user.subscription is loaded)
-    const subscription = user.subscription;
-    if (
-      subscription &&
-      subscription.post_limit !== null &&
-      productCount >= subscription.post_limit
-    ) {
-      throw new BadRequestException(
-        'You have reached your post limit for your current subscription plan',
-      );
-    }
+
+    // NOTE: Post limit check is now handled by PlanLimitGuard on the controller
+    // using the new billing system (UsageTrackingService)
+    // The old user.subscription relationship has been removed
 
     const post = this.postRepository.create({
       title: title,

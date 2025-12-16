@@ -361,7 +361,7 @@ export class StorefrontsService {
 
   async findUserStorefront(userId: string) {
     return this.storefrontRepo.findOne({
-      where: { user: { id: userId } },
+      where: { user: { id: Number(userId) } },
     });
   }
 
@@ -470,6 +470,9 @@ export class StorefrontsService {
         name: true,
         sku: true,
         slug: true,
+        description: true,
+        main_image: true,
+        images: true,
         price: true,
         stock: true,
         status: true,

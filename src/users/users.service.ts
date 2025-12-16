@@ -1,4 +1,4 @@
-import { Injectable } from '@nestjs/common';
+import { Injectable, NotFoundException } from '@nestjs/common';
 import { InjectRepository } from '@nestjs/typeorm';
 import { Repository } from 'typeorm';
 
@@ -13,10 +13,31 @@ export class UsersService {
     private readonly userRepo: Repository<User>,
   ) {}
 
-  async getUserById(userId: string) {
+  async getUserById(userId: number) {
     const user = await this.userRepo.findOne({ where: { id: userId } });
     if (!user) {
-      throw new Error('User not found');
+      throw new NotFoundException('User not found');
+    }
+
+    return user;
+  }
+
+  async getUserProfile(userId: string) {
+    const user = await this.userRepo.findOne({
+      where: { id: Number(userId) },
+      relations: {
+        facebook_pages: true,
+        userSubscription: {
+          plan: true,
+        },
+      },
+    });
+
+    // remove reset password token from response
+    delete user.reset_password_token;
+
+    if (!user) {
+      throw new NotFoundException('User not found');
     }
 
     return user;

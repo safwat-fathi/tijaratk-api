@@ -2,17 +2,24 @@ import {
   ArgumentsHost,
   Catch,
   ExceptionFilter,
+  HttpException,
   HttpStatus,
   Logger,
 } from '@nestjs/common';
 import { ValidationError } from 'class-validator';
 import { Request, Response } from 'express';
+import { QueryFailedError } from 'typeorm';
 
 @Catch()
 export class AllExceptionFilter implements ExceptionFilter {
   private readonly logger = new Logger(AllExceptionFilter.name);
 
   catch(exception: any, host: ArgumentsHost) {
+    const ctx = host.switchToHttp();
+    const response = ctx.getResponse<Response>();
+    const request = ctx.getRequest<Request>();
+
+    // Handle generic JS errors that might be thrown
     if (
       exception instanceof TypeError ||
       exception instanceof RangeError ||
@@ -20,56 +27,81 @@ export class AllExceptionFilter implements ExceptionFilter {
       exception instanceof SyntaxError ||
       exception instanceof EvalError
     ) {
-      this.logger.error(exception);
-
-      return host
-        .switchToHttp()
-        .getResponse()
-        .status(HttpStatus.INTERNAL_SERVER_ERROR)
-        .json({
-          success: false,
-          message: 'Internal server error',
-        });
-    }
-
-    const ctx = host.switchToHttp();
-    const response = ctx.getResponse<Response>();
-    const request = ctx.getRequest<Request>();
-
-    // Check if the exception is a validation error
-    if (exception[0] instanceof ValidationError) {
-      return response.status(HttpStatus.BAD_REQUEST).json({
+      this.logger.error(
+        `Critical Error: ${exception.message}`,
+        exception.stack,
+      );
+      return response.status(HttpStatus.INTERNAL_SERVER_ERROR).json({
         success: false,
-        message: `Validation error for ${(exception[0] as ValidationError).property} - ${Object.values((exception[0] as ValidationError).constraints)?.join(', ')}`,
+        message: 'Internal server error',
         timestamp: new Date().toISOString(),
-        path: request.url, // Optional: include request path
+        path: request.url,
       });
     }
 
-    const exceptionResponse = exception.getResponse();
-    const statusCode = exception.getStatus();
-
-    let message: string;
-    if (typeof exceptionResponse === 'string') {
-      message = exceptionResponse;
-    } else if (
-      typeof exceptionResponse === 'object' &&
-      (exceptionResponse as any).message
-    ) {
-      message = Array.isArray((exceptionResponse as any).message)
-        ? (exceptionResponse as any).message.join(', ')
-        : (exceptionResponse as any).message;
-    } else {
-      message = 'An unexpected error occurred';
-      this.logger.error('Unexpected error', exception as any);
+    // Check if the exception is a validation error (class-validator)
+    if (Array.isArray(exception) && exception[0] instanceof ValidationError) {
+      return response.status(HttpStatus.BAD_REQUEST).json({
+        success: false,
+        message: `Validation error for ${(exception[0] as ValidationError).property}`,
+        errors: exception,
+        timestamp: new Date().toISOString(),
+        path: request.url,
+      });
     }
 
-    return response.status(statusCode).json({
+    let status = HttpStatus.INTERNAL_SERVER_ERROR;
+    let message = 'Internal server error';
+    let errorDetails = null;
+
+    if (exception instanceof HttpException) {
+      status = exception.getStatus();
+      const exceptionResponse = exception.getResponse();
+
+      if (typeof exceptionResponse === 'string') {
+        message = exceptionResponse;
+      } else if (
+        typeof exceptionResponse === 'object' &&
+        (exceptionResponse as any).message
+      ) {
+        message = Array.isArray((exceptionResponse as any).message)
+          ? (exceptionResponse as any).message.join(', ')
+          : (exceptionResponse as any).message;
+        errorDetails = (exceptionResponse as any).error;
+      }
+    } else if (
+      exception instanceof QueryFailedError ||
+      (exception as any).code
+    ) {
+      // Handle TypeORM / Postgres errors
+      const code = (exception as any).code;
+      if (code === '22P02') {
+        status = HttpStatus.BAD_REQUEST;
+        message = 'Invalid input syntax for database query';
+      } else if (code === '23505') {
+        status = HttpStatus.CONFLICT;
+        message = 'Duplicate entry violation';
+      } else {
+        this.logger.error(
+          `Database Error [${code}]: ${exception.message}`,
+          (exception as any).stack,
+        );
+        message = 'Database operation failed';
+      }
+    } else {
+      this.logger.error(
+        `Unexpected Error: ${exception.message}`,
+        typeof exception === 'object' ? JSON.stringify(exception) : exception,
+      );
+      message = 'An unexpected error occurred';
+    }
+
+    return response.status(status).json({
       success: false,
       message,
-      errors: (exceptionResponse as any).error || null,
+      errors: errorDetails,
       timestamp: new Date().toISOString(),
-      path: request.url, // Optional: include request path
+      path: request.url,
     });
   }
 }

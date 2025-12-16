@@ -38,7 +38,7 @@ export class FacebookPageSubscriptionService {
   async subscribePage(
     pageId: string,
     pageAccessToken: string,
-    userId: string,
+    userId: number,
   ): Promise<FacebookPageSubscription> {
     const user = await this.usersService.getUserById(userId);
 

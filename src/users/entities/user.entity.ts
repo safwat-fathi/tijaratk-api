@@ -4,7 +4,7 @@ import { FacebookPageSubscription } from 'src/facebook-page-subscription/entitie
 import { Notification } from 'src/notifications/entities/notification.entity';
 import { Product } from 'src/products/entities/product.entity';
 import { Storefront } from 'src/storefronts/entities/storefront.entity';
-import { Subscription } from 'src/subscription/entities/subscription.entity';
+import { UserSubscription } from 'src/billing/entities/user-subscription.entity';
 import {
   Column,
   CreateDateColumn,
@@ -24,12 +24,12 @@ import {
 @Unique(['facebookId'])
 export class User {
   @PrimaryGeneratedColumn()
-  id: string;
+  id: number;
 
-  @ManyToOne(() => Subscription, (sub) => sub.users, {
-    onDelete: 'CASCADE',
+  @OneToOne(() => UserSubscription, (sub) => sub.user, {
+    cascade: true,
   })
-  subscription: Relation<Subscription>;
+  userSubscription: Relation<UserSubscription>;
 
   @Column({ nullable: true })
   email?: string;

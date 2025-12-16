@@ -48,6 +48,19 @@ export class Notification {
   @Column({ nullable: true })
   classification: string;
 
+  // Facebook-specific IDs for linking to content
+  @Column({ type: 'varchar', nullable: true })
+  message_id: string;
+
+  @Column({ type: 'varchar', nullable: true })
+  comment_id: string;
+
+  @Column({ type: 'varchar', nullable: true })
+  post_id: string;
+
+  @Column({ type: 'text', nullable: true })
+  permalink_url: string;
+
   @CreateDateColumn()
   created_at: Date;
 

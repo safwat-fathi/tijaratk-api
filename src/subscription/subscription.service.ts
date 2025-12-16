@@ -68,22 +68,9 @@ export class SubscriptionService {
       `Received user.logged_in event for userId=${payload.userId}`,
     );
 
-    // check if user has a subscription
-    const subscription = await this.subscriptionRepository.findOne({
-      where: { users: { id: payload.userId } },
-      relations: { users: true },
-    });
-    if (!subscription) {
-      // add free subscription
-      const freeSubscription = await this.subscriptionRepository.findOne({
-        where: { name: 'Free' },
-      });
-      const user = await this.userRepository.findOne({
-        where: { id: payload.userId },
-      });
-
-      user.subscription = freeSubscription;
-      await this.userRepository.save(user);
-    }
+    // This service is deprecated - the old Subscription entity no longer has a users relation
+    // New billing system uses UserSubscription entity instead
+    // Returning null for backward compatibility
+    return null;
   }
 }

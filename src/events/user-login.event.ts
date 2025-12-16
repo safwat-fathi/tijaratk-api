@@ -1,3 +1,3 @@
 export class UserLoginEvent {
-  constructor(public userId: string) {}
+  constructor(public userId: number) {}
 }

@@ -6,7 +6,7 @@ const THIRTY_MINUTES_IN_SECONDS = 60 * 30;
 export const THEME_EDITOR_SCOPE = 'storefront:edit-theme';
 
 export interface ThemeEditorTokenPayload {
-  sub: string;
+  sub: number;
   storefrontId: number;
   scope: string[];
 }

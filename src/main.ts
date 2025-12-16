@@ -54,6 +54,7 @@ async function bootstrap() {
     helmet({
       contentSecurityPolicy: false, // Disable CSP for Swagger UI
       crossOriginEmbedderPolicy: false, // Required for Swagger UI
+      crossOriginResourcePolicy: false, // Allow cross-origin resource loading
     }),
   );
 
@@ -65,8 +66,15 @@ async function bootstrap() {
     allowedHeaders: ['Content-Type', 'Accept', 'Authorization'],
   });
 
-  // serve static files
-  app.use('/uploads', express.static(join(process.cwd(), 'uploads')));
+  // serve static files with cross-origin headers
+  app.use(
+    '/uploads',
+    (req, res, next) => {
+      res.setHeader('Cross-Origin-Resource-Policy', 'cross-origin');
+      next();
+    },
+    express.static(join(process.cwd(), 'uploads')),
+  );
 
   // swagger docs
   const options = new DocumentBuilder()

@@ -1,8 +1,10 @@
 import {
   Body,
   Controller,
+  Delete,
   Get,
   Logger,
+  Param,
   Post,
   Query,
   Req,
@@ -30,6 +32,14 @@ export class FacebookController {
     const { facebookId } = req.user;
 
     return await this.facebookService.getUserPages(facebookId);
+  }
+
+  @ApiBearerAuth(CONSTANTS.ACCESS_TOKEN)
+  @UseGuards(AuthGuard(CONSTANTS.AUTH.JWT))
+  @Delete('pages/:pageId')
+  async deletePage(@Req() req: Request, @Param('pageId') pageId: string) {
+    const { facebookId } = req.user as any;
+    return await this.facebookService.unregisterPage(facebookId, pageId);
   }
 
   @ApiExcludeEndpoint()

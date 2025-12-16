@@ -19,6 +19,7 @@ import { ProductsModule } from './products/products.module';
 import { StorefrontsModule } from './storefronts/storefronts.module';
 import { SubscriptionModule } from './subscription/subscription.module';
 import { UsersModule } from './users/users.module';
+import { BillingModule } from './billing/billing.module';
 import { CategoriesModule } from './categories/categories.module';
 
 const ENV = process.env.NODE_ENV;
@@ -49,8 +50,9 @@ const ENV = process.env.NODE_ENV;
     PostsModule,
     OrdersModule,
     StorefrontsModule,
-    SubscriptionModule,
+    // SubscriptionModule,
     CategoriesModule,
+    BillingModule,
   ],
   controllers: [HealthController],
 })

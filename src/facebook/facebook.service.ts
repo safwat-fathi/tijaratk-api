@@ -113,6 +113,18 @@ export class FacebookService {
     }
   }
 
+  async unregisterPage(facebookId: string, pageId: string): Promise<void> {
+    const page = await this.facebookPageRepo.findOne({
+      where: { page_id: pageId, user: { facebookId } },
+    });
+
+    if (!page) {
+      throw new BadRequestException('Page not found or not owned by user');
+    }
+
+    await this.facebookPageRepo.softDelete({ page_id: pageId });
+  }
+
   private async shouldRefreshPages(user: User): Promise<boolean> {
     // Add a last_updated column to FacebookPage entity
     const lastUpdatedPage = await this.facebookPageRepo.findOne({
@@ -293,17 +305,9 @@ export class FacebookService {
       },
     });
 
-    const subscription = user.subscription;
-
-    if (
-      subscription &&
-      subscription.comment_message_limit !== null &&
-      notificationCount >= subscription.comment_message_limit
-    ) {
-      throw new BadRequestException(
-        'You have reached your comment message limit for your current subscription plan',
-      );
-    }
+    // TODO: Replace with new billing system usage tracking
+    // The old subscription relationship has been removed from User entity
+    // This limit check should use UsageTrackingService.checkMessageLimit()
 
     this.eventsGateway.sendToClient(user.facebookId, formattedEvents[0]);
   }
@@ -395,6 +399,7 @@ export class FacebookService {
         sender_id: event.sender_id,
         sentiment: analysis.sentiment,
         classification: analysis.classification,
+        message_id: event.message_id,
       });
 
       await this.notificationRepo.save(newNotification);
@@ -426,6 +431,9 @@ export class FacebookService {
         sender_name: event.sender_name,
         sentiment: analysis.sentiment,
         classification: analysis.classification,
+        comment_id: event.comment_id,
+        post_id: event.post_id,
+        permalink_url: event.post.permalink_url,
       });
 
       await this.notificationRepo.save(newNotification);

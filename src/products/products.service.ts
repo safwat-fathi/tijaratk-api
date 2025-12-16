@@ -5,40 +5,30 @@ import { ILike, Repository } from 'typeorm';
 
 import { CreateProductDto } from './dto/create-product.dto';
 import { ListProductsDto } from './dto/list-products.dto';
+import { UpdateProductDto } from './dto/update-product.dto';
 import { Product } from './entities/product.entity';
+import { UsageTrackingService } from '../billing/services/usage-tracking.service';
 
 @Injectable()
 export class ProductsService {
   constructor(
     @InjectRepository(Product)
-    private readonly productRepo: Repository<Product>,
+    private productRepo: Repository<Product>,
     @InjectRepository(User)
-    private readonly userRepo: Repository<User>,
+    private userRepo: Repository<User>,
+    private usageTrackingService: UsageTrackingService,
   ) {}
 
   async create(facebookId: string, dto: CreateProductDto) {
     const user = await this.userRepo.findOne({
       where: { facebookId },
-      relations: { subscription: true },
     });
     if (!user) {
       throw new BadRequestException('User not found');
     }
 
-    const productCount = await this.productRepo.count({
-      where: { user: { id: user.id } },
-    });
-    // Check subscription plan limits (assuming user.subscription is loaded)
-    const subscription = user.subscription;
-    if (
-      subscription &&
-      subscription.product_limit !== null &&
-      productCount >= subscription.product_limit
-    ) {
-      throw new BadRequestException(
-        'You have reached your product limit for your current subscription plan',
-      );
-    }
+    // Check plan limits
+    await this.usageTrackingService.checkProductLimit(user.id);
 
     const slugBase = dto.name
       .toLowerCase()
@@ -92,6 +82,9 @@ export class ProductsService {
         name: true,
         sku: true,
         slug: true,
+        description: true,
+        main_image: true,
+        images: true,
         deleted_at: true,
         price: true,
         status: true,

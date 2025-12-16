@@ -34,6 +34,15 @@ export class Product {
   @Column({ type: 'varchar', length: 255, nullable: true })
   slug?: string;
 
+  @Column({ type: 'text', nullable: true })
+  description?: string;
+
+  @Column({ type: 'varchar', length: 512, nullable: true })
+  main_image?: string;
+
+  @Column({ type: 'json', nullable: true })
+  images?: string[];
+
   @OneToMany(() => Post, (post) => post.product)
   posts: Relation<Post[]>;
 

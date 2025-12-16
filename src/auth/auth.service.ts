@@ -113,6 +113,15 @@ export class AuthService {
       throw new UnauthorizedException('User not found');
     }
 
+    // Get the database user to access the numeric id
+    const dbUser = await this.userRepository.findOne({
+      where: { facebookId: user.facebookId },
+    });
+
+    if (!dbUser) {
+      throw new UnauthorizedException('User not found in database');
+    }
+
     // 3. Retrieve all existing sessions for this user
     const sessions = await this.sessionRepository.find({
       where: { user: { facebookId: user.facebookId } },
@@ -151,7 +160,8 @@ export class AuthService {
     }
 
     // 7. Generate an access token (short-lived) and a refresh token (or same token) here
-    const payload = { sub: user.facebookId, email: user.email };
+    // Include the numeric user id in the payload for controllers that need it
+    const payload = { sub: user.facebookId, email: user.email, userId: dbUser.id };
     // const access_token = user.accessToken;
     const access_token = this.jwtService.sign(payload, {
       expiresIn: CONSTANTS.SESSION.EXPIRATION_TIME,

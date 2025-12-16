@@ -6,7 +6,7 @@ export const imageFileFilter = (
   file: Express.Multer.File,
   callback: (error: Error | null, acceptFile: boolean) => void,
 ) => {
-  const imageRegex = /\/(jpg|jpeg|png)$/i; // case-insensitive
+  const imageRegex = /\/(jpg|jpeg|png|webp)$/i; // case-insensitive
   if (!imageRegex.test(file.mimetype)) {
     return callback(
       new BadRequestException('Only image files are allowed!'),

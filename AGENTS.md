@@ -18,7 +18,7 @@ This file provides guidelines for AI agents and coding assistants when working w
 - Always add swagger docs to new routes.
 - Prefer descriptive variable and function names over abbreviations.
 - Keep functions and classes focused; avoid unnecessary complexity or over-engineering.
-- Do not add license or copyright headers.
+- On defining entities with relations, always use `Relation<Post[]>` instead of `Post[]`. 
 
 ## Editing and files
 

@@ -1,12 +1,9 @@
-import { User } from 'src/users/entities/user.entity';
 import {
   Column,
   CreateDateColumn,
   DeleteDateColumn,
   Entity,
-  OneToMany,
   PrimaryGeneratedColumn,
-  Relation,
   UpdateDateColumn,
 } from 'typeorm';
 
@@ -22,13 +19,14 @@ export enum SupportType {
   VIP = 'VIP',
 }
 
+/**
+ * @deprecated This entity is replaced by Plan and UserSubscription entities in usage-billing system.
+ * It is kept for backward compatibility during migration.
+ */
 @Entity('subscriptions')
 export class Subscription {
   @PrimaryGeneratedColumn()
   id: number;
-
-  @OneToMany(() => User, (user) => user.subscription)
-  users: Relation<User[]>;
 
   @Column({ type: 'varchar', length: 255 })
   name: string;
