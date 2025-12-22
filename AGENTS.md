@@ -1,4 +1,4 @@
-# AGENTS.md             
+# AGENTS.md
 
 This file provides guidelines for AI agents and coding assistants when working with code in this repository
 
@@ -18,13 +18,14 @@ This file provides guidelines for AI agents and coding assistants when working w
 - Always add swagger docs to new routes.
 - Prefer descriptive variable and function names over abbreviations.
 - Keep functions and classes focused; avoid unnecessary complexity or over-engineering.
-- On defining entities with relations, always use `Relation<Post[]>` instead of `Post[]`. 
+- On defining entities with relations, always use `Relation<Post[]>` instead of `Post[]`.
 
 ## Editing and files
 
 - Keep changes minimal and targeted to the user’s request.
 - Do not rename or move files unless explicitly required to satisfy the request.
 - Avoid making cross-cutting refactors without clear user direction.
+- Do not create migration files unless explicitly required to satisfy the request.
 
 ## Testing and verification
 
@@ -42,7 +43,7 @@ This file provides guidelines for AI agents and coding assistants when working w
 - When making non-trivial changes, briefly summarize what you changed and where (file paths and key symbols).
 - If you encounter unclear requirements, ask for clarification instead of guessing behavior that could affect production logic.
 
-## Ask Before 
+## Ask Before
 
 - package installs and dependencies updates
 - git push, pull, merge

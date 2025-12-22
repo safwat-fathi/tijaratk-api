@@ -124,18 +124,12 @@ Order {
 
 ## **🔹 4. Handling Cart for Both Types**
 
-### **Option A — Stateless Cart (Recommended for MVP)**
+### Stateless Cart (Recommended for MVP)\*\*
 
 - Cart stored in `localStorage`
 - At checkout, post cart to API
 - Simple and fast
 - Perfect for social-media-driven stores
-
-### **Option B — Server Cart (Best long-term)**
-
-- Cart stored in Redis or DB session
-- Allows multi-device experience
-- Useful for returning users
 
 ---
 
@@ -168,61 +162,3 @@ This encourages post-purchase registration and builds full customer history.
 ### ✔ Flexible seller-level settings
 
 ---
-
-# 🧱 **Extra Technical Notes (Tijaratk-Specific)**
-
-## **1. Analytics**
-
-Every order will be tied to:
-
-- Campaign ID (UTM)
-- Source: FB post / comment (auto-tagging)
-- Product (linked automatically)
-- Inbox thread (if came from message)
-
-This aligns with your:
-
-- **AI classification in Omnichannel Inbox**
-- **Auto-tagging comments to products**
-- **Engagement per product**
-
-## **2. API Endpoints**
-
-### **POST /storefront/orders**
-
-Handles both user and guest.
-
-```json
-{
-  "sellerId": "...",
-  "cart": [...],
-  "guest": {
-    "name": "John",
-    "phone": "+201234",
-    "email": "john@mail.com"
-  },
-  "shippingAddress": "...",
-  "paymentMethod": "cod"
-}
-```
-
-### **Response**
-
-- order_id
-- status
-- tracking_url
-
----
-
-# 🏷 TL;DR
-
-**Business**
-✔ Guest checkout increases conversions, essential for social selling
-✔ User accounts help with retention and repeat sales
-✔ Merchants should configure required fields
-
-**Technical**
-✔ Store orders independently of authentication
-✔ LocalStorage cart for MVP, server-cart later
-✔ Guest flow collects minimal info
-✔ Auto-link guest orders to future user accounts
