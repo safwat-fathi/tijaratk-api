@@ -1,164 +1,500 @@
-Below is a **clear business + technical approach** for allowing **Users and Guests** to place orders on **Tijaratk** storefronts (Facebook-first SaaS -> Omnichannel → Storefront → Cart → Checkout).
+# ✅ **Tijaratk Order Plan**
+
+### _(Catalog Orders + Custom Orders + Guest Customers + WhatsApp Magic Links)_
+
+This document defines the **complete order lifecycle and actions model** in Tijaratk, designed for:
+
+- Facebook / Instagram / WhatsApp commerce
+- Omnichannel Inbox workflows
+- Guest-first ordering
+- COD-only payments (Phase 1)
+- Minimal friction & minimal refactoring
 
 ---
 
-# ✅ **Business Perspective**
+## 🧩 **1. Order Types**
 
-## **1. Why allow Guest Checkout?**
+| Order Type        | Description                                                             |
+| ----------------- | ----------------------------------------------------------------------- |
+| **Catalog Order** | Created from existing products                                          |
+| **Custom Order**  | Created after seller approves a customer request for a non-catalog item |
 
-Guest checkout significantly increases conversion rates, especially for:
-
-- Impulse buys
-- Facebook traffic (coming from posts / comments)
-- Customers who don’t want to create accounts
-- Small merchants with low-friction buying experience
-
-**Impact:**
-✔ Higher storefront conversion
-✔ Lower cart abandonment
-✔ Essential for merchants selling through social media
-
-**Recommendation:**
-👉 **Offer guest checkout by default**, but give sellers the option to disable it.
+> **Custom Orders are negotiated first, then converted into Orders**
+> They are **not products** and do **not affect catalog or inventory logic**.
 
 ---
 
-## **2. User Accounts still matter**
+## 👤 **2. Customer Identity Model**
 
-Users with accounts get:
+### 2.1 Registered Customer
 
-- Order history
-- Saved addresses
-- Faster checkout
-- Tracking updates in email / WhatsApp / Inbox
-- Personalized recommendations (future)
+- Has account
+- Orders linked to `customer_id`
 
-This increases:
+### 2.2 Guest Customer (MVP – Fully Supported)
 
-- Retention
-- Repeat purchase frequency
-- CLV (Customer Lifetime Value)
+> **A guest is an identity, not an account**
 
-**Recommendation:**
-👉 Keep Accounts optional, but incentivize registration after the purchase (post-checkout conversion).
+### ✅ Guest Requirements (Mandatory)
 
----
-
-## **3. Respect Seller Preferences**
-
-Each seller chooses:
-
-- Allow Guest Checkout: **Yes/No**
-- Require phone number: **Yes/No**
-- Require email: **Yes/No**
-- Require address at checkout: **Full / Partial / After-confirmation**
-
----
-
-# 📐 **Technical Architecture**
-
-## **🔹 1. Order Model (Core)**
-
-You will treat orders as standalone entities NOT tied to user accounts.
-
-### **Order fields**
+- **WhatsApp number (required)**
+- OTP verification (once)
 
 ```ts
-Order {
+guest {
   id
-  seller_id
-  buyer_id (nullable)
-  buyer_type: "guest" | "registered"
-  items: OrderItem[]
-  total_price
-  status: pending | confirmed | shipped | completed | cancelled
-
-  // Guest info
-  guest_name
-  guest_email
-  guest_phone
-
-  // Shared info
-  shipping_address
-  payment_method
-  created_at
+  whatsapp_number   // required
+  verified_at
 }
 ```
 
-**Key principle:**
-👉 **An order must exist regardless of authentication.**
+Orders & requests reference:
 
----
-
-## **🔹 2. Guest Checkout Flow** (recommended)
-
-### **Flow**
-
-1. Guest adds items to cart (no login)
-2. Frontend stores cart in:
-   - localStorage (browser)
-   - OR server cart session (optional)
-
-3. When they click checkout:
-   - Ask for Name
-   - Phone (required for COD or WhatsApp validation)
-   - Email (optional)
-   - Address (seller decides if required)
-
-4. Order is created with `buyer_id = null`
-5. Order confirmation message sent to:
-   - Email
-   - Phone (SMS/WhatsApp)
-   - Seller’s Omnichannel Inbox inside Tijaratk
-
----
-
-## **🔹 3. Registered User Checkout Flow**
-
-1. User logs in → Cart linked to user
-2. Saved addresses auto-filled
-3. Order saved with `buyer_id = user.id`
-4. User can view all orders in dashboard
-
----
-
-## **🔹 4. Handling Cart for Both Types**
-
-### Stateless Cart (Recommended for MVP)\*\*
-
-- Cart stored in `localStorage`
-- At checkout, post cart to API
-- Simple and fast
-- Perfect for social-media-driven stores
-
----
-
-## **5. Linking Guest Orders to Accounts**
-
-When a guest creates an order and later signs up with the same email or phone:
-
-```
-cron or webhook:
-If user.email == order.guest_email:
-    attach order to user.account
+```ts
+order {
+  customer_id?   // registered
+  guest_id?      // guest
+}
 ```
 
-This encourages post-purchase registration and builds full customer history.
+Applies to:
+
+- `orders`
+- `custom_order_requests`
+- `custom_order_quotes`
 
 ---
 
-# 🧩 **Business + Technical Best Model for Tijaratk**
+## 🔐 **3. Guest Access via WhatsApp Magic Links (Core Feature)**
 
-## **Final Recommended Approach**
+> **The link itself is the authentication**
 
-### ✔ Allow both User and Guest orders
+Guests manage orders **without login** using **secure WhatsApp URLs**.
 
-### ✔ Orders stored independently (user optional)
+### 3.1 How It Works
 
-### ✔ Lightweight guest flow to boost conversion
-
-### ✔ Auto-link guest orders if they register later
-
-### ✔ Flexible seller-level settings
+1. Guest places catalog order OR requests custom order
+2. System sends WhatsApp message with secure URL
+3. Guest clicks link
+4. Backend validates token
+5. Guest lands on order page (track / update)
 
 ---
+
+### 3.2 Token Model
+
+```ts
+order_access_token {
+  id
+  order_id
+  guest_id
+  token_hash        // stored hashed
+  scope             // view | update
+  expires_at
+  revoked_at?
+}
+```
+
+- Tokens are **single-order**
+- Time-limited
+- Revocable
+
+---
+
+### 3.3 Allowed Guest Actions via Link
+
+✅ View order details
+✅ Track order status
+✅ View shipment info
+✅ Request address change
+✅ Request cancellation (if allowed)
+✅ Contact seller
+
+❌ No price edits
+❌ No item edits
+❌ No access to other orders
+
+---
+
+### 3.4 Expiration & Recovery
+
+| Case                  | Rule                       |
+| --------------------- | -------------------------- |
+| Default link validity | 24 hours                   |
+| Expired link          | New link sent via WhatsApp |
+| Suspicious activity   | Token revoked              |
+
+Guests can always request:
+
+> “Resend order link”
+
+---
+
+## 🛒 **4. Payment Model (Phase 1)**
+
+### ✅ **Cash on Delivery (COD) ONLY**
+
+- No online payments
+- No payment gateways
+- No deposits
+
+Order payment status:
+
+```
+unpaid → paid (COD collected)
+```
+
+Seller marks order as paid manually.
+
+---
+
+## 🧱 **5. Customer Actions**
+
+### A. Before Order Exists (Custom Orders Only)
+
+#### **1. Request Custom Order**
+
+Customer submits:
+
+- Description
+- Quantity
+- Optional budget
+- Reference images
+- WhatsApp number (if guest)
+
+Status flow:
+
+```
+pending → quoted → accepted | rejected | expired
+```
+
+---
+
+### B. Before Order Fulfillment
+
+#### **2. Place Catalog Order**
+
+- Add products to cart
+- Submit order
+- WhatsApp verification required for guests
+
+---
+
+#### **3. Accept / Reject Custom Order Quote**
+
+Customer can:
+
+- Accept → **Order is created**
+- Reject
+- Request changes (via Inbox)
+
+---
+
+#### **4. Cancel Order**
+
+Allowed:
+
+- Before seller confirmation
+- Before shipping
+- Based on seller policy
+
+> Custom Orders may be non-cancelable after confirmation.
+
+---
+
+#### **5. Track Order**
+
+Via:
+
+- WhatsApp magic link
+- Order status page
+
+Statuses:
+
+```
+pending → confirmed → shipped → delivered
+```
+
+---
+
+#### **6. Contact Seller**
+
+- Omnichannel Inbox
+- Clarify delivery or custom details
+
+---
+
+### C. After Fulfillment
+
+#### **7. Confirm Delivery** (Optional)
+
+Manual confirmation if courier is not integrated.
+
+---
+
+#### **8. Request Return / Refund**
+
+- Report defect
+- Request refund
+
+> Custom Orders can be **non-returnable**.
+
+---
+
+#### **9. Leave Feedback / Rating**
+
+- Rate seller
+- Rate order
+
+---
+
+#### **10. Reorder**
+
+- Catalog orders → add to cart
+- Custom orders → creates new request
+
+---
+
+## 🚀 **6. Seller Actions**
+
+### A. Custom Order Management
+
+#### **1. View Custom Order Requests**
+
+- Filter by status
+- View guest / customer history
+
+---
+
+#### **2. Quote Custom Order**
+
+Seller sets:
+
+- Price
+- Delivery time
+- Notes
+- Quote expiry
+
+---
+
+#### **3. Accept / Reject Custom Request**
+
+- Accept → waits for customer approval
+- Reject → optional reason
+
+---
+
+#### **4. Convert Custom Request to Order**
+
+Triggered automatically when customer accepts quote.
+
+---
+
+### B. Order Processing
+
+#### **5. View Orders**
+
+Unified list:
+
+- Catalog + Custom
+- Guest + Registered
+
+Filters:
+
+- Order type
+- Status
+- Channel
+- Guest / user
+
+---
+
+#### **6. Manually Create Order**
+
+For:
+
+- WhatsApp orders
+- Phone orders
+- Offline deals
+
+---
+
+#### **7. Confirm Order**
+
+- Validate availability / feasibility
+- Lock order details
+
+---
+
+#### **8. Edit Order**
+
+Seller can:
+
+- Edit description
+- Adjust quantities
+- Update shipping cost
+- Update customer info
+
+> All edits are logged.
+
+---
+
+#### **9. Add Internal Notes**
+
+Visible to seller only.
+
+---
+
+### C. Payment (COD)
+
+#### **10. Mark as Paid**
+
+Used when:
+
+- COD collected
+- POS collected offline
+
+---
+
+### D. Fulfillment & Shipping
+
+#### **11. Mark as Ready for Shipping**
+
+---
+
+#### **12. Mark as Shipped**
+
+- Add tracking number
+- Select courier
+
+---
+
+#### **13. Mark as Delivered**
+
+Manual override if needed.
+
+---
+
+#### **14. Mark as Failed Delivery**
+
+- Customer unavailable
+- Refused delivery
+
+---
+
+### E. Cancellation & Returns
+
+#### **15. Cancel Order**
+
+Reasons:
+
+- Customer request
+- Out of stock
+- Cannot fulfill custom order
+
+---
+
+#### **16. Refund Order**
+
+Manual refund handling (offline).
+
+---
+
+### F. Operations & Intelligence
+
+#### **17. Add Tags**
+
+Examples:
+
+- Guest order
+- Custom order
+- High value
+- Facebook lead
+
+---
+
+#### **18. Export Orders**
+
+- CSV / Excel
+- Accounting
+- Courier usage
+
+---
+
+#### **19. Fraud Review**
+
+Rule-based:
+
+- Repeated COD refusals
+- High-risk delivery zones
+- Abusive custom requests
+
+---
+
+## ⏳ **7. Pending & Expiration Rules**
+
+### Custom Orders
+
+| Stage                  | Expiry       |
+| ---------------------- | ------------ |
+| Pending request        | 48–72 hours  |
+| Quoted (no response)   | Quote expiry |
+| Accepted (unconfirmed) | 24 hours     |
+
+---
+
+### Catalog Orders
+
+| Stage                 | Expiry         |
+| --------------------- | -------------- |
+| Pending confirmation  | Seller-defined |
+| Ready but not shipped | Seller-defined |
+
+Expired orders:
+
+- Auto-cancelled
+- Logged for analytics
+
+---
+
+## 🔁 **8. Guest → Registered User Upgrade**
+
+When a guest registers with the **same WhatsApp number**:
+
+```sql
+UPDATE orders
+SET customer_id = user.id
+WHERE guest_id = guest.id
+```
+
+- Full order history preserved
+- No duplication
+- Seamless upgrade
+
+---
+
+## 🧱 **9. MVP Scope Summary**
+
+### Customer (MVP)
+
+- Request custom order
+- Accept / reject quote
+- Place catalog order
+- Track order via WhatsApp link
+- Request cancellation
+- Contact seller
+- View order details
+
+### Seller (MVP)
+
+- View custom requests
+- Quote custom orders
+- Convert request → order
+- View & filter orders
+- Confirm order
+- Edit order
+- Cancel order
+- Mark as paid (COD)
+- Mark as shipped
+- Mark as delivered
+- Add internal notes
+- Export orders
