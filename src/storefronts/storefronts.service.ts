@@ -182,7 +182,11 @@ export class StorefrontsService {
       storefront.slug = slug;
     }
 
-    const { is_published: _ignoredIsPublished, ...rest } = dto;
+    const {
+      is_published: _ignoredIsPublished,
+      subCategories: _subCategories,
+      ...rest
+    } = dto;
 
     Object.assign(storefront, {
       ...rest,

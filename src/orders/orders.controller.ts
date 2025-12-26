@@ -20,7 +20,9 @@ import { Request } from 'express';
 import CONSTANTS from 'src/common/constants';
 
 import { ListOrdersDto } from './dto/list-orders.dto';
+import { UpdateOrderNotesDto } from './dto/update-order-notes.dto';
 import { UpdateOrderStatusDto } from './dto/update-order-status.dto';
+import { UpdateOrderTrackingDto } from './dto/update-order-tracking.dto';
 import { OrderStatus } from './entities/order.entity';
 import { OrdersService } from './orders.service';
 
@@ -132,6 +134,86 @@ export class OrdersController {
       storefrontId,
       orderId,
       OrderStatus.CANCELLED,
+    );
+  }
+
+  @Patch(':orderId/mark-paid')
+  @ApiOperation({ summary: 'Mark order as paid' })
+  @ApiResponse({
+    status: HttpStatus.OK,
+    description: 'Order marked as paid',
+  })
+  markPaid(
+    @Param('storefrontId') storefrontId: number,
+    @Param('orderId') orderId: number,
+    @Req() req: Request,
+  ) {
+    const { facebookId } = req.user;
+
+    return this.ordersService.markAsPaid(facebookId, storefrontId, orderId);
+  }
+
+  @Patch(':orderId/mark-shipped')
+  @ApiOperation({ summary: 'Mark order as shipped with optional tracking' })
+  @ApiResponse({
+    status: HttpStatus.OK,
+    description: 'Order marked as shipped',
+  })
+  markShipped(
+    @Param('storefrontId') storefrontId: number,
+    @Param('orderId') orderId: number,
+    @Body() dto: UpdateOrderTrackingDto,
+    @Req() req: Request,
+  ) {
+    const { facebookId } = req.user;
+
+    return this.ordersService.markAsShipped(
+      facebookId,
+      storefrontId,
+      orderId,
+      dto.tracking_number,
+    );
+  }
+
+  @Patch(':orderId/mark-delivered')
+  @ApiOperation({ summary: 'Mark order as delivered' })
+  @ApiResponse({
+    status: HttpStatus.OK,
+    description: 'Order marked as delivered',
+  })
+  markDelivered(
+    @Param('storefrontId') storefrontId: number,
+    @Param('orderId') orderId: number,
+    @Req() req: Request,
+  ) {
+    const { facebookId } = req.user;
+
+    return this.ordersService.markAsDelivered(
+      facebookId,
+      storefrontId,
+      orderId,
+    );
+  }
+
+  @Patch(':orderId/notes')
+  @ApiOperation({ summary: 'Update internal notes' })
+  @ApiResponse({
+    status: HttpStatus.OK,
+    description: 'Internal notes updated',
+  })
+  updateNotes(
+    @Param('storefrontId') storefrontId: number,
+    @Param('orderId') orderId: number,
+    @Body() dto: UpdateOrderNotesDto,
+    @Req() req: Request,
+  ) {
+    const { facebookId } = req.user;
+
+    return this.ordersService.updateInternalNotes(
+      facebookId,
+      storefrontId,
+      orderId,
+      dto.internal_notes,
     );
   }
 }

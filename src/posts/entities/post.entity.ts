@@ -21,7 +21,10 @@ export class Post {
   facebook_page: Relation<FacebookPage>;
 
   // Many posts can belong to one product
-  @ManyToOne(() => Product, (product) => product.posts, { nullable: false })
+  @ManyToOne(() => Product, (product) => product.posts, {
+    nullable: false,
+    onDelete: 'CASCADE',
+  })
   product: Relation<Product>;
 
   @Column({ type: 'varchar', length: 255 })

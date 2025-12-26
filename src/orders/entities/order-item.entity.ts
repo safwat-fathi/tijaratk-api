@@ -21,10 +21,13 @@ export class OrderItem {
   order: Relation<Order>;
 
   @ManyToOne(() => Product, {
-    nullable: false,
-    onDelete: 'RESTRICT',
+    nullable: true,
+    onDelete: 'SET NULL',
   })
-  product: Relation<Product>;
+  product: Relation<Product> | null;
+
+  @Column({ type: 'varchar', length: 255, nullable: true })
+  name: string;
 
   @Column({ type: 'int' })
   quantity: number;

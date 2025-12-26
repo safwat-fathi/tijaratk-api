@@ -16,7 +16,7 @@ This document defines the **complete order lifecycle and actions model** in Tija
 
 | Order Type        | Description                                                             |
 | ----------------- | ----------------------------------------------------------------------- |
-| **Catalog Order** | Created from existing products                                          |
+| **Catalog Order** | Created from existing products ✅ [Implemented]                                          |
 | **Custom Order**  | Created after seller approves a customer request for a non-catalog item |
 
 > **Custom Orders are negotiated first, then converted into Orders**
@@ -65,7 +65,7 @@ Applies to:
 
 ---
 
-## 🔐 **3. Guest Access via WhatsApp Magic Links (Core Feature)**
+## 🔐 **3. Guest Access via WhatsApp Magic Links (Deferred to Phase 3)**
 
 > **The link itself is the authentication**
 
@@ -132,7 +132,7 @@ Guests can always request:
 
 ## 🛒 **4. Payment Model (Phase 1)**
 
-### ✅ **Cash on Delivery (COD) ONLY**
+### ✅ **Cash on Delivery (COD) ONLY** ✅ [Implemented]
 
 - No online payments
 - No payment gateways
@@ -172,7 +172,7 @@ pending → quoted → accepted | rejected | expired
 
 ### B. Before Order Fulfillment
 
-#### **2. Place Catalog Order**
+#### **2. Place Catalog Order** ✅ [Implemented]
 
 - Add products to cart
 - Submit order
@@ -202,7 +202,7 @@ Allowed:
 
 ---
 
-#### **5. Track Order**
+#### **5. Track Order** ✅ [Implemented]
 
 Via:
 
@@ -255,6 +255,41 @@ Manual confirmation if courier is not integrated.
 
 ---
 
+#### Phase 4: Custom Orders (Low Volume, High Value) - ✅ [Implemented API & Storefront Request]
+
+For items not in the catalog (e.g., specific crafts, procurement requests).
+
+1.  **Request Flow**
+    *   **Customer** fills a form on storefront: "Request Custom Order" (`/custom-order`).
+        *   Fields: Description, Reference Images (Optional URL), Budget (Optional), Contact Info.
+    *   **Backend** creates a `CustomOrderRequest` (Entity created).
+    *   **Status**: `PENDING`.
+
+2.  **Quotation Flow**
+    *   **Seller** views requests in Dashboard.
+    *   **Seller** provides a Quote:
+        *   Price
+        *   Shipping Cost
+        *   Notes/Description
+    *   **Status** -> `QUOTED`.
+    *   *(Future)* Buyer receives notification (Email/WhatsApp).
+
+3.  **Acceptance Flow**
+    *   **Customer** views the quote (link sent via simple ID/page for now).
+    *   **Customer** accepts quote.
+    *   **Backend** converts `CustomOrderRequest` -> `Order`.
+        *   `OrderType` = `CUSTOM`.
+        *   Items = Single item "Custom Order: [Description]".
+    *   **Status** -> `ACCEPTED` (Request), Order created as `PENDING`.
+
+#### Schema Updates
+*   New Entity: `CustomOrderRequest`
+    *   `id`, `storefront_id`, `buyer_name`, `buyer_phone`, `description`, `images`, `budget`, `status`, `quoted_price`, `quoted_shipping`, `order_id`.
+*   And `Order` entity updated with `shipping_cost` and `order_type`.
+s quote.
+
+---
+
 ## 🚀 **6. Seller Actions**
 
 ### A. Custom Order Management
@@ -292,7 +327,7 @@ Triggered automatically when customer accepts quote.
 
 ### B. Order Processing
 
-#### **5. View Orders**
+#### **5. View Orders** ✅ [Implemented]
 
 Unified list:
 
@@ -318,7 +353,7 @@ For:
 
 ---
 
-#### **7. Confirm Order**
+#### **7. Confirm Order** ✅ [Implemented]
 
 - Validate availability / feasibility
 - Lock order details
@@ -338,7 +373,7 @@ Seller can:
 
 ---
 
-#### **9. Add Internal Notes**
+#### **9. Add Internal Notes** ✅ [Implemented]
 
 Visible to seller only.
 
@@ -346,7 +381,7 @@ Visible to seller only.
 
 ### C. Payment (COD)
 
-#### **10. Mark as Paid**
+#### **10. Mark as Paid** ✅ [Implemented]
 
 Used when:
 
@@ -361,14 +396,13 @@ Used when:
 
 ---
 
-#### **12. Mark as Shipped**
+#### **12. Mark as Shipped** ✅ [Implemented]
 
 - Add tracking number
-- Select courier
 
 ---
 
-#### **13. Mark as Delivered**
+#### **13. Mark as Delivered** ✅ [Implemented]
 
 Manual override if needed.
 
@@ -383,7 +417,7 @@ Manual override if needed.
 
 ### E. Cancellation & Returns
 
-#### **15. Cancel Order**
+#### **15. Cancel Order** ✅ [Implemented]
 
 Reasons:
 
@@ -478,23 +512,23 @@ WHERE guest_id = guest.id
 
 - Request custom order
 - Accept / reject quote
-- Place catalog order
-- Track order via WhatsApp link
+- Place catalog order ✅ [Implemented]
+- Track order via WhatsApp link ⏸️ [Deferred] (Current: Manual Lookup by ID)
 - Request cancellation
 - Contact seller
-- View order details
+- View order details ✅ [Implemented]
 
 ### Seller (MVP)
 
 - View custom requests
 - Quote custom orders
 - Convert request → order
-- View & filter orders
-- Confirm order
+- View & filter orders ✅ [Implemented]
+- Confirm order ✅ [Implemented]
 - Edit order
-- Cancel order
-- Mark as paid (COD)
-- Mark as shipped
-- Mark as delivered
-- Add internal notes
+- Cancel order ✅ [Implemented]
+- Mark as paid (COD) ✅ [Implemented]
+- Mark as shipped ✅ [Implemented]
+- Mark as delivered ✅ [Implemented]
+- Add internal notes ✅ [Implemented]
 - Export orders

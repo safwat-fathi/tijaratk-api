@@ -8,11 +8,26 @@ import { OrderItem } from './entities/order-item.entity';
 import { OrdersController } from './orders.controller';
 import { OrdersService } from './orders.service';
 import { OrdersPublicController } from './orders-public.controller';
+import { CustomOrderRequest } from './entities/custom-order-request.entity';
+import { CustomOrdersService } from './custom-orders.service';
+import { CustomOrdersController } from './custom-orders.controller';
 
 @Module({
-  imports: [TypeOrmModule.forFeature([Order, OrderItem, Product, Storefront])],
-  controllers: [OrdersController, OrdersPublicController],
-  providers: [OrdersService],
-  exports: [OrdersService],
+  imports: [
+    TypeOrmModule.forFeature([
+      Order,
+      OrderItem,
+      Product,
+      Storefront,
+      CustomOrderRequest,
+    ]),
+  ],
+  controllers: [
+    OrdersController,
+    OrdersPublicController,
+    CustomOrdersController,
+  ],
+  providers: [OrdersService, CustomOrdersService],
+  exports: [OrdersService, CustomOrdersService],
 })
 export class OrdersModule {}

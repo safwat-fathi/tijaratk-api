@@ -20,6 +20,16 @@ export enum OrderStatus {
   CANCELLED = 'cancelled',
 }
 
+export enum PaymentStatus {
+  UNPAID = 'unpaid',
+  PAID = 'paid',
+}
+
+export enum OrderType {
+  CATALOG = 'catalog',
+  CUSTOM = 'custom',
+}
+
 @Entity('orders')
 export class Order {
   @PrimaryGeneratedColumn()
@@ -64,6 +74,32 @@ export class Order {
     default: OrderStatus.PENDING,
   })
   status: OrderStatus;
+
+  @Column({
+    type: 'enum',
+    enum: PaymentStatus,
+    default: PaymentStatus.UNPAID,
+  })
+  payment_status: PaymentStatus;
+
+  @Column({
+    type: 'enum',
+    enum: OrderType,
+    default: OrderType.CATALOG,
+  })
+  order_type: OrderType;
+
+  @Column({ type: 'varchar', length: 128, nullable: true })
+  tracking_number?: string;
+
+  @Column({ type: 'text', nullable: true })
+  internal_notes?: string;
+
+  @Column({ type: 'timestamp', nullable: true })
+  delivered_at?: Date;
+
+  @Column({ type: 'numeric', precision: 10, scale: 2, default: 0 })
+  shipping_cost: number;
 
   @Column({ type: 'numeric', precision: 10, scale: 2 })
   total_amount: number;
