@@ -18,13 +18,10 @@ const dbConfig: DataSourceOptions = {
   migrationsTableName: process.env.MIGRATIONS_TABLE_NAME,
   synchronize: false,
   logging: process.env.NODE_ENV === 'development',
-  ...(process.env.NODE_ENV === 'production'
-    ? {
-        ssl: {
-          rejectUnauthorized: false,
-        },
-      }
-    : {}),
+  ssl: false,
+  extra: {
+    ssl: false,
+  },
 };
 
 const dataSource = new DataSource(dbConfig);
