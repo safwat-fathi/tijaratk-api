@@ -7,10 +7,9 @@ import {
 import { NestFactory } from '@nestjs/core';
 import { DocumentBuilder, SwaggerModule } from '@nestjs/swagger';
 import * as express from 'express';
-import { readFileSync } from 'fs';
+
 import helmet from 'helmet';
 import { join } from 'path';
-import path from 'path';
 
 import { AppModule } from './app.module';
 import CONSTANTS from './common/constants';
@@ -145,7 +144,7 @@ async function bootstrap() {
   ];
   app.useGlobalFilters(...filters);
 
-  await app.listen(process.env.HTTP_SERVER_PORT, '0.0.0.0');
+  await app.listen(process.env.HTTP_SERVER_PORT, '127.0.0.1');
 }
 
 bootstrap();
