@@ -60,6 +60,16 @@ async function bootstrap() {
     express.static(join(process.cwd(), 'uploads')),
   );
 
+  app.use('/docs', (_req, res, next) => {
+    res.setHeader(
+      'Cache-Control',
+      'no-store, no-cache, must-revalidate, proxy-revalidate',
+    );
+    res.setHeader('Pragma', 'no-cache');
+    res.setHeader('Expires', '0');
+    next();
+  });
+
   // swagger docs
   const options = new DocumentBuilder()
     .setTitle('Tijaratk API')
@@ -82,7 +92,7 @@ async function bootstrap() {
   if (process.env.NODE_ENV === 'development') {
     options.addServer(process.env.APP_URL, 'Local environment');
   } else {
-    options.addServer(process.env.APP_URL, 'Production environment');
+    options.addServer(`${process.env.APP_URL}/api`, 'Production environment');
   }
 
   const config = options.build();
@@ -91,6 +101,9 @@ async function bootstrap() {
 
   SwaggerModule.setup('docs', app, document, {
     jsonDocumentUrl: 'json',
+    swaggerOptions: {
+      persistAuthorization: true,
+    },
   });
 
   // Global Pipe for validation
