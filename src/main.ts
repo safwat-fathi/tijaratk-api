@@ -80,6 +80,9 @@ async function bootstrap() {
     .setTitle('Tijaratk API')
     .setDescription('The Tijaratk API description')
     .setVersion('0.1')
+    .addServer('/api')
+    .setExternalDoc('API Documentation', '/docs')
+    .setContact('Tijaratk', 'https://tijaratk.com', 'info@tijaratk.com')
     .addBearerAuth(
       {
         type: 'http',
