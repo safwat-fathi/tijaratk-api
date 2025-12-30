@@ -36,7 +36,7 @@ jobs:
             git pull origin main
 
             echo "📦 Install dependencies"
-            pnpm install --frozen-lockfile
+            pnpm install
 
             echo "🗄️ Run database migrations"
             pnpm migration:run:prod
