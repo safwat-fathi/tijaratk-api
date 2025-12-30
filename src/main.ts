@@ -21,8 +21,8 @@ import { ValidationExceptionFilter } from './common/filters/validation-exception
 import { ResponseTransformInterceptor } from './common/interceptors/response-transform.transform';
 
 async function bootstrap() {
-  const isDev = process.env.NODE_ENV !== 'production';
-  let app: INestApplication;
+  // const isDev = process.env.NODE_ENV !== 'production';
+  // let app: INestApplication;
 
   // if (isDev) {
   //   // Only load HTTPS options in development.
@@ -33,7 +33,7 @@ async function bootstrap() {
   //   app = await NestFactory.create(AppModule, { httpsOptions });
   // } else {
   // In production, HTTPS termination is often handled by a proxy or load balancer.
-  app = await NestFactory.create(AppModule);
+  const app = await NestFactory.create(AppModule);
   // }
 
   // Remove COOP header to fix Swagger UI issues
@@ -103,12 +103,6 @@ async function bootstrap() {
       'Live environment (production)',
     );
   }
-
-  // if (process.env.NODE_ENV === 'development') {
-  // 	options.addBearerAuth();
-  // } else {
-  // 	options.addBasicAuth();
-  // }
 
   const config = options.build();
 
