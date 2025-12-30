@@ -100,7 +100,7 @@ async function bootstrap() {
   const document = SwaggerModule.createDocument(app, config);
 
   SwaggerModule.setup('docs', app, document, {
-    jsonDocumentUrl: 'json',
+    jsonDocumentUrl: 'docs/json',
     swaggerOptions: {
       persistAuthorization: true,
     },
