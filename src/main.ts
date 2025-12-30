@@ -92,7 +92,7 @@ async function bootstrap() {
   if (process.env.NODE_ENV === 'development') {
     options.addServer(process.env.APP_URL, 'Local environment');
   } else {
-    options.addServer(`${process.env.APP_URL}/api`, 'Production environment');
+    options.addServer(`${process.env.APP_URL}`, 'Production environment');
   }
 
   const config = options.build();
