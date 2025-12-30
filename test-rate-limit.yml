@@ -1,0 +1,10 @@
+config:
+  target: "https://www.tijaratk.com"
+  phases:
+    - duration: 90
+      arrivalRate: 100   # Start with 100 users per second
+      rampTo: 1000       # Ramp up to 1000 users per second over 1 minute
+scenarios:
+  - flow:
+      - get:
+          url: "/api/health"

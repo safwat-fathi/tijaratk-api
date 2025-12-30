@@ -1,4 +1,4 @@
-name: Deploy to production
+name: Deploy Tijaratk API
 
 on:
   push:
@@ -8,32 +8,40 @@ on:
 jobs:
   deploy:
     runs-on: ubuntu-latest
+
     steps:
-      - name: Checkout Repository
-        uses: actions/checkout@v3
+      - name: Checkout repository
+        uses: actions/checkout@v4
 
-      - name: Setup Node.js
-        uses: actions/setup-node@v3
+      - name: Deploy to VPS via SSH
+        uses: appleboy/ssh-action@v1.0.3
         with:
-          node-version: 20.18.3
-
-      - name: Install Dependencies
-        run: yarn
-
-      - name: Build Project
-        run: yarn build
-
-      - name: Deploy to DigitalOcean via SSH
-        uses: appleboy/ssh-action@master
-        with:
-          host: ${{ secrets.DIGITALOCEAN_DROPLET }}
+          host: ${{ secrets.SERVER_IP }}
           username: ${{ secrets.SSH_USER }}
           key: ${{ secrets.SSH_PRIVATE_KEY }}
           script: |
+            set -e
+
             export NVM_DIR="$HOME/.nvm"
             [ -s "$NVM_DIR/nvm.sh" ] && . "$NVM_DIR/nvm.sh"
-            nvm use node
-            cd tijaratk-api
+
+            nvm use 20
+
+            cd ~/apps/tijaratk-api
+
+            echo "📥 Pull latest code"
             git pull origin main
-            yarn && yarn build
-            pm2 restart API || pm2 start "yarn start:prod" --name "API" 
+
+            echo "📦 Install dependencies"
+            pnpm install --frozen-lockfile
+
+            echo "🗄️ Run database migrations"
+            pnpm migration:run:prod
+
+            echo "🏗️ Build application"
+            pnpm build
+
+            echo "♻️ Reload PM2 (zero downtime)"
+            pm2 reload tijaratk-api
+
+            echo "✅ Deployment finished successfully"
