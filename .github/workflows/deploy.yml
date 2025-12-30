@@ -40,11 +40,11 @@ jobs:
             echo "📦 Install dependencies"
             pnpm install
 
-            echo "🗄️ Run database migrations"
-            pnpm migration:run:prod
-
             echo "🏗️ Build application"
             pnpm build
+
+            echo "🗄️ Run database migrations"
+            pnpm migration:run:prod
 
             echo "♻️ Reload PM2 (zero downtime)"
             pm2 reload tijaratk-api
