@@ -22,7 +22,7 @@ echo "✅ No secrets found."
 echo "---------------"
 echo "---------------"
 
-echo "🎯 Running lint-staged to check code style...."
+echo "🎯 Running lint-staged to check code style..."
 
 case `uname` in
   *CYGWIN*|*MINGW*|*MSYS*)
