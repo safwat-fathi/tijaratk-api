@@ -1,13 +1,11 @@
 import {
   ExceptionFilter,
-  INestApplication,
   NestInterceptor,
   ValidationPipe,
 } from '@nestjs/common';
 import { NestFactory } from '@nestjs/core';
 import { DocumentBuilder, SwaggerModule } from '@nestjs/swagger';
 import * as express from 'express';
-
 import helmet from 'helmet';
 import { join } from 'path';
 
@@ -21,20 +19,7 @@ import { ValidationExceptionFilter } from './common/filters/validation-exception
 import { ResponseTransformInterceptor } from './common/interceptors/response-transform.transform';
 
 async function bootstrap() {
-  // const isDev = process.env.NODE_ENV !== 'production';
-  // let app: INestApplication;
-
-  // if (isDev) {
-  //   // Only load HTTPS options in development.
-  //   const httpsOptions = {
-  //     key: readFileSync(path.join(__dirname, '../localhost-key.pem')), // adjust path if needed
-  //     cert: readFileSync(path.join(__dirname, '../localhost.pem')), // adjust path if needed
-  //   };
-  //   app = await NestFactory.create(AppModule, { httpsOptions });
-  // } else {
-  // In production, HTTPS termination is often handled by a proxy or load balancer.
   const app = await NestFactory.create(AppModule);
-  // }
 
   // Remove COOP header to fix Swagger UI issues
   app.use((_req, res, next) => {
