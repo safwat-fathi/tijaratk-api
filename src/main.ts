@@ -70,7 +70,7 @@ async function bootstrap() {
     next();
   });
 
-  // swagger docs
+  // Swagger docs
   const options = new DocumentBuilder()
     .setTitle('Tijaratk API')
     .setDescription('Tijaratk API documentation')
