@@ -53,17 +53,12 @@ async function bootstrap() {
   // serve static files with cross-origin headers
   app.use(
     '/uploads',
-    (req, res, next) => {
+    (_req, res, next) => {
       res.setHeader('Cross-Origin-Resource-Policy', 'cross-origin');
       next();
     },
     express.static(join(process.cwd(), 'uploads')),
   );
-
-  // Set global prefix for all routes EXCEPT docs
-  app.setGlobalPrefix('api', {
-    exclude: ['docs', 'docs/(.*)'], // Exclude docs and all its sub-routes
-  });
 
   app.use('/docs', (_req, res, next) => {
     res.setHeader(
