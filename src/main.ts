@@ -60,6 +60,11 @@ async function bootstrap() {
     express.static(join(process.cwd(), 'uploads')),
   );
 
+  // Set global prefix for all routes EXCEPT docs
+  app.setGlobalPrefix('api', {
+    exclude: ['docs', 'docs/(.*)'], // Exclude docs and all its sub-routes
+  });
+
   app.use('/docs', (_req, res, next) => {
     res.setHeader(
       'Cache-Control',
@@ -76,7 +81,7 @@ async function bootstrap() {
     .setDescription('Tijaratk API documentation')
     .setVersion('1.0')
     .setExternalDoc('API Documentation', '/docs')
-    .setContact('Tijaratk', 'https://tijaratk.com', 'info@tijaratk.com')
+    .setContact('Tijaratk', 'https://www.tijaratk.com', 'info@tijaratk.com')
     .addBearerAuth(
       {
         type: 'http',
