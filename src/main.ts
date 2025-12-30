@@ -63,7 +63,7 @@ async function bootstrap() {
   // swagger docs
   const options = new DocumentBuilder()
     .setTitle('Tijaratk API')
-    .setDescription('The Tijaratk API description')
+    .setDescription('Tijaratk API documentation')
     .setVersion('1.0')
     .setExternalDoc('API Documentation', '/docs')
     .setContact('Tijaratk', 'https://tijaratk.com', 'info@tijaratk.com')
@@ -82,7 +82,7 @@ async function bootstrap() {
   if (process.env.NODE_ENV === 'development') {
     options.addServer(process.env.APP_URL, 'Local environment');
   } else {
-    options.addServer(process.env.APP_URL, 'Live environment (production)');
+    options.addServer(process.env.APP_URL, 'Production environment');
   }
 
   const config = options.build();
