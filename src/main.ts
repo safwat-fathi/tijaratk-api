@@ -64,8 +64,7 @@ async function bootstrap() {
   const options = new DocumentBuilder()
     .setTitle('Tijaratk API')
     .setDescription('The Tijaratk API description')
-    .setVersion('0.1')
-    .addServer('/api')
+    .setVersion('1.0')
     .setExternalDoc('API Documentation', '/docs')
     .setContact('Tijaratk', 'https://tijaratk.com', 'info@tijaratk.com')
     .addBearerAuth(
@@ -81,12 +80,9 @@ async function bootstrap() {
     );
 
   if (process.env.NODE_ENV === 'development') {
-    options.addServer(process.env.DEV_APP_URL, 'Local environment');
+    options.addServer(process.env.APP_URL, 'Local environment');
   } else {
-    options.addServer(
-      process.env.PROD_APP_URL,
-      'Live environment (production)',
-    );
+    options.addServer(process.env.APP_URL, 'Live environment (production)');
   }
 
   const config = options.build();
