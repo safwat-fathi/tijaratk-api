@@ -57,7 +57,8 @@ export class StorefrontsService {
       .toLowerCase()
       .trim()
       .replace(/[^a-z0-9]+/g, '-')
-      .replace(/^-+|-+$/g, '');
+      .replace(/^-+/, '')
+      .replace(/-+$/, '');
 
     let slug = slugBase;
     let suffix = 1;
@@ -65,7 +66,7 @@ export class StorefrontsService {
     // Ensure slug is globally unique
     // eslint-disable-next-line no-constant-condition
     while (true) {
-      const exists = await this.storefrontRepo.exist({
+      const exists = await this.storefrontRepo.exists({
         where: { slug },
         withDeleted: true,
       });
@@ -78,7 +79,8 @@ export class StorefrontsService {
       suffix += 1;
     }
 
-    const { is_published: _ignoredIsPublished, ...rest } = dto;
+    const rest = { ...dto };
+    delete rest.is_published;
 
     const storefront = this.storefrontRepo.create({
       ...rest,
@@ -151,7 +153,8 @@ export class StorefrontsService {
         .toLowerCase()
         .trim()
         .replace(/[^a-z0-9]+/g, '-')
-        .replace(/^-+|-+$/g, '');
+        .replace(/^-+/, '')
+        .replace(/-+$/, '');
 
       let slug = slugBase;
       let suffix = 1;
@@ -159,7 +162,7 @@ export class StorefrontsService {
       // Ensure slug is globally unique (excluding current storefront)
       // eslint-disable-next-line no-constant-condition
       while (true) {
-        const exists = await this.storefrontRepo.exist({
+        const exists = await this.storefrontRepo.exists({
           where: {
             slug,
             id: Not(id),
@@ -178,11 +181,9 @@ export class StorefrontsService {
       storefront.slug = slug;
     }
 
-    const {
-      is_published: _ignoredIsPublished,
-      subCategories: _subCategories,
-      ...rest
-    } = dto;
+    const rest = { ...dto };
+    delete rest.is_published;
+    delete rest.subCategories;
 
     Object.assign(storefront, {
       ...rest,
@@ -402,7 +403,9 @@ export class StorefrontsService {
     }
 
     // Do not expose user relation & userId in the public response
-    const { user, userId, ...rest } = storefront;
+    const rest = { ...storefront };
+    delete rest.user;
+    delete rest.userId;
 
     return {
       ...rest,
