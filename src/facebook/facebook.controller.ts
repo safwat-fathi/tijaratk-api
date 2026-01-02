@@ -29,17 +29,16 @@ export class FacebookController {
   @UseGuards(AuthGuard(CONSTANTS.AUTH.JWT))
   @Get('pages')
   async getPages(@Req() req: Request) {
-    const { facebookId } = req.user;
-
-    return await this.facebookService.getUserPages(facebookId);
+    const userId = Number(req.user.id);
+    return await this.facebookService.getUserPages(userId);
   }
 
   @ApiBearerAuth(CONSTANTS.ACCESS_TOKEN)
   @UseGuards(AuthGuard(CONSTANTS.AUTH.JWT))
   @Delete('pages/:pageId')
   async deletePage(@Req() req: Request, @Param('pageId') pageId: string) {
-    const { facebookId } = req.user as any;
-    return await this.facebookService.unregisterPage(facebookId, pageId);
+    const userId = Number(req.user.id);
+    return await this.facebookService.unregisterPage(userId, pageId);
   }
 
   @ApiExcludeEndpoint()

@@ -38,7 +38,7 @@ export class OrdersService {
   ) {}
 
   private async ensureStorefrontOwnership(
-    facebookId: string,
+    userId: number,
     storefrontId: number,
   ) {
     const storefront = await this.storefrontRepo.findOne({
@@ -48,7 +48,7 @@ export class OrdersService {
     if (!storefront) {
       throw new NotFoundException('Storefront not found');
     }
-    if (storefront.user.facebookId !== facebookId) {
+    if (storefront.user.id !== userId) {
       throw new NotFoundException('Storefront not found');
     }
 
@@ -200,12 +200,12 @@ export class OrdersService {
   }
 
   async findForStorefrontOwner(
-    facebookId: string,
+    userId: number,
     storefrontId: number,
     query: ListOrdersDto,
   ) {
     const storefront = await this.ensureStorefrontOwnership(
-      facebookId,
+      userId,
       storefrontId,
     );
 
@@ -268,11 +268,11 @@ export class OrdersService {
   }
 
   async findOneForStorefrontOwner(
-    facebookId: string,
+    userId: number,
     storefrontId: number,
     orderId: number,
   ) {
-    await this.ensureStorefrontOwnership(facebookId, storefrontId);
+    await this.ensureStorefrontOwnership(userId, storefrontId);
 
     const order = await this.orderRepo.findOne({
       where: {
@@ -290,12 +290,12 @@ export class OrdersService {
   }
 
   async updateStatusForStorefrontOwner(
-    facebookId: string,
+    userId: number,
     storefrontId: number,
     orderId: number,
     status: OrderStatus,
   ) {
-    await this.ensureStorefrontOwnership(facebookId, storefrontId);
+    await this.ensureStorefrontOwnership(userId, storefrontId);
 
     const order = await this.orderRepo.findOne({
       where: {
@@ -313,8 +313,8 @@ export class OrdersService {
     return this.orderRepo.save(order);
   }
 
-  async markAsPaid(facebookId: string, storefrontId: number, orderId: number) {
-    await this.ensureStorefrontOwnership(facebookId, storefrontId);
+  async markAsPaid(userId: number, storefrontId: number, orderId: number) {
+    await this.ensureStorefrontOwnership(userId, storefrontId);
 
     const order = await this.orderRepo.findOne({
       where: {
@@ -333,12 +333,12 @@ export class OrdersService {
   }
 
   async markAsShipped(
-    facebookId: string,
+    userId: number,
     storefrontId: number,
     orderId: number,
     trackingNumber?: string,
   ) {
-    await this.ensureStorefrontOwnership(facebookId, storefrontId);
+    await this.ensureStorefrontOwnership(userId, storefrontId);
 
     const order = await this.orderRepo.findOne({
       where: {
@@ -359,12 +359,8 @@ export class OrdersService {
     return this.orderRepo.save(order);
   }
 
-  async markAsDelivered(
-    facebookId: string,
-    storefrontId: number,
-    orderId: number,
-  ) {
-    await this.ensureStorefrontOwnership(facebookId, storefrontId);
+  async markAsDelivered(userId: number, storefrontId: number, orderId: number) {
+    await this.ensureStorefrontOwnership(userId, storefrontId);
 
     const order = await this.orderRepo.findOne({
       where: {
@@ -403,12 +399,12 @@ export class OrdersService {
   }
 
   async updateInternalNotes(
-    facebookId: string,
+    userId: number,
     storefrontId: number,
     orderId: number,
     notes: string,
   ) {
-    await this.ensureStorefrontOwnership(facebookId, storefrontId);
+    await this.ensureStorefrontOwnership(userId, storefrontId);
 
     const order = await this.orderRepo.findOne({
       where: {

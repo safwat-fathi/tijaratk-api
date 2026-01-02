@@ -34,13 +34,13 @@ export class CustomOrdersController {
     @Param('storefrontId') storefrontId: number,
     @Req() req: Request,
   ) {
-    const { facebookId } = req.user as any; // Cast as any or define type
+    const userId = Number(req.user.id);
     const storefront = await this.storefrontRepo.findOne({
       where: { id: storefrontId },
       relations: ['user'],
     });
 
-    if (!storefront || storefront.user.facebookId !== facebookId) {
+    if (!storefront || storefront.user.id !== userId) {
       throw new NotFoundException('Storefront not found');
     }
 
@@ -54,13 +54,13 @@ export class CustomOrdersController {
     @Param('id') id: number,
     @Req() req: Request,
   ) {
-    const { facebookId } = req.user as any;
+    const userId = Number(req.user.id);
     const storefront = await this.storefrontRepo.findOne({
       where: { id: storefrontId },
       relations: ['user'],
     });
 
-    if (!storefront || storefront.user.facebookId !== facebookId) {
+    if (!storefront || storefront.user.id !== userId) {
       throw new NotFoundException('Storefront not found');
     }
 
@@ -80,13 +80,13 @@ export class CustomOrdersController {
     @Body() dto: QuoteCustomOrderDto,
     @Req() req: Request,
   ) {
-    const { facebookId } = req.user as any;
+    const userId = Number(req.user.id);
     const storefront = await this.storefrontRepo.findOne({
       where: { id: storefrontId },
       relations: ['user'],
     });
 
-    if (!storefront || storefront.user.facebookId !== facebookId) {
+    if (!storefront || storefront.user.id !== userId) {
       throw new NotFoundException('Storefront not found');
     }
 

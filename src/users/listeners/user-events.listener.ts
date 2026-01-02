@@ -22,7 +22,7 @@ export class UserEventsListener {
   async handleUserLoggedInEvent(payload: UserLoginEvent) {
     // Retrieve the user's pages, for example:
     const user = await this.usersService.getUserById(payload.userId);
-    const pages = await this.facebookService.getUserPages(user.facebookId);
+    const pages = await this.facebookService.getUserPages(user.id);
 
     // Process each page asynchronously.
     pages.forEach((page) => {

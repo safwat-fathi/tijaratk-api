@@ -16,6 +16,10 @@ import {
 } from 'src/notifications/entities/notification.entity';
 import { Post } from 'src/posts/entities/post.entity';
 import { User } from 'src/users/entities/user.entity';
+import {
+  UserIdentity,
+  SocialProvider,
+} from 'src/users/entities/user-identity.entity';
 import { Repository } from 'typeorm';
 
 import { FacebookPage } from './entities/facebook-page.entity';
@@ -44,6 +48,8 @@ export class FacebookService {
     private readonly facebookPageRepo: Repository<FacebookPage>,
     @InjectRepository(Notification)
     private readonly notificationRepo: Repository<Notification>,
+    @InjectRepository(UserIdentity)
+    private readonly identityRepo: Repository<UserIdentity>,
     private readonly cacheManager: Cache,
     private readonly eventsGateway: FacebookEventsGateway,
     private readonly textAnalysisService: TextAnalysisService,
@@ -54,30 +60,38 @@ export class FacebookService {
     });
   }
 
-  async getUserPages(facebookId: string): Promise<FacebookPage[]> {
+  async getUserPages(userId: number): Promise<FacebookPage[]> {
     // Try to get from cache first
-    const cacheKey = `facebook_pages:${facebookId}`;
+    const cacheKey = `facebook_pages:${userId}`;
     const cachedPages: FacebookPage[] = await this.cacheManager.get(cacheKey);
 
     if (cachedPages) {
-      this.logger.debug(
-        `Returning cached Facebook pages for user ${facebookId}`,
-      );
+      this.logger.debug(`Returning cached Facebook pages for user ${userId}`);
       return cachedPages;
     }
 
-    const user = await this.userRepo
-      .createQueryBuilder('user')
-      .leftJoinAndSelect('user.facebook_pages', 'facebookPage')
-      .addSelect('user.fb_access_token')
-      .where('user.facebookId = :facebookId', { facebookId })
+    // Get Facebook identity with access token
+    const identity = await this.identityRepo
+      .createQueryBuilder('identity')
+      .addSelect('identity.accessToken')
+      .where('identity.userId = :userId', { userId })
+      .andWhere('identity.provider = :provider', {
+        provider: SocialProvider.FACEBOOK,
+      })
       .getOne();
 
-    if (!user || !user.fb_access_token) {
-      this.logger.warn(
-        `User with facebookId ${facebookId} missing Facebook access token.`,
-      );
+    if (!identity || !identity.accessToken) {
+      this.logger.warn(`User ${userId} missing Facebook access token.`);
       throw new UnauthorizedException('Facebook access token not found');
+    }
+
+    const user = await this.userRepo.findOne({
+      where: { id: userId },
+      relations: ['facebook_pages'],
+    });
+
+    if (!user) {
+      throw new UnauthorizedException('User not found');
     }
 
     // Check if we need to refresh the pages
@@ -85,7 +99,7 @@ export class FacebookService {
 
     if (!shouldRefreshPages) {
       const pages = await this.facebookPageRepo.find({
-        where: { user: { facebookId } },
+        where: { user: { id: userId } },
         select: {
           access_token: true,
           page_id: true,
@@ -100,22 +114,25 @@ export class FacebookService {
     }
 
     try {
-      const pages = await this.fetchAndUpdatePages(user);
+      const pages = await this.fetchAndUpdatePagesWithIdentity(
+        user,
+        identity.accessToken,
+      );
 
       // Cache the results
       await this.cacheManager.set(cacheKey, pages, this.CACHE_TTL);
       return pages;
     } catch (error) {
       this.logger.error(
-        `Failed to fetch Facebook pages for user with facebook ID ${facebookId}: ${error.message}`,
+        `Failed to fetch Facebook pages for user ${userId}: ${error.message}`,
       );
       throw new UnauthorizedException('Failed to fetch Facebook pages');
     }
   }
 
-  async unregisterPage(facebookId: string, pageId: string): Promise<void> {
+  async unregisterPage(userId: number, pageId: string): Promise<void> {
     const page = await this.facebookPageRepo.findOne({
-      where: { page_id: pageId, user: { facebookId } },
+      where: { page_id: pageId, user: { id: userId } },
     });
 
     if (!page) {
@@ -141,14 +158,17 @@ export class FacebookService {
     return timeSinceLastUpdate > refreshThreshold;
   }
 
-  private async fetchAndUpdatePages(user: User): Promise<FacebookPage[]> {
+  private async fetchAndUpdatePagesWithIdentity(
+    user: User,
+    accessToken: string,
+  ): Promise<FacebookPage[]> {
     const fields = 'id,name,access_token,category';
     const limit = 100;
 
     const [response, error] = await this.httpService.get<FacebookPagesResponse>(
       '/me/accounts',
       {
-        access_token: user.fb_access_token,
+        access_token: accessToken,
         fields,
         limit,
       },
@@ -201,25 +221,30 @@ export class FacebookService {
   }
 
   // exchange short-lived access token for long-lived access token
-  async getLongLivedAccessToken(facebookId: string): Promise<void> {
+  async getLongLivedAccessToken(
+    userId: number,
+    facebookId: string,
+  ): Promise<void> {
     let errorMsg = '';
     try {
-      const user = await this.userRepo
-        .createQueryBuilder('user')
-        .addSelect('user.fb_access_token')
-        .where('user.facebookId = :facebookId', { facebookId })
+      const identity = await this.identityRepo
+        .createQueryBuilder('identity')
+        .addSelect('identity.accessToken')
+        .where('identity.userId = :userId', { userId })
+        .andWhere('identity.provider = :provider', {
+          provider: SocialProvider.FACEBOOK,
+        })
+        .andWhere('identity.providerId = :providerId', {
+          providerId: facebookId,
+        })
         .getOne();
 
-      if (!user || !user.fb_access_token) {
-        this.logger.warn(
-          `User with facebookId ${facebookId} missing Facebook access token.`,
-        );
+      if (!identity || !identity.accessToken) {
+        this.logger.warn(`User ${userId} missing Facebook access token.`);
         throw new UnauthorizedException('Facebook access token not found');
       }
 
-      const accessToken = user.fb_access_token;
-      // const fields = 'id,name,access_token,category';
-      //https://graph.facebook.com/v22.0/oauth/access_token?grant_type=fb_exchange_token&client_id=&client_secret=&fb_exchange_token=
+      const accessToken = identity.accessToken;
 
       // Utilize the enhanced HttpService to pass query parameters
       const [response, error] =
@@ -234,17 +259,16 @@ export class FacebookService {
         );
 
       if (error || !response.access_token) {
-        errorMsg = `Failed to exchange short-lived access token for long-lived access token for user with facebook ID ${facebookId}.`;
+        errorMsg = `Failed to exchange short-lived access token for long-lived access token for user ${userId}.`;
         this.logger.warn(errorMsg);
         throw new UnauthorizedException(errorMsg);
       }
 
-      await this.userRepo.update(
-        { facebookId },
-        { fb_access_token: response.access_token },
-      );
+      // Update the identity with the long-lived token
+      identity.accessToken = response.access_token;
+      await this.identityRepo.save(identity);
     } catch (error) {
-      errorMsg = `Failed to exchange short-lived access token for long-lived access token for user with facebook ID ${facebookId}: ${error.message}`;
+      errorMsg = `Failed to exchange short-lived access token for long-lived access token for user ${userId}: ${error.message}`;
       this.logger.error(errorMsg);
       throw new UnauthorizedException(errorMsg);
     }
@@ -309,7 +333,7 @@ export class FacebookService {
     // The old subscription relationship has been removed from User entity
     // This limit check should use UsageTrackingService.checkMessageLimit()
 
-    this.eventsGateway.sendToClient(user.facebookId, formattedEvents[0]);
+    this.eventsGateway.sendToClient(String(user.id), formattedEvents[0]);
   }
 
   private async processEntries(

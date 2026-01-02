@@ -44,10 +44,10 @@ export class OrdersController {
     @Query() query: ListOrdersDto,
     @Req() req: Request,
   ) {
-    const { facebookId } = req.user;
+    const userId = Number(req.user.id);
 
     return this.ordersService.findForStorefrontOwner(
-      facebookId,
+      userId,
       storefrontId,
       query,
     );
@@ -64,10 +64,10 @@ export class OrdersController {
     @Param('orderId') orderId: number,
     @Req() req: Request,
   ) {
-    const { facebookId } = req.user;
+    const userId = Number(req.user.id);
 
     return this.ordersService.findOneForStorefrontOwner(
-      facebookId,
+      userId,
       storefrontId,
       orderId,
     );
@@ -85,10 +85,10 @@ export class OrdersController {
     @Body() dto: UpdateOrderStatusDto,
     @Req() req: Request,
   ) {
-    const { facebookId } = req.user;
+    const userId = Number(req.user.id);
 
     return this.ordersService.updateStatusForStorefrontOwner(
-      facebookId,
+      userId,
       storefrontId,
       orderId,
       dto.status,
@@ -106,10 +106,10 @@ export class OrdersController {
     @Param('orderId') orderId: number,
     @Req() req: Request,
   ) {
-    const { facebookId } = req.user;
+    const userId = Number(req.user.id);
 
     return this.ordersService.updateStatusForStorefrontOwner(
-      facebookId,
+      userId,
       storefrontId,
       orderId,
       OrderStatus.CONFIRMED,
@@ -127,10 +127,10 @@ export class OrdersController {
     @Param('orderId') orderId: number,
     @Req() req: Request,
   ) {
-    const { facebookId } = req.user;
+    const userId = Number(req.user.id);
 
     return this.ordersService.updateStatusForStorefrontOwner(
-      facebookId,
+      userId,
       storefrontId,
       orderId,
       OrderStatus.CANCELLED,
@@ -148,9 +148,9 @@ export class OrdersController {
     @Param('orderId') orderId: number,
     @Req() req: Request,
   ) {
-    const { facebookId } = req.user;
+    const userId = Number(req.user.id);
 
-    return this.ordersService.markAsPaid(facebookId, storefrontId, orderId);
+    return this.ordersService.markAsPaid(userId, storefrontId, orderId);
   }
 
   @Patch(':orderId/mark-shipped')
@@ -165,10 +165,10 @@ export class OrdersController {
     @Body() dto: UpdateOrderTrackingDto,
     @Req() req: Request,
   ) {
-    const { facebookId } = req.user;
+    const userId = Number(req.user.id);
 
     return this.ordersService.markAsShipped(
-      facebookId,
+      userId,
       storefrontId,
       orderId,
       dto.tracking_number,
@@ -186,13 +186,9 @@ export class OrdersController {
     @Param('orderId') orderId: number,
     @Req() req: Request,
   ) {
-    const { facebookId } = req.user;
+    const userId = Number(req.user.id);
 
-    return this.ordersService.markAsDelivered(
-      facebookId,
-      storefrontId,
-      orderId,
-    );
+    return this.ordersService.markAsDelivered(userId, storefrontId, orderId);
   }
 
   @Patch(':orderId/notes')
@@ -207,10 +203,10 @@ export class OrdersController {
     @Body() dto: UpdateOrderNotesDto,
     @Req() req: Request,
   ) {
-    const { facebookId } = req.user;
+    const userId = Number(req.user.id);
 
     return this.ordersService.updateInternalNotes(
-      facebookId,
+      userId,
       storefrontId,
       orderId,
       dto.internal_notes,

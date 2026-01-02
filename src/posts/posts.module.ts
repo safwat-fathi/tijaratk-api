@@ -7,6 +7,7 @@ import { FacebookService } from 'src/facebook/facebook.service';
 import { Notification } from 'src/notifications/entities/notification.entity';
 import { Product } from 'src/products/entities/product.entity';
 import { User } from 'src/users/entities/user.entity';
+import { UserIdentity } from 'src/users/entities/user-identity.entity';
 
 import { Post } from './entities/post.entity';
 import { PostsController } from './posts.controller';
@@ -14,7 +15,14 @@ import { PostsService } from './posts.service';
 
 @Module({
   imports: [
-    TypeOrmModule.forFeature([Post, Product, User, FacebookPage, Notification]),
+    TypeOrmModule.forFeature([
+      Post,
+      Product,
+      User,
+      UserIdentity,
+      FacebookPage,
+      Notification,
+    ]),
     FacebookModule,
   ],
   controllers: [PostsController],

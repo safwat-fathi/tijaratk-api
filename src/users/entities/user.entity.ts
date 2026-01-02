@@ -1,11 +1,12 @@
 import { UserSubscription } from 'src/billing/entities/user-subscription.entity';
-import { decrypt, encrypt } from 'src/common/utils/encryption.util';
 import { FacebookPage } from 'src/facebook/entities/facebook-page.entity';
 import { FacebookPageSubscription } from 'src/facebook-page-subscription/entities/facebook-page-subscription.entity';
 import { Notification } from 'src/notifications/entities/notification.entity';
 import { Product } from 'src/products/entities/product.entity';
 import { Storefront } from 'src/storefronts/entities/storefront.entity';
 import {
+  BeforeInsert,
+  BeforeUpdate,
   Column,
   CreateDateColumn,
   DeleteDateColumn,
@@ -18,10 +19,12 @@ import {
   Unique,
   UpdateDateColumn,
 } from 'typeorm';
+import { UserIdentity } from './user-identity.entity';
+import { Exclude } from 'class-transformer';
+import { genSalt, hash } from 'bcryptjs';
 
 @Entity('users')
 @Unique(['email'])
-@Unique(['facebookId'])
 export class User {
   @PrimaryGeneratedColumn()
   id: number;
@@ -34,8 +37,16 @@ export class User {
   @Column({ nullable: true })
   email?: string;
 
-  @Column({ type: 'varchar' })
-  facebookId: string;
+  @Exclude()
+  @Column({ nullable: true, select: false })
+  password?: string;
+
+  @Column({ default: false })
+  is_active: boolean;
+
+  // Social identities (Facebook, Google, etc.)
+  @OneToMany(() => UserIdentity, (identity) => identity.user, { cascade: true })
+  identities?: Relation<UserIdentity[]>;
 
   @OneToMany(() => FacebookPage, (page) => page.user)
   facebook_pages?: Relation<FacebookPage[]>;
@@ -61,20 +72,6 @@ export class User {
   @OneToOne(() => Storefront, (storefront) => storefront.user)
   storefront?: Relation<Storefront>;
 
-  @Column({
-    select: false,
-    nullable: true,
-    transformer: {
-      to: (value: string | null) => {
-        const encryptedValue = value ? encrypt(value) : null;
-
-        return encryptedValue;
-      },
-      from: (value: string | null) => (value ? decrypt(value) : null),
-    },
-  })
-  fb_access_token?: string;
-
   @Column({ nullable: true })
   reset_password_token?: string;
 
@@ -86,4 +83,13 @@ export class User {
 
   @DeleteDateColumn()
   deleted_at: Date;
+
+  @BeforeInsert()
+  @BeforeUpdate()
+  async hashPassword() {
+    if (this.password) {
+      const salt = await genSalt();
+      this.password = await hash(this.password, salt);
+    }
+  }
 }

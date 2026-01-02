@@ -19,9 +19,9 @@ export class ProductsService {
     private usageTrackingService: UsageTrackingService,
   ) {}
 
-  async create(facebookId: string, dto: CreateProductDto) {
+  async create(userId: number, dto: CreateProductDto) {
     const user = await this.userRepo.findOne({
-      where: { facebookId },
+      where: { id: userId },
     });
     if (!user) {
       throw new BadRequestException('User not found');

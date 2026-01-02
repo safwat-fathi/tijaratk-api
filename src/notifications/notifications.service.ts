@@ -59,7 +59,7 @@ export class NotificationsService {
   //   return { data, total };
   // }
   async getUserNotifications(
-    facebookId: string,
+    userId: number,
     listNotificationsDto: ListNotificationsDto,
   ): Promise<{ data: Notification[]; total: number }> {
     const {
@@ -79,7 +79,7 @@ export class NotificationsService {
     // Build the where clause dynamically
     const whereOptions: FindOptionsWhere<Notification> = {
       // Define the type for where clause
-      user: { facebookId },
+      user: { id: userId },
     };
 
     // Add classification filter if provided
@@ -167,29 +167,26 @@ export class NotificationsService {
 
   /**
    * Marks all notifications for a user as read.
-   * @param facebookId - The Facebook ID of the user.
+   * @param userId - The user ID.
    */
-  async markAllAsRead(facebookId: string): Promise<void> {
+  async markAllAsRead(userId: number): Promise<void> {
     await this.notificationRepository
       .createQueryBuilder()
       .update(Notification)
       .set({ is_read: true })
-      .where(
-        `"userId" IN (SELECT id FROM "users" WHERE "facebookId" = :facebookId)`,
-        { facebookId },
-      )
+      .where('"userId" = :userId', { userId })
       .execute();
   }
 
   /**
    * Returns the count of unread notifications for a specific user.
-   * @param facebookId - The Facebook ID of the user.
+   * @param userId - The user ID.
    * @returns A promise resolving to the number of unread notifications.
    */
-  async countUnreadNotifications(facebookId: string): Promise<number> {
+  async countUnreadNotifications(userId: number): Promise<number> {
     return await this.notificationRepository.count({
       where: {
-        user: { facebookId },
+        user: { id: userId },
         is_read: false,
       },
     });
@@ -197,16 +194,13 @@ export class NotificationsService {
 
   /**
    * Clear all notifications for a user.
-   * @param facebookId - The Facebook ID of the user.
+   * @param userId - The user ID.
    */
-  async clearNotifications(facebookId: string): Promise<void> {
+  async clearNotifications(userId: number): Promise<void> {
     await this.notificationRepository
       .createQueryBuilder('notification')
       .delete()
-      .where(
-        `"userId" IN (SELECT id FROM "users" WHERE "facebookId" = :facebookId)`,
-        { facebookId },
-      )
+      .where('"userId" = :userId', { userId })
       .execute();
   }
 }

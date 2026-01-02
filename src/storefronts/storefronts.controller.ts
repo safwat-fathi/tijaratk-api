@@ -43,9 +43,9 @@ export class StorefrontsController {
     description: 'The storefront has been successfully created.',
   })
   create(@Body() dto: CreateStorefrontDto, @Req() req: Request) {
-    const { facebookId } = req.user;
+    const userId = Number(req.user.id);
 
-    return this.storefrontsService.createForUser(facebookId, dto);
+    return this.storefrontsService.createForUser(userId, dto);
   }
 
   @Get()
@@ -55,9 +55,9 @@ export class StorefrontsController {
     description: 'Storefront for the authenticated user.',
   })
   findMine(@Req() req: Request) {
-    const { facebookId } = req.user;
+    const userId = Number(req.user.id);
 
-    return this.storefrontsService.findForUser(facebookId);
+    return this.storefrontsService.findForUser(userId);
   }
 
   @Get('slug/check')
@@ -83,9 +83,9 @@ export class StorefrontsController {
     @Body() dto: UpdateStorefrontDto,
     @Req() req: Request,
   ) {
-    const { facebookId } = req.user;
+    const userId = Number(req.user.id);
 
-    return this.storefrontsService.updateForUser(facebookId, id, dto);
+    return this.storefrontsService.updateForUser(userId, id, dto);
   }
 
   @Post(':id/theme-editor-session')
@@ -96,11 +96,8 @@ export class StorefrontsController {
     description: 'Theme editor token issued successfully.',
   })
   createThemeEditorSession(@Param('id') id: number, @Req() req: Request) {
-    const { facebookId } = req.user;
+    const userId = Number(req.user.id);
 
-    return this.storefrontsService.createThemeEditorSession(
-      facebookId,
-      Number(id),
-    );
+    return this.storefrontsService.createThemeEditorSession(userId, Number(id));
   }
 }

@@ -27,10 +27,12 @@ export class FacebookStrategy extends PassportStrategy(
         'pages_read_user_content',
         'pages_messaging',
       ],
+      passReqToCallback: true,
     });
   }
 
   async validate(
+    req: any,
     accessToken: string,
     _refreshToken: string,
     profile: Profile,
@@ -46,6 +48,22 @@ export class FacebookStrategy extends PassportStrategy(
       lastName: name?.familyName,
       accessToken,
     };
+
+    // Check if this is a linking request
+    if (req.query.state) {
+      try {
+        const state = JSON.parse(
+          Buffer.from(req.query.state, 'base64').toString(),
+        );
+        if (state.linkUserId) {
+          // This is a linking request, do NOT validate/create user yet.
+          // Just return the facebook user object.
+          return done(null, user);
+        }
+      } catch (e) {
+        // Ignore JSON parse errors, treat as normal login
+      }
+    }
 
     // Use your AuthService to find or create a user
     const validatedUser = await this.authService.validateFacebookUser(user);

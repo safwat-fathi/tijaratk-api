@@ -57,9 +57,9 @@ export class ProductsController {
     description: 'The product has been successfully created.',
   })
   create(@Body() data: CreateProductDto, @Req() req: Request) {
-    const { facebookId } = req.user;
+    const userId = Number(req.user.id);
 
-    return this.productsService.create(facebookId, data);
+    return this.productsService.create(userId, data);
   }
 
   @Post('upload')

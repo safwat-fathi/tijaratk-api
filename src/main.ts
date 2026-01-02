@@ -89,10 +89,13 @@ async function bootstrap() {
       CONSTANTS.ACCESS_TOKEN, // This name should match the name in @ApiBearerAuth() decorator in your controller
     );
 
+  // Ensure HTTP scheme is used (replace https with http if present)
+  const appUrl = (process.env.APP_URL || '').replace(/^https:\/\//, 'http://');
+
   if (process.env.NODE_ENV === 'development') {
-    options.addServer(process.env.APP_URL, 'Local environment');
+    options.addServer(appUrl, 'Local environment');
   } else {
-    options.addServer(`${process.env.APP_URL}`, 'Production environment');
+    options.addServer(appUrl, 'Production environment');
   }
 
   const config = options.build();

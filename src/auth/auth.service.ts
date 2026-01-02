@@ -12,9 +12,15 @@ import { UserLoginEvent } from 'src/events/user-login.event';
 import { FacebookService } from 'src/facebook/facebook.service';
 import { FacebookUser } from 'src/types/facebook-user.interface';
 import { Repository } from 'typeorm';
+import * as bcrypt from 'bcryptjs';
 
+import { LoginDto, SignupDto } from './dto/auth.dto';
 import { User } from '../users/entities/user.entity';
 import { UserSession } from '../users/entities/user-session.entity';
+import {
+  UserIdentity,
+  SocialProvider,
+} from '../users/entities/user-identity.entity';
 @Injectable()
 export class AuthService {
   constructor(
@@ -22,14 +28,121 @@ export class AuthService {
     private readonly userRepository: Repository<User>,
     @InjectRepository(UserSession)
     private readonly sessionRepository: Repository<UserSession>,
+    @InjectRepository(UserIdentity)
+    private readonly identityRepository: Repository<UserIdentity>,
     private readonly jwtService: JwtService,
     private readonly facebookService: FacebookService,
     private readonly eventEmitter: EventEmitter2,
   ) {}
 
-  async validateRefreshToken(facebookId: string, refreshToken: string) {
+  async signup(signupDto: SignupDto) {
+    const existingUser = await this.userRepository.findOne({
+      where: [{ email: signupDto.email }],
+    });
+
+    if (signupDto.password !== signupDto.confirmPassword) {
+      throw new BadRequestException('Passwords do not match');
+    }
+
+    if (existingUser) {
+      throw new BadRequestException('User with this email already exists');
+    }
+
+    const user = this.userRepository.create({
+      email: signupDto.email,
+      password: signupDto.password,
+      first_name: signupDto.firstName,
+      last_name: signupDto.lastName,
+      // facebookId removed
+
+      is_active: true, // later we will add email verification
+    });
+
+    return this.userRepository.save(user);
+  }
+
+  async setPassword(userId: number, password: string) {
+    const user = await this.userRepository.findOne({ where: { id: userId } });
+    if (!user) {
+      throw new BadRequestException('User not found');
+    }
+
+    return this.userRepository.save(user);
+  }
+
+  async login(loginDto: LoginDto) {
+    const user = await this.userRepository.findOne({
+      where: { email: loginDto.email },
+      select: [
+        'id',
+        'email',
+        'password',
+        'first_name',
+        'last_name',
+        'is_active',
+      ],
+    });
+
+    if (!user) {
+      throw new BadRequestException('Invalid credentials');
+    }
+
+    if (!user.password) {
+      throw new BadRequestException('Invalid credentials'); // User might have only FB login
+    }
+
+    const isMatch = await bcrypt.compare(loginDto.password, user.password);
+
+    if (!isMatch) {
+      throw new BadRequestException('Invalid credentials');
+    }
+
+    // Reuse existing logic to create JWTs
+    // Check session limit etc
+    const tokens = await this.createJwtForUser(user);
+
+    // Remove password from response
+    delete user.password;
+
+    return {
+      ...tokens,
+      user,
+    };
+  }
+
+  async refresh(refreshToken: string) {
+    // Decode the token to get the payload even if expired (handled by validateRefreshToken?)
+    // We actually need the user ID or some identifier to look up the session correctly.
+    // But here we rely on the controller to pass the token.
+
+    // Since validateRefreshToken needs facebookId (which is the 'sub' in the token),
+    // we need to decode it first safely.
+    const payload = this.jwtService.decode(refreshToken) as any;
+    if (!payload || !payload.sub) {
+      throw new UnauthorizedException('Invalid refresh token');
+    }
+
+    const verifiedSession = await this.validateRefreshToken(
+      payload.sub,
+      refreshToken,
+    );
+
+    const user = await this.userRepository.findOne({
+      where: { id: verifiedSession.user.id },
+    });
+
+    // Rotate tokens
+    const newTokens = await this.createJwtForUser(user);
+
+    return newTokens;
+  }
+
+  async validateRefreshToken(userId: number, refreshToken: string) {
+    // Reuse validateRefreshToken but slightly modified to fit the new flow if needed
+    // The original validateRefreshToken took facebookId
+    // We should keep it compatible
     const session = await this.sessionRepository.findOne({
-      where: { user: { facebookId: facebookId } },
+      where: { user: { id: userId } },
     });
 
     if (!session) {
@@ -51,80 +164,146 @@ export class AuthService {
   }
 
   async validateFacebookUser(facebookUser: FacebookUser): Promise<User> {
-    // Attempt to find a user by Facebook ID or email
-    let user = await this.userRepository.findOne({
-      where: [
-        { email: facebookUser.email },
-        { facebookId: facebookUser.facebookId },
-      ],
+    const { facebookId, email } = facebookUser;
+
+    // 1. Try to find by Facebook Identity first (Primary match for FB Login)
+    const existingIdentity = await this.identityRepository.findOne({
+      where: { provider: SocialProvider.FACEBOOK, providerId: facebookId },
+      relations: ['user'],
     });
 
-    // If user exists, return it
-    if (user) return user;
+    if (existingIdentity) {
+      // Update the access token
+      existingIdentity.accessToken = facebookUser.accessToken;
+      await this.identityRepository.save(existingIdentity);
+      return existingIdentity.user;
+    }
 
-    // If user does not exist, create a new one using Facebook details
-    user = this.userRepository.create({
-      email: facebookUser.email,
+    // 2. If not found by FB ID, try to find by Email (Account Linking)
+    if (email) {
+      const userByEmail = await this.userRepository.findOne({
+        where: { email },
+      });
+
+      if (userByEmail) {
+        // Found by email, create identity and link to existing user
+        const identity = this.identityRepository.create({
+          provider: SocialProvider.FACEBOOK,
+          providerId: facebookId,
+          accessToken: facebookUser.accessToken,
+          user: userByEmail,
+        });
+        await this.identityRepository.save(identity);
+        return userByEmail;
+      }
+    }
+
+    // 3. If user does not exist, create a new User AND UserIdentity
+    const newUser = this.userRepository.create({
+      email: email,
       first_name: facebookUser.firstName,
       last_name: facebookUser.lastName,
-      facebookId: facebookUser.facebookId,
-      fb_access_token: facebookUser.accessToken,
+    });
+    await this.userRepository.save(newUser);
+
+    const identity = this.identityRepository.create({
+      provider: SocialProvider.FACEBOOK,
+      providerId: facebookId,
+      accessToken: facebookUser.accessToken,
+      user: newUser,
+    });
+    await this.identityRepository.save(identity);
+
+    return newUser;
+  }
+
+  /**
+   * Link a Facebook account to an existing user (for authenticated users).
+   * This is different from validateFacebookUser which is for login/signup flows.
+   */
+  async linkFacebookAccount(
+    userId: number,
+    facebookUser: FacebookUser,
+  ): Promise<User> {
+    const user = await this.userRepository.findOne({ where: { id: userId } });
+
+    if (!user) {
+      throw new BadRequestException('User not found');
+    }
+
+    // Check if this Facebook ID is already linked to another user
+    const existingIdentity = await this.identityRepository.findOne({
+      where: {
+        provider: SocialProvider.FACEBOOK,
+        providerId: facebookUser.facebookId,
+      },
+      relations: ['user'],
     });
 
-    // Save the new user in the database
-    await this.userRepository.save(user);
+    if (existingIdentity && existingIdentity.user.id !== userId) {
+      throw new BadRequestException(
+        'This Facebook account is already linked to another user',
+      );
+    }
+
+    // If identity already exists for this user, update the token
+    if (existingIdentity && existingIdentity.user.id === userId) {
+      existingIdentity.accessToken = facebookUser.accessToken;
+      await this.identityRepository.save(existingIdentity);
+      return user;
+    }
+
+    // Create new identity
+    const identity = this.identityRepository.create({
+      provider: SocialProvider.FACEBOOK,
+      providerId: facebookUser.facebookId,
+      accessToken: facebookUser.accessToken,
+      user: user,
+    });
+    await this.identityRepository.save(identity);
 
     return user;
   }
 
   // after login get user pages, get long-lived access token and create jwt
   async afterLogin(user: FacebookUser) {
-    const existingUser = await this.userRepository.findOne({
-      where: { facebookId: user.facebookId },
+    // Find user by their Facebook identity
+    const identity = await this.identityRepository.findOne({
+      where: {
+        provider: SocialProvider.FACEBOOK,
+        providerId: user.facebookId,
+      },
+      relations: ['user'],
     });
+
+    if (!identity) {
+      throw new BadRequestException('User not found');
+    }
+
     // Trigger login event
     this.eventEmitter.emit(
       Events.USER_LOGGED_IN,
-      new UserLoginEvent(existingUser.id),
+      new UserLoginEvent(identity.user.id),
     );
 
-    const jwt = await this.createJwtForUser(user);
-    await this.facebookService.getLongLivedAccessToken(user.facebookId);
-    await this.facebookService.getUserPages(user.facebookId);
-
-    delete jwt.user.accessToken;
+    const jwt = await this.createJwtForUser(identity.user);
+    await this.facebookService.getLongLivedAccessToken(
+      identity.user.id,
+      identity.providerId, // This is the facebookId
+    );
+    await this.facebookService.getUserPages(identity.user.id);
 
     return jwt;
   }
 
-  async logout(facebookId: string) {
-    const user = await this.userRepository.findOne({
-      where: { facebookId },
-    });
-    if (!user) {
-      return;
-    }
-
-    await this.sessionRepository.delete({ user: { id: user.id } });
+  async logout(userId: number) {
+    await this.sessionRepository.delete({ user: { id: userId } });
   }
 
-  async createJwtForUser(user: FacebookUser) {
-    if (!user) {
-      throw new UnauthorizedException('User not found');
-    }
-
-    // Get the database user to access the numeric id
-    const dbUser = await this.userRepository.findOne({
-      where: { facebookId: user.facebookId },
-    });
-
-    if (!dbUser) {
-      throw new UnauthorizedException('User not found in database');
-    }
-
+  async createJwtForUser(user: User) {
     // 3. Retrieve all existing sessions for this user
     const sessions = await this.sessionRepository.find({
-      where: { user: { facebookId: user.facebookId } },
+      where: { user: { id: user.id } },
     });
 
     // 4. Filter out (and remove) expired sessions
@@ -142,7 +321,7 @@ export class AuthService {
 
     // 5. Retrieve sessions again (active only) to see how many remain
     const activeSessions = await this.sessionRepository.find({
-      where: { user: { facebookId: user.facebookId } },
+      where: { user: { id: user.id } },
     });
 
     // 6. If 3 active sessions remain, decide how to handle
@@ -162,9 +341,8 @@ export class AuthService {
     // 7. Generate an access token (short-lived) and a refresh token (or same token) here
     // Include the numeric user id in the payload for controllers that need it
     const payload = {
-      sub: user.facebookId,
+      sub: user.id,
       email: user.email,
-      userId: dbUser.id,
     };
     // const access_token = user.accessToken;
     const access_token = this.jwtService.sign(payload, {

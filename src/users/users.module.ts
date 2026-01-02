@@ -9,6 +9,7 @@ import { Notification } from 'src/notifications/entities/notification.entity';
 
 import { User } from './entities/user.entity';
 import { UserSession } from './entities/user-session.entity';
+import { UserIdentity } from './entities/user-identity.entity';
 import { UserEventsListener } from './listeners/user-events.listener';
 import { UsersController } from './users.controller';
 import { UsersService } from './users.service';
@@ -18,6 +19,7 @@ import { UsersService } from './users.service';
     TypeOrmModule.forFeature([
       User,
       UserSession,
+      UserIdentity,
       FacebookPage,
       FacebookPageSubscription,
       Notification,
@@ -31,5 +33,6 @@ import { UsersService } from './users.service';
     FacebookService,
     FacebookPageSubscriptionService,
   ],
+  exports: [TypeOrmModule],
 })
 export class UsersModule {}

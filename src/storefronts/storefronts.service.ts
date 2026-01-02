@@ -40,8 +40,8 @@ export class StorefrontsService {
     private readonly themeEditorTokenService: ThemeEditorTokenService,
   ) {}
 
-  async createForUser(facebookId: string, dto: CreateStorefrontDto) {
-    const user = await this.userRepo.findOne({ where: { facebookId } });
+  async createForUser(userId: number, dto: CreateStorefrontDto) {
+    const user = await this.userRepo.findOne({ where: { id: userId } });
     if (!user) {
       throw new BadRequestException('User not found');
     }
@@ -115,9 +115,9 @@ export class StorefrontsService {
     return savedStorefront;
   }
 
-  async findForUser(facebookId: string) {
+  async findForUser(userId: number) {
     const user = await this.userRepo.findOne({
-      where: { facebookId },
+      where: { id: userId },
     });
     if (!user) {
       throw new BadRequestException('User not found');
@@ -132,12 +132,8 @@ export class StorefrontsService {
     });
   }
 
-  async updateForUser(
-    facebookId: string,
-    id: number,
-    dto: UpdateStorefrontDto,
-  ) {
-    const user = await this.userRepo.findOne({ where: { facebookId } });
+  async updateForUser(userId: number, id: number, dto: UpdateStorefrontDto) {
+    const user = await this.userRepo.findOne({ where: { id: userId } });
     if (!user) {
       throw new BadRequestException('User not found');
     }
@@ -233,8 +229,8 @@ export class StorefrontsService {
     return savedStorefront;
   }
 
-  async createThemeEditorSession(facebookId: string, id: number) {
-    const user = await this.userRepo.findOne({ where: { facebookId } });
+  async createThemeEditorSession(userId: number, id: number) {
+    const user = await this.userRepo.findOne({ where: { id: userId } });
     if (!user) {
       throw new BadRequestException('User not found');
     }

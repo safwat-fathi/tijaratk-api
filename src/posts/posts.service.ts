@@ -33,17 +33,14 @@ export class PostsService {
     private readonly facebookService: FacebookService,
   ) {}
 
-  async create(
-    facebookId: string,
-    createPostDto: CreatePostDto,
-  ): Promise<Post> {
+  async create(userId: number, createPostDto: CreatePostDto): Promise<Post> {
     const { page_id, product_id, title, content, media_url, scheduled_at } =
       createPostDto;
     const user = await this.userRepository.findOne({
-      where: { facebookId },
+      where: { id: userId },
     });
     if (!user) {
-      throw new NotFoundException(`User with ID ${facebookId} not found`);
+      throw new NotFoundException(`User with ID ${userId} not found`);
     }
 
     // Ensure the selected product exists.

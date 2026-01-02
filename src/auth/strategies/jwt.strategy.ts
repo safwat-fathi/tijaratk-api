@@ -12,11 +12,11 @@ export class JwtStrategy extends PassportStrategy(Strategy) {
     });
   }
 
-  async validate(payload: any) {
+  async validate(payload: any): Promise<{ id: number; email: string | null }> {
+    // Note: email can be null for Facebook-only users where Facebook doesn't provide an email
     return {
-      id: payload.userId,
-      facebookId: payload.sub,
-      email: payload.email,
+      id: payload.sub,
+      email: payload.email || null,
     };
   }
 }

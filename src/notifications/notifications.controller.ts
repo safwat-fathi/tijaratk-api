@@ -30,10 +30,10 @@ export class NotificationsController {
     @Query() listNotificationsDto: ListNotificationsDto,
     @Req() req: Request,
   ) {
-    const { facebookId } = req.user;
+    const userId = Number(req.user.id);
 
     return this.notificationsService.getUserNotifications(
-      facebookId,
+      userId,
       listNotificationsDto,
     );
   }
@@ -75,9 +75,9 @@ export class NotificationsController {
     description: 'Count unread notifications',
   })
   countUnreadNotifications(@Req() req: Request) {
-    const { facebookId } = req.user;
+    const userId = Number(req.user.id);
 
-    return this.notificationsService.countUnreadNotifications(facebookId);
+    return this.notificationsService.countUnreadNotifications(userId);
   }
 
   @Get('/clear')
@@ -87,9 +87,9 @@ export class NotificationsController {
     description: 'Clear all notifications',
   })
   clearAllNotifications(@Req() req: Request) {
-    const { facebookId } = req.user;
+    const userId = Number(req.user.id);
 
-    return this.notificationsService.clearNotifications(facebookId);
+    return this.notificationsService.clearNotifications(userId);
   }
 
   @Get('/read-all')
@@ -99,8 +99,8 @@ export class NotificationsController {
     description: 'Mark all notifications as read',
   })
   markAllNotificationsAsRead(@Req() req: Request) {
-    const { facebookId } = req.user;
+    const userId = Number(req.user.id);
 
-    return this.notificationsService.markAllAsRead(facebookId);
+    return this.notificationsService.markAllAsRead(userId);
   }
 }

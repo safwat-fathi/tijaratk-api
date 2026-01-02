@@ -40,7 +40,6 @@ async function ensureSeedUser(dataSource: DataSource): Promise<User | null> {
   }
 
   const demoUser = userRepository.create({
-    facebookId: 'demo-storefront-user',
     first_name: 'Demo',
     last_name: 'Merchant',
   });

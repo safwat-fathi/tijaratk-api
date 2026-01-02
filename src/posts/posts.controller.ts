@@ -52,8 +52,8 @@ export class PostsController {
     description: 'Post created successfully',
   })
   create(@Body() createPostDto: CreatePostDto, @Req() req: Request) {
-    const { facebookId } = req.user;
-    return this.postsService.create(facebookId, createPostDto);
+    const userId = Number(req.user.id);
+    return this.postsService.create(userId, createPostDto);
   }
 
   @Post('upload')
