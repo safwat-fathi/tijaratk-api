@@ -85,8 +85,8 @@ export class StorefrontsService {
       theme_config: { ...DEFAULT_STOREFRONT_THEME },
       slug,
       user,
-      // Only system admins can publish; user-created storefronts start unpublished
-      is_published: false,
+      // User-created storefronts start published by default
+      is_published: true,
     });
 
     const savedStorefront = await this.storefrontRepo.save(storefront);
