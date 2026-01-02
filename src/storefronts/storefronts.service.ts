@@ -57,8 +57,8 @@ export class StorefrontsService {
       .toLowerCase()
       .trim()
       .replace(/[^a-z0-9]+/g, '-')
-      .replace(/^-+/, '')
-      .replace(/-+$/, '');
+      .replace(/^-/, '')
+      .replace(/-$/, '');
 
     let slug = slugBase;
     let suffix = 1;
@@ -153,8 +153,8 @@ export class StorefrontsService {
         .toLowerCase()
         .trim()
         .replace(/[^a-z0-9]+/g, '-')
-        .replace(/^-+/, '')
-        .replace(/-+$/, '');
+        .replace(/^-/, '')
+        .replace(/-$/, '');
 
       let slug = slugBase;
       let suffix = 1;
