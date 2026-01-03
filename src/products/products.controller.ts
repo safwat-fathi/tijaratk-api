@@ -104,8 +104,9 @@ export class ProductsController {
     status: HttpStatus.OK,
     description: 'Get all products',
   })
-  findAll(@Query() listProducts: ListProductsDto) {
-    return this.productsService.findAll(listProducts);
+  findAll(@Query() listProducts: ListProductsDto, @Req() req: Request) {
+    const userId = Number(req.user.id);
+    return this.productsService.findAll(userId, listProducts);
   }
 
   @Get(':id')

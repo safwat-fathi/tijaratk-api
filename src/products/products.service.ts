@@ -66,13 +66,18 @@ export class ProductsService {
     return savedProduct;
   }
 
-  async findAll(ListProductsDto: ListProductsDto) {
+  async findAll(userId: number, ListProductsDto: ListProductsDto) {
     const { page = 1, limit = 10, keyword } = ListProductsDto;
     const skip = (page - 1) * limit;
 
+    const where: any = { user: { id: userId } };
+    if (keyword) {
+      where.name = ILike(`%${keyword}%`);
+    }
+
     // Retrieve data
     const [items, total] = await this.productRepo.findAndCount({
-      where: keyword ? { name: ILike(`%${keyword}%`) } : undefined,
+      where,
       skip,
       take: limit,
       order: { created_at: 'DESC', name: 'DESC' },
