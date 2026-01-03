@@ -19,7 +19,6 @@ export enum ProductStatus {
 }
 
 @Entity('products')
-@Unique(['user', 'name'])
 @Unique(['user', 'slug'])
 export class Product {
   @PrimaryGeneratedColumn()
