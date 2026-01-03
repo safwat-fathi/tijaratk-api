@@ -1,3 +1,4 @@
+import { WsAdapter } from '@nestjs/platform-ws';
 import {
   ExceptionFilter,
   NestInterceptor,
@@ -138,6 +139,7 @@ async function bootstrap() {
   ];
   app.useGlobalFilters(...filters);
 
+  app.useWebSocketAdapter(new WsAdapter(app));
   await app.listen(process.env.HTTP_SERVER_PORT, '127.0.0.1');
 }
 

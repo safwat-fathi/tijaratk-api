@@ -23,6 +23,7 @@ import {
   OrderType,
 } from './entities/order.entity';
 import { OrderItem } from './entities/order-item.entity';
+import { NotificationsGateway } from 'src/notifications/notifications.gateway';
 
 @Injectable()
 export class OrdersService {
@@ -35,6 +36,7 @@ export class OrdersService {
     private readonly productRepo: Repository<Product>,
     @InjectRepository(Storefront)
     private readonly storefrontRepo: Repository<Storefront>,
+    private readonly notificationsGateway: NotificationsGateway,
   ) {}
 
   private async ensureStorefrontOwnership(
@@ -146,6 +148,23 @@ export class OrdersService {
     }
 
     const savedOrder = await this.orderRepo.save(order);
+
+    // Emit real-time notification
+    try {
+      this.notificationsGateway.sendNotification(storefront.user.id, {
+        type: 'product order', // Match NotificationContext expectations
+        content: `New order received from ${savedOrder.buyer_name} for ${storefront.name}`,
+        id: Date.now(), // Or use actual notification ID if we persist it first
+        created_at: new Date().toISOString(),
+        is_read: false,
+        classification: 'product order',
+        productName: savedOrder.items?.[0]?.product?.name || 'Product',
+        sender_name: savedOrder.buyer_name,
+        // Add other fields as necessary
+      });
+    } catch (e) {
+      console.error('Failed to send notification', e);
+    }
 
     // Do not leak internal relations
     delete savedOrder.storefront;

@@ -2,6 +2,7 @@ import { Module } from '@nestjs/common';
 import { TypeOrmModule } from '@nestjs/typeorm';
 import { Product } from 'src/products/entities/product.entity';
 import { Storefront } from 'src/storefronts/entities/storefront.entity';
+import { NotificationsModule } from 'src/notifications/notifications.module';
 
 import { Order } from './entities/order.entity';
 import { OrderItem } from './entities/order-item.entity';
@@ -14,6 +15,7 @@ import { CustomOrdersController } from './custom-orders.controller';
 
 @Module({
   imports: [
+    NotificationsModule,
     TypeOrmModule.forFeature([
       Order,
       OrderItem,
