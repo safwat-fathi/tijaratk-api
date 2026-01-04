@@ -14,6 +14,7 @@ import {
 export enum NotificationType {
   COMMENT = 'comment',
   MESSAGE = 'message',
+  PRODUCT_ORDER = 'product order',
 }
 
 @Entity('notifications')
@@ -38,6 +39,9 @@ export class Notification {
 
   @Column({ type: 'varchar', nullable: true })
   sender_name: string;
+
+  @Column({ type: 'varchar', nullable: true })
+  productName: string;
 
   @ManyToOne(() => FacebookPage, (facebookPage) => facebookPage.notifications)
   facebook_page: Relation<FacebookPage>;

@@ -24,6 +24,9 @@ import {
 } from './entities/order.entity';
 import { OrderItem } from './entities/order-item.entity';
 import { NotificationsGateway } from 'src/notifications/notifications.gateway';
+import { NotificationType } from 'src/notifications/entities/notification.entity';
+
+import { NotificationsService } from 'src/notifications/notifications.service';
 
 @Injectable()
 export class OrdersService {
@@ -37,6 +40,7 @@ export class OrdersService {
     @InjectRepository(Storefront)
     private readonly storefrontRepo: Repository<Storefront>,
     private readonly notificationsGateway: NotificationsGateway,
+    private readonly notificationsService: NotificationsService,
   ) {}
 
   private async ensureStorefrontOwnership(
@@ -150,20 +154,28 @@ export class OrdersService {
     const savedOrder = await this.orderRepo.save(order);
 
     // Emit real-time notification
+    // Emit real-time notification
     try {
+      const notificationContent = `New order received from ${savedOrder.buyer_name} for ${storefront.name}`;
+      const savedNotification =
+        await this.notificationsService.createNotification(storefront.user, {
+          type: NotificationType.PRODUCT_ORDER,
+          content: notificationContent,
+          classification: 'product order',
+          sender_id: savedOrder.buyer_name || 'unknown',
+          sender_name: savedOrder.buyer_name,
+          productName: savedOrder.items?.[0]?.product?.name || 'Product',
+          is_read: false,
+          created_at: new Date(),
+        });
+
       this.notificationsGateway.sendNotification(storefront.user.id, {
-        type: 'product order', // Match NotificationContext expectations
-        content: `New order received from ${savedOrder.buyer_name} for ${storefront.name}`,
-        id: Date.now(), // Or use actual notification ID if we persist it first
-        created_at: new Date().toISOString(),
-        is_read: false,
-        classification: 'product order',
-        productName: savedOrder.items?.[0]?.product?.name || 'Product',
-        sender_name: savedOrder.buyer_name,
-        // Add other fields as necessary
+        ...savedNotification,
+        id: savedNotification.id, // Use the real DB ID
+        // Ensure strictly required frontend fields are present if not in entity (though entity should cover most)
       });
     } catch (e) {
-      console.error('Failed to send notification', e);
+      console.error('Failed to create/send notification', e);
     }
 
     // Do not leak internal relations

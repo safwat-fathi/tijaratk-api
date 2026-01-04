@@ -98,9 +98,12 @@ export class NotificationsController {
     status: HttpStatus.OK,
     description: 'Mark all notifications as read',
   })
-  markAllNotificationsAsRead(@Req() req: Request) {
+  markAllNotificationsAsRead(
+    @Req() req: Request,
+    @Query('type') type?: string,
+  ) {
     const userId = Number(req.user.id);
 
-    return this.notificationsService.markAllAsRead(userId);
+    return this.notificationsService.markAllAsRead(userId, type);
   }
 }

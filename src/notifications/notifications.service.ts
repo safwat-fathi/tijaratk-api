@@ -142,13 +142,11 @@ export class NotificationsService {
    */
   async createNotification(
     user: User,
-    content: string,
-    type: NotificationType,
+    data: Partial<Notification>,
   ): Promise<Notification> {
     const notification = this.notificationRepository.create({
-      type,
+      ...data,
       user,
-      content,
       is_read: false,
     });
     return await this.notificationRepository.save(notification);
@@ -169,13 +167,23 @@ export class NotificationsService {
    * Marks all notifications for a user as read.
    * @param userId - The user ID.
    */
-  async markAllAsRead(userId: number): Promise<void> {
-    await this.notificationRepository
+  /**
+   * Marks all notifications for a user as read.
+   * @param userId - The user ID.
+   * @param type - Optional notification type to filter by.
+   */
+  async markAllAsRead(userId: number, type?: string): Promise<void> {
+    const query = this.notificationRepository
       .createQueryBuilder()
       .update(Notification)
       .set({ is_read: true })
-      .where('"userId" = :userId', { userId })
-      .execute();
+      .where('"userId" = :userId', { userId });
+
+    if (type) {
+      query.andWhere('type = :type', { type });
+    }
+
+    await query.execute();
   }
 
   /**

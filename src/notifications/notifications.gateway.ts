@@ -10,7 +10,7 @@ import { Server, WebSocket } from 'ws';
 // Extend WebSocket to include userId
 type AppWebSocket = WebSocket & { userId: number };
 
-@WebSocketGateway({ path: '/notifications' })
+@WebSocketGateway({ path: '/notifications', cors: { origin: '*' } })
 export class NotificationsGateway
   implements OnGatewayConnection, OnGatewayDisconnect
 {
@@ -27,7 +27,7 @@ export class NotificationsGateway
     if (userId) {
       client.userId = Number(userId);
       this.clients.set(client.userId, client);
-      // console.log(`Client connected: ${userId}`);
+    } else {
     }
   }
 
