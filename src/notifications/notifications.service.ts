@@ -1,4 +1,9 @@
-import { Injectable, NotFoundException } from '@nestjs/common';
+import {
+  forwardRef,
+  Inject,
+  Injectable,
+  NotFoundException,
+} from '@nestjs/common';
 import { InjectRepository } from '@nestjs/typeorm';
 import { NotificationSortBy, SortOrder } from 'src/common/enums/sort.enums';
 import { User } from 'src/users/entities/user.entity';
@@ -6,12 +11,15 @@ import { FindOptionsOrder, FindOptionsWhere, Repository } from 'typeorm';
 
 import { ListNotificationsDto } from './dto/list-notifications.dto';
 import { Notification, NotificationType } from './entities/notification.entity';
+import { WebPushService } from './web-push.service';
 
 @Injectable()
 export class NotificationsService {
   constructor(
     @InjectRepository(Notification)
     private readonly notificationRepository: Repository<Notification>,
+    @Inject(forwardRef(() => WebPushService))
+    private readonly webPushService: WebPushService,
   ) {}
 
   /**
@@ -149,7 +157,17 @@ export class NotificationsService {
       user,
       is_read: false,
     });
-    return await this.notificationRepository.save(notification);
+    const saved = await this.notificationRepository.save(notification);
+
+    // Send push notification to all subscribed devices
+    try {
+      await this.webPushService.sendPushNotification(user.id, saved);
+    } catch (error) {
+      // Don't fail the notification creation if push fails
+      console.error('Failed to send push notification:', error);
+    }
+
+    return saved;
   }
 
   /**
