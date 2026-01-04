@@ -2,6 +2,7 @@ import {
   forwardRef,
   Inject,
   Injectable,
+  Logger,
   NotFoundException,
 } from '@nestjs/common';
 import { InjectRepository } from '@nestjs/typeorm';
@@ -10,11 +11,13 @@ import { User } from 'src/users/entities/user.entity';
 import { FindOptionsOrder, FindOptionsWhere, Repository } from 'typeorm';
 
 import { ListNotificationsDto } from './dto/list-notifications.dto';
-import { Notification, NotificationType } from './entities/notification.entity';
+import { Notification } from './entities/notification.entity';
 import { WebPushService } from './web-push.service';
 
 @Injectable()
 export class NotificationsService {
+  private readonly logger = new Logger(NotificationsService.name);
+
   constructor(
     @InjectRepository(Notification)
     private readonly notificationRepository: Repository<Notification>,
@@ -24,48 +27,10 @@ export class NotificationsService {
 
   /**
    * Retrieves a paginated list of notifications for a specific user.
-   * @param facebookId - The Facebook ID of the user.
-   * @param page - The current page number (default is 1).
-   * @param limit - Number of notifications per page (default is 10).
+   * @param userId - The user ID.
+   * @param listNotificationsDto - Pagination and filter options.
    * @returns Object containing notifications data and total count.
    */
-  // async getUserNotifications(
-  //   facebookId: string,
-  //   listNotificationsDto: ListNotificationsDto,
-  // ): Promise<{ data: Notification[]; total: number }> {
-  //   const {
-  //     page = 1,
-  //     limit = 10,
-  //     sort_by = NotificationSortBy.CREATED_AT, // Use default from DTO
-  //     sort_order = SortOrder.DESC,
-  //     classification,
-  //   } = listNotificationsDto;
-
-  //   // Build the TypeORM order object dynamically
-  //   const orderOptions: FindOptionsOrder<Notification> = {};
-
-  //   // Set the primary sort field and order
-  //   // Handle potential nulls in sentiment/classification if sorting by them
-  //   // TypeORM handles nulls based on DB config (NULLS FIRST/LAST),
-  //   // ensure your DB behaves as expected or add specific null handling if needed.
-  //   orderOptions[sort_by] = sort_order;
-
-  //   // Add secondary sort by created_at DESC for stable pagination,
-  //   // unless already sorting primarily by created_at.
-  //   // Using 'id' might be another option if it's guaranteed unique and sequential.
-  //   if (sort_by !== NotificationSortBy.CREATED_AT) {
-  //     orderOptions.created_at = SortOrder.DESC; // Add as secondary sort
-  //   }
-
-  //   const [data, total] = await this.notificationRepository.findAndCount({
-  //     where: { user: { facebookId } },
-  //     order: orderOptions,
-  //     relations: { facebook_page: true },
-  //     skip: (page - 1) * limit,
-  //     take: limit,
-  //   });
-  //   return { data, total };
-  // }
   async getUserNotifications(
     userId: number,
     listNotificationsDto: ListNotificationsDto,
@@ -75,28 +40,33 @@ export class NotificationsService {
       limit = 10,
       sort_by = NotificationSortBy.CREATED_AT,
       sort_order = SortOrder.DESC,
-      classification, // Destructure the new classification property
+      classification,
     } = listNotificationsDto;
 
     const orderOptions: FindOptionsOrder<Notification> = {};
-    orderOptions[sort_by] = sort_order;
-    if (sort_by !== NotificationSortBy.CREATED_AT) {
+    // Use type-safe key assignment
+    if (sort_by === NotificationSortBy.CREATED_AT) {
+      orderOptions.created_at = sort_order;
+    } else if (sort_by === NotificationSortBy.SENTIMENT) {
+      orderOptions.sentiment = sort_order;
+      orderOptions.created_at = SortOrder.DESC;
+    } else if (sort_by === NotificationSortBy.CLASSIFICATION) {
+      orderOptions.classification = sort_order;
       orderOptions.created_at = SortOrder.DESC;
     }
 
     // Build the where clause dynamically
     const whereOptions: FindOptionsWhere<Notification> = {
-      // Define the type for where clause
       user: { id: userId },
     };
 
     // Add classification filter if provided
     if (classification) {
-      whereOptions.classification = classification; // Add classification to the where clause
+      whereOptions.classification = classification;
     }
 
     const [data, total] = await this.notificationRepository.findAndCount({
-      where: whereOptions, // Use the dynamic where clause
+      where: whereOptions,
       order: orderOptions,
       relations: { facebook_page: true },
       skip: (page - 1) * limit,
@@ -140,12 +110,10 @@ export class NotificationsService {
     return await this.notificationRepository.save(notification);
   }
 
-  // Additional utility methods you might consider:
-
   /**
    * Creates a new notification for a user.
    * @param user - The user to receive the notification.
-   * @param content - The notification content.
+   * @param data - The notification data.
    * @returns The newly created notification.
    */
   async createNotification(
@@ -164,7 +132,7 @@ export class NotificationsService {
       await this.webPushService.sendPushNotification(user.id, saved);
     } catch (error) {
       // Don't fail the notification creation if push fails
-      console.error('Failed to send push notification:', error);
+      this.logger.error('Failed to send push notification:', error);
     }
 
     return saved;
@@ -181,10 +149,6 @@ export class NotificationsService {
     }
   }
 
-  /**
-   * Marks all notifications for a user as read.
-   * @param userId - The user ID.
-   */
   /**
    * Marks all notifications for a user as read.
    * @param userId - The user ID.
