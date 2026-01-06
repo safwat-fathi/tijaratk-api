@@ -6,6 +6,7 @@ import { ScheduleModule } from '@nestjs/schedule';
 import { ThrottlerModule } from '@nestjs/throttler';
 import { TypeOrmModule } from '@nestjs/typeorm';
 
+import { AdminModule } from './admin/admin.module';
 import { AuthModule } from './auth/auth.module';
 import { BillingModule } from './billing/billing.module';
 import { CategoriesModule } from './categories/categories.module';
@@ -40,6 +41,7 @@ const ENV = process.env.NODE_ENV;
       },
     ]),
     ScheduleModule.forRoot(),
+    AdminModule,
     AuthModule,
     UsersModule,
     ProductsModule,

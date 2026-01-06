@@ -2,6 +2,7 @@ import { UserSubscription } from 'src/billing/entities/user-subscription.entity'
 import { FacebookPage } from 'src/facebook/entities/facebook-page.entity';
 import { FacebookPageSubscription } from 'src/facebook-page-subscription/entities/facebook-page-subscription.entity';
 import { Notification } from 'src/notifications/entities/notification.entity';
+import { UserRole } from 'src/common/enums/user-role.enum';
 import { Product } from 'src/products/entities/product.entity';
 import { Storefront } from 'src/storefronts/entities/storefront.entity';
 import {
@@ -92,4 +93,11 @@ export class User {
       this.password = await hash(this.password, salt);
     }
   }
+
+  @Column({
+    type: 'enum',
+    enum: UserRole,
+    default: UserRole.USER,
+  })
+  role: UserRole;
 }

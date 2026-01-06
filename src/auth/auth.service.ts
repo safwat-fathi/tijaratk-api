@@ -80,6 +80,7 @@ export class AuthService {
         'first_name',
         'last_name',
         'is_active',
+        'role',
       ],
     });
 
@@ -343,6 +344,7 @@ export class AuthService {
     const payload = {
       sub: user.id,
       email: user.email,
+      role: user.role,
     };
     // const access_token = user.accessToken;
     const access_token = this.jwtService.sign(payload, {
