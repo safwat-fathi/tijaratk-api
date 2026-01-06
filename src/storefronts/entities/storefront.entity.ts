@@ -57,6 +57,7 @@ export class Storefront {
   @Column({ type: 'varchar', length: 512, nullable: true })
   canonical_url?: string;
 
+  // SEO Settings (noindex = true means don't index this page)
   @Column({ default: false })
   noindex: boolean;
 

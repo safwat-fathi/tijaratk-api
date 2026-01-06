@@ -26,7 +26,7 @@ export class AdminStoresService {
     if (startDate && endDate) {
       where.created_at = Between(new Date(startDate), new Date(endDate));
     } else if (startDate) {
-        where.created_at = Between(new Date(startDate), new Date()); // From start to now
+      where.created_at = Between(new Date(startDate), new Date()); // From start to now
     }
 
     const [stores, total] = await this.storefrontRepository.findAndCount({
@@ -45,5 +45,15 @@ export class AdminStoresService {
         last_page: Math.ceil(total / limit),
       },
     };
+  }
+
+  async togglePublish(id: number) {
+    const store = await this.storefrontRepository.findOne({ where: { id } });
+    if (!store) {
+      throw new Error('Store not found');
+    }
+
+    store.is_published = !store.is_published;
+    return this.storefrontRepository.save(store);
   }
 }

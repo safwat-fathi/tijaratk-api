@@ -1,4 +1,11 @@
-import { Controller, Get, Query, UseGuards } from '@nestjs/common';
+import {
+  Controller,
+  Get,
+  Query,
+  UseGuards,
+  Patch,
+  Param,
+} from '@nestjs/common';
 import { AuthGuard } from '@nestjs/passport';
 import { AdminGuard } from '../guards/admin.guard';
 import { AdminStoresService } from '../services/admin-stores.service';
@@ -16,12 +23,11 @@ export class AdminStoresController {
     @Query('startDate') startDate?: string,
     @Query('endDate') endDate?: string,
   ) {
-    return this.adminStoresService.findAll(
-      Number(page),
-      Number(limit),
-      search,
-      startDate,
-      endDate,
-    );
+    return this.adminStoresService.findAll(Number(page), Number(limit), search);
+  }
+
+  @Patch(':id/toggle-publish')
+  togglePublish(@Param('id') id: number) {
+    return this.adminStoresService.togglePublish(Number(id));
   }
 }

@@ -1,6 +1,6 @@
 import { Injectable } from '@nestjs/common';
 import { InjectRepository } from '@nestjs/typeorm';
-import { Product } from 'src/products/entities/product.entity';
+import { Product, ProductStatus } from 'src/products/entities/product.entity';
 import { Repository, ILike, Between, FindOptionsWhere } from 'typeorm';
 
 @Injectable()
@@ -16,8 +16,13 @@ export class AdminProductsService {
     search?: string,
     startDate?: string,
     endDate?: string,
+    storeId?: number,
   ) {
     const where: FindOptionsWhere<Product> = {};
+
+    if (storeId) {
+      where.user = { storefront: { id: storeId } };
+    }
 
     if (search) {
       where.name = ILike(`%${search}%`);
@@ -26,7 +31,7 @@ export class AdminProductsService {
     if (startDate && endDate) {
       where.created_at = Between(new Date(startDate), new Date(endDate));
     } else if (startDate) {
-        where.created_at = Between(new Date(startDate), new Date());
+      where.created_at = Between(new Date(startDate), new Date());
     }
 
     const [products, total] = await this.productRepository.findAndCount({
@@ -45,5 +50,19 @@ export class AdminProductsService {
         last_page: Math.ceil(total / limit),
       },
     };
+  }
+
+  async toggleStatus(id: number) {
+    const product = await this.productRepository.findOne({ where: { id } });
+    if (!product) {
+      throw new Error('Product not found');
+    }
+
+    product.status =
+      product.status === ProductStatus.ACTIVE
+        ? ProductStatus.INACTIVE
+        : ProductStatus.ACTIVE;
+
+    return this.productRepository.save(product);
   }
 }

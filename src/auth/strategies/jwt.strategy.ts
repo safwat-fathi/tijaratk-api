@@ -12,11 +12,16 @@ export class JwtStrategy extends PassportStrategy(Strategy) {
     });
   }
 
-  async validate(payload: any): Promise<{ id: number; email: string | null }> {
+  async validate(payload: any): Promise<{
+    id: number;
+    email: string | null;
+    role: string;
+  }> {
     // Note: email can be null for Facebook-only users where Facebook doesn't provide an email
     return {
       id: payload.sub,
       email: payload.email || null,
+      role: payload.role || 'user', // Fallback to user if not present
     };
   }
 }
