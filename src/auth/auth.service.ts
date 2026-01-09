@@ -14,13 +14,25 @@ import { FacebookUser } from 'src/types/facebook-user.interface';
 import { Repository } from 'typeorm';
 import * as bcrypt from 'bcryptjs';
 
-import { LoginDto, SignupDto } from './dto/auth.dto';
-import { User } from '../users/entities/user.entity';
+import {
+  AdminLoginDto,
+  AdminSignupDto,
+  RequestOtpDto,
+  VerifyOtpDto,
+} from './dto/auth.dto';
+import { User, UserStatus } from '../users/entities/user.entity';
 import { UserSession } from '../users/entities/user-session.entity';
 import {
   UserIdentity,
   SocialProvider,
 } from '../users/entities/user-identity.entity';
+import { AdminProfile } from '../users/entities/admin-profile.entity';
+import { Merchant } from '../merchants/entities/merchant.entity';
+import { Role } from './entities/role.entity';
+import { UserRole } from './entities/user-role.entity';
+import { StoreUserRole } from './entities/store-user-role.entity';
+import { JwtPayload } from './strategies/jwt.strategy';
+
 @Injectable()
 export class AuthService {
   constructor(
@@ -30,80 +42,102 @@ export class AuthService {
     private readonly sessionRepository: Repository<UserSession>,
     @InjectRepository(UserIdentity)
     private readonly identityRepository: Repository<UserIdentity>,
+    @InjectRepository(Merchant)
+    private readonly merchantRepository: Repository<Merchant>,
+    @InjectRepository(AdminProfile)
+    private readonly adminProfileRepository: Repository<AdminProfile>,
+    @InjectRepository(Role)
+    private readonly roleRepository: Repository<Role>,
+    @InjectRepository(UserRole)
+    private readonly userRoleRepository: Repository<UserRole>,
+    @InjectRepository(StoreUserRole)
+    private readonly storeUserRoleRepository: Repository<StoreUserRole>,
     private readonly jwtService: JwtService,
     private readonly facebookService: FacebookService,
     private readonly eventEmitter: EventEmitter2,
   ) {}
 
-  async signup(signupDto: SignupDto) {
-    const existingUser = await this.userRepository.findOne({
-      where: [{ email: signupDto.email }],
-    });
+  // ==================== Admin Auth (Email + Password) ====================
 
-    if (signupDto.password !== signupDto.confirmPassword) {
-      throw new BadRequestException('Passwords do not match');
-    }
+  /**
+   * Admin signup - creates user with admin profile
+   */
+  async signupAdmin(dto: AdminSignupDto) {
+    const existingUser = await this.userRepository.findOne({
+      where: [{ email: dto.email }],
+    });
 
     if (existingUser) {
       throw new BadRequestException('User with this email already exists');
     }
 
-    const user = this.userRepository.create({
-      email: signupDto.email,
-      password: signupDto.password,
-      first_name: signupDto.firstName,
-      last_name: signupDto.lastName,
-      // facebookId removed
+    // Hash password
+    const salt = await bcrypt.genSalt();
+    const password_hash = await bcrypt.hash(dto.password, salt);
 
-      is_active: true, // later we will add email verification
+    const user = this.userRepository.create({
+      email: dto.email,
+      phone: `admin_${Date.now()}`, // Placeholder for admin (required field)
+      password_hash,
+      name: dto.name || dto.email.split('@')[0],
+      status: UserStatus.ACTIVE,
     });
 
-    return this.userRepository.save(user);
-  }
+    await this.userRepository.save(user);
 
-  async setPassword(userId: number, password: string) {
-    const user = await this.userRepository.findOne({ where: { id: userId } });
-    if (!user) {
-      throw new BadRequestException('User not found');
+    // Create admin profile
+    const adminProfile = this.adminProfileRepository.create({
+      user_id: user.id,
+    });
+    await this.adminProfileRepository.save(adminProfile);
+
+    // Assign admin role
+    const adminRole = await this.roleRepository.findOne({
+      where: { name: 'admin' },
+    });
+
+    if (adminRole) {
+      const userRole = this.userRoleRepository.create({
+        user_id: user.id,
+        role_id: adminRole.id,
+      });
+      await this.userRoleRepository.save(userRole);
     }
 
-    return this.userRepository.save(user);
+    return { message: 'Admin created successfully', userId: user.id };
   }
 
-  async login(loginDto: LoginDto) {
+  /**
+   * Admin login - email + password
+   */
+  async loginAdmin(dto: AdminLoginDto) {
     const user = await this.userRepository.findOne({
-      where: { email: loginDto.email },
-      select: [
-        'id',
-        'email',
-        'password',
-        'first_name',
-        'last_name',
-        'is_active',
-        'role',
-      ],
+      where: { email: dto.email },
+      select: ['id', 'email', 'phone', 'password_hash', 'name', 'status'],
     });
 
     if (!user) {
       throw new BadRequestException('Invalid credentials');
     }
 
-    if (!user.password) {
-      throw new BadRequestException('Invalid credentials'); // User might have only FB login
+    if (!user.password_hash) {
+      throw new BadRequestException('Invalid credentials');
     }
 
-    const isMatch = await bcrypt.compare(loginDto.password, user.password);
+    const isMatch = await bcrypt.compare(dto.password, user.password_hash);
 
     if (!isMatch) {
       throw new BadRequestException('Invalid credentials');
     }
 
-    // Reuse existing logic to create JWTs
-    // Check session limit etc
+    if (user.status !== UserStatus.ACTIVE) {
+      throw new BadRequestException('Account is not active');
+    }
+
     const tokens = await this.createJwtForUser(user);
 
-    // Remove password from response
-    delete user.password;
+    // Remove sensitive data
+    delete (user as any).password_hash;
 
     return {
       ...tokens,
@@ -111,13 +145,97 @@ export class AuthService {
     };
   }
 
-  async refresh(refreshToken: string) {
-    // Decode the token to get the payload even if expired (handled by validateRefreshToken?)
-    // We actually need the user ID or some identifier to look up the session correctly.
-    // But here we rely on the controller to pass the token.
+  // ==================== Merchant/Customer Auth (OTP) ====================
 
-    // Since validateRefreshToken needs facebookId (which is the 'sub' in the token),
-    // we need to decode it first safely.
+  /**
+   * Request OTP for phone-based login/signup
+   * In production, this would send an actual OTP via WhatsApp/SMS
+   */
+  async requestOtp(dto: RequestOtpDto) {
+    // TODO: Implement actual OTP sending via WhatsApp/SMS
+    // For now, just return success (OTP would be sent via external service)
+    console.log(`[DEV] OTP requested for phone: ${dto.phone}`);
+
+    // In development, you might want to use a fixed OTP like '123456'
+    return { message: 'OTP sent successfully', phone: dto.phone };
+  }
+
+  /**
+   * Verify OTP and complete login/signup
+   * Creates user if doesn't exist (login == signup for merchants)
+   */
+  async verifyOtp(dto: VerifyOtpDto) {
+    // TODO: Implement actual OTP verification
+    // For development, accept '123456' as valid OTP
+    const validOtp = '123456';
+    if (dto.otp !== validOtp) {
+      throw new BadRequestException('Invalid OTP');
+    }
+
+    // Find or create user by phone
+    let user = await this.userRepository.findOne({
+      where: { phone: dto.phone },
+    });
+
+    let isNewUser = false;
+
+    if (!user) {
+      // Create new user
+      user = this.userRepository.create({
+        phone: dto.phone,
+        status: UserStatus.ACTIVE,
+        phone_verified_at: new Date(),
+      });
+      await this.userRepository.save(user);
+      isNewUser = true;
+    } else {
+      // Update phone verified timestamp
+      user.phone_verified_at = new Date();
+      await this.userRepository.save(user);
+    }
+
+    // Emit login event
+    this.eventEmitter.emit(Events.USER_LOGGED_IN, new UserLoginEvent(user.id));
+
+    const tokens = await this.createJwtForUser(user);
+
+    return {
+      ...tokens,
+      user,
+      isNewUser,
+    };
+  }
+
+  /**
+   * Create merchant profile for a user after OTP verification
+   */
+  async createMerchantProfile(userId: number) {
+    const user = await this.userRepository.findOne({ where: { id: userId } });
+    if (!user) {
+      throw new BadRequestException('User not found');
+    }
+
+    // Check if merchant profile already exists
+    const existingMerchant = await this.merchantRepository.findOne({
+      where: { user_id: userId },
+    });
+
+    if (existingMerchant) {
+      return existingMerchant;
+    }
+
+    // Create merchant profile
+    const merchant = this.merchantRepository.create({
+      user_id: userId,
+    });
+    await this.merchantRepository.save(merchant);
+
+    return merchant;
+  }
+
+  // ==================== Token Management ====================
+
+  async refresh(refreshToken: string) {
     const payload = this.jwtService.decode(refreshToken) as any;
     if (!payload || !payload.sub) {
       throw new UnauthorizedException('Invalid refresh token');
@@ -132,31 +250,31 @@ export class AuthService {
       where: { id: verifiedSession.user.id },
     });
 
-    // Rotate tokens
+    if (!user) {
+      throw new UnauthorizedException('User not found');
+    }
+
     const newTokens = await this.createJwtForUser(user);
 
     return newTokens;
   }
 
   async validateRefreshToken(userId: number, refreshToken: string) {
-    // Reuse validateRefreshToken but slightly modified to fit the new flow if needed
-    // The original validateRefreshToken took facebookId
-    // We should keep it compatible
     const session = await this.sessionRepository.findOne({
       where: { user: { id: userId } },
+      relations: ['user'],
     });
 
     if (!session) {
-      throw new BadRequestException('Business is not logged in.');
+      throw new BadRequestException('User is not logged in');
     }
 
     if (session.token !== refreshToken) {
       throw new UnauthorizedException('Invalid refresh token');
     }
 
-    // Check if the refresh token has expired
+    // Check if expired (7 days)
     if (session.created_at.getTime() + 1000 * 60 * 60 * 24 * 7 < Date.now()) {
-      // Refresh token expired
       await this.sessionRepository.delete(session.id);
       throw new UnauthorizedException('Refresh token expired');
     }
@@ -164,30 +282,125 @@ export class AuthService {
     return session;
   }
 
+  async logout(userId: number) {
+    await this.sessionRepository.delete({ user: { id: userId } });
+  }
+
+  // ==================== JWT Creation with RBAC ====================
+
+  async createJwtForUser(user: User) {
+    // Get global roles
+    const globalRoleAssignments = await this.userRoleRepository.find({
+      where: { user_id: user.id },
+      relations: ['role'],
+    });
+    const globalRoles = globalRoleAssignments.map((ur) => ur.role.name);
+
+    // Get store roles
+    const storeRoleAssignments = await this.storeUserRoleRepository.find({
+      where: { user_id: user.id },
+      relations: ['role'],
+    });
+
+    const storeRoles: Record<string, string[]> = {};
+    for (const sur of storeRoleAssignments) {
+      const storeId = String(sur.store_id);
+      if (!storeRoles[storeId]) {
+        storeRoles[storeId] = [];
+      }
+      storeRoles[storeId].push(sur.role.name);
+    }
+
+    // Clean up expired sessions
+    const sessions = await this.sessionRepository.find({
+      where: { user: { id: user.id } },
+    });
+
+    const now = Date.now();
+    for (const session of sessions) {
+      if (
+        session.created_at.getTime() + CONSTANTS.SESSION.EXPIRATION_TIME <
+        now
+      ) {
+        await this.sessionRepository.delete(session.id);
+      }
+    }
+
+    // Check session limit (max 3)
+    const activeSessions = await this.sessionRepository.find({
+      where: { user: { id: user.id } },
+    });
+
+    if (activeSessions.length >= 3) {
+      const oldest = activeSessions.reduce(
+        (prev, current) =>
+          prev.created_at < current.created_at ? prev : current,
+        { created_at: new Date(), id: '' },
+      );
+      await this.sessionRepository.delete(oldest.id);
+    }
+
+    // Create JWT payload with roles
+    const payload: JwtPayload = {
+      sub: user.id,
+      phone: user.phone,
+      email: user.email,
+      global_roles: globalRoles,
+      store_roles: storeRoles,
+    };
+
+    const access_token = this.jwtService.sign(payload, {
+      expiresIn: CONSTANTS.SESSION.EXPIRATION_TIME,
+    });
+
+    const refresh_token = this.jwtService.sign(payload, {
+      expiresIn: CONSTANTS.SESSION.REFRESH_TOKEN_EXPIRATION_TIME,
+    });
+
+    // Create session
+    const session = this.sessionRepository.create({
+      user: user,
+      token: refresh_token,
+    });
+    await this.sessionRepository.save(session);
+
+    return {
+      access_token,
+      refresh_token,
+      user: {
+        id: user.id,
+        phone: user.phone,
+        email: user.email,
+        name: user.name,
+        status: user.status,
+      },
+    };
+  }
+
+  // ==================== Facebook OAuth (Disabled) ====================
+  // Note: Facebook login is disabled but code is kept for future use
+
+  /*
   async validateFacebookUser(facebookUser: FacebookUser): Promise<User> {
     const { facebookId, email } = facebookUser;
 
-    // 1. Try to find by Facebook Identity first (Primary match for FB Login)
     const existingIdentity = await this.identityRepository.findOne({
       where: { provider: SocialProvider.FACEBOOK, providerId: facebookId },
       relations: ['user'],
     });
 
     if (existingIdentity) {
-      // Update the access token
       existingIdentity.accessToken = facebookUser.accessToken;
       await this.identityRepository.save(existingIdentity);
       return existingIdentity.user;
     }
 
-    // 2. If not found by FB ID, try to find by Email (Account Linking)
     if (email) {
       const userByEmail = await this.userRepository.findOne({
         where: { email },
       });
 
       if (userByEmail) {
-        // Found by email, create identity and link to existing user
         const identity = this.identityRepository.create({
           provider: SocialProvider.FACEBOOK,
           providerId: facebookId,
@@ -199,11 +412,9 @@ export class AuthService {
       }
     }
 
-    // 3. If user does not exist, create a new User AND UserIdentity
     const newUser = this.userRepository.create({
       email: email,
-      first_name: facebookUser.firstName,
-      last_name: facebookUser.lastName,
+      phone: `fb_${facebookId}`,
     });
     await this.userRepository.save(newUser);
 
@@ -218,10 +429,6 @@ export class AuthService {
     return newUser;
   }
 
-  /**
-   * Link a Facebook account to an existing user (for authenticated users).
-   * This is different from validateFacebookUser which is for login/signup flows.
-   */
   async linkFacebookAccount(
     userId: number,
     facebookUser: FacebookUser,
@@ -232,7 +439,6 @@ export class AuthService {
       throw new BadRequestException('User not found');
     }
 
-    // Check if this Facebook ID is already linked to another user
     const existingIdentity = await this.identityRepository.findOne({
       where: {
         provider: SocialProvider.FACEBOOK,
@@ -247,14 +453,12 @@ export class AuthService {
       );
     }
 
-    // If identity already exists for this user, update the token
     if (existingIdentity && existingIdentity.user.id === userId) {
       existingIdentity.accessToken = facebookUser.accessToken;
       await this.identityRepository.save(existingIdentity);
       return user;
     }
 
-    // Create new identity
     const identity = this.identityRepository.create({
       provider: SocialProvider.FACEBOOK,
       providerId: facebookUser.facebookId,
@@ -266,9 +470,7 @@ export class AuthService {
     return user;
   }
 
-  // after login get user pages, get long-lived access token and create jwt
   async afterLogin(user: FacebookUser) {
-    // Find user by their Facebook identity
     const identity = await this.identityRepository.findOne({
       where: {
         provider: SocialProvider.FACEBOOK,
@@ -281,7 +483,6 @@ export class AuthService {
       throw new BadRequestException('User not found');
     }
 
-    // Trigger login event
     this.eventEmitter.emit(
       Events.USER_LOGGED_IN,
       new UserLoginEvent(identity.user.id),
@@ -290,84 +491,11 @@ export class AuthService {
     const jwt = await this.createJwtForUser(identity.user);
     await this.facebookService.getLongLivedAccessToken(
       identity.user.id,
-      identity.providerId, // This is the facebookId
+      identity.providerId,
     );
     await this.facebookService.getUserPages(identity.user.id);
 
     return jwt;
   }
-
-  async logout(userId: number) {
-    await this.sessionRepository.delete({ user: { id: userId } });
-  }
-
-  async createJwtForUser(user: User) {
-    // 3. Retrieve all existing sessions for this user
-    const sessions = await this.sessionRepository.find({
-      where: { user: { id: user.id } },
-    });
-
-    // 4. Filter out (and remove) expired sessions
-    const now = Date.now();
-
-    for (const session of sessions) {
-      if (
-        session.created_at.getTime() + CONSTANTS.SESSION.EXPIRATION_TIME <
-        now
-      ) {
-        // Session is expired -> remove from DB
-        await this.sessionRepository.delete(session.id);
-      }
-    }
-
-    // 5. Retrieve sessions again (active only) to see how many remain
-    const activeSessions = await this.sessionRepository.find({
-      where: { user: { id: user.id } },
-    });
-
-    // 6. If 3 active sessions remain, decide how to handle
-    if (activeSessions.length >= 3) {
-      // Option A: Throw error
-      // throw new BadRequestException('Maximum device limit reached. Please logout on another device first.');
-
-      // Option B: Remove oldest session automatically
-      const oldest = activeSessions.reduce(
-        (prev, current) =>
-          prev.created_at < current.created_at ? prev : current,
-        { created_at: new Date(), id: '' },
-      );
-      await this.sessionRepository.delete(oldest.id);
-    }
-
-    // 7. Generate an access token (short-lived) and a refresh token (or same token) here
-    // Include the numeric user id in the payload for controllers that need it
-    const payload = {
-      sub: user.id,
-      email: user.email,
-      role: user.role,
-    };
-    // const access_token = user.accessToken;
-    const access_token = this.jwtService.sign(payload, {
-      expiresIn: CONSTANTS.SESSION.EXPIRATION_TIME,
-    });
-
-    // We store the "refresh token" or session token with 10 minutes validity in DB
-    const refresh_token = this.jwtService.sign(payload, {
-      expiresIn: CONSTANTS.SESSION.REFRESH_TOKEN_EXPIRATION_TIME,
-    });
-
-    // 8. Create a new session record with 10-minute expiry in mind
-    const session = this.sessionRepository.create({
-      user: user,
-      token: refresh_token,
-    });
-
-    await this.sessionRepository.save(session);
-
-    return {
-      access_token,
-      refresh_token,
-      user,
-    };
-  }
+  */
 }

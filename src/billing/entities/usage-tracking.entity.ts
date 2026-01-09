@@ -16,10 +16,10 @@ export class UsageTracking {
   id: number;
 
   @Column()
-  userId: number;
+  user_id: number;
 
   @ManyToOne(() => User)
-  @JoinColumn({ name: 'userId' })
+  @JoinColumn({ name: 'user_id' })
   user: Relation<User>;
 
   @Column({ length: 7 })

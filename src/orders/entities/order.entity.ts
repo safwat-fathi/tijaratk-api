@@ -1,16 +1,17 @@
-import { Storefront } from 'src/storefronts/entities/storefront.entity';
 import {
   Column,
   CreateDateColumn,
   DeleteDateColumn,
   Entity,
+  JoinColumn,
   ManyToOne,
   OneToMany,
   PrimaryGeneratedColumn,
   Relation,
   UpdateDateColumn,
 } from 'typeorm';
-
+import { Customer } from '../../customers/entities/customer.entity';
+import { Store } from '../../stores/entities/store.entity';
 import { OrderItem } from './order-item.entity';
 
 export enum OrderStatus {
@@ -18,6 +19,7 @@ export enum OrderStatus {
   CONFIRMED = 'confirmed',
   SHIPPED = 'shipped',
   CANCELLED = 'cancelled',
+  COMPLETED = 'completed',
 }
 
 export enum PaymentStatus {
@@ -25,9 +27,9 @@ export enum PaymentStatus {
   PAID = 'paid',
 }
 
-export enum OrderType {
-  CATALOG = 'catalog',
-  CUSTOM = 'custom',
+export enum OrderSource {
+  WHATSAPP = 'whatsapp',
+  WEB = 'web',
 }
 
 @Entity('orders')
@@ -35,11 +37,31 @@ export class Order {
   @PrimaryGeneratedColumn()
   id: number;
 
-  @ManyToOne(() => Storefront, {
+  @Column({ name: 'store_id' })
+  store_id: string;
+
+  @ManyToOne(() => Store, {
     nullable: false,
     onDelete: 'CASCADE',
   })
-  storefront: Relation<Storefront>;
+  @JoinColumn({ name: 'store_id' })
+  store: Relation<Store>;
+
+  @Column({ name: 'customer_id', nullable: true })
+  customer_id: number;
+
+  @ManyToOne(() => Customer, (customer) => customer.orders, {
+    nullable: true,
+  })
+  @JoinColumn({ name: 'customer_id' })
+  customer: Relation<Customer>;
+
+  @Column({
+    type: 'enum',
+    enum: OrderSource,
+    default: OrderSource.WEB,
+  })
+  order_source: OrderSource;
 
   @Column({ type: 'varchar', length: 255 })
   buyer_name: string;
@@ -57,7 +79,7 @@ export class Order {
   shipping_address_line2?: string;
 
   @Column({ type: 'varchar', length: 128 })
-  shipping_city: string;
+  shipping_city: string; // Used as Area/Neighborhood
 
   @Column({ type: 'varchar', length: 128, nullable: true })
   shipping_state?: string;
@@ -81,13 +103,6 @@ export class Order {
     default: PaymentStatus.UNPAID,
   })
   payment_status: PaymentStatus;
-
-  @Column({
-    type: 'enum',
-    enum: OrderType,
-    default: OrderType.CATALOG,
-  })
-  order_type: OrderType;
 
   @Column({ type: 'varchar', length: 128, nullable: true })
   tracking_number?: string;

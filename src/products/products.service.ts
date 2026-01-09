@@ -1,12 +1,13 @@
-import { BadRequestException, Injectable } from '@nestjs/common';
+import {
+  BadRequestException,
+  Injectable,
+  NotFoundException,
+} from '@nestjs/common';
 import { InjectRepository } from '@nestjs/typeorm';
-import { User } from 'src/users/entities/user.entity';
 import { ILike, Repository } from 'typeorm';
 
-import { UsageTrackingService } from '../billing/services/usage-tracking.service';
 import { CreateProductDto } from './dto/create-product.dto';
 import { ListProductsDto } from './dto/list-products.dto';
-import { UpdateProductDto } from './dto/update-product.dto';
 import { Product } from './entities/product.entity';
 
 @Injectable()
@@ -14,22 +15,10 @@ export class ProductsService {
   constructor(
     @InjectRepository(Product)
     private productRepo: Repository<Product>,
-    @InjectRepository(User)
-    private userRepo: Repository<User>,
-    private usageTrackingService: UsageTrackingService,
   ) {}
 
-  async create(userId: number, dto: CreateProductDto) {
-    const user = await this.userRepo.findOne({
-      where: { id: userId },
-    });
-    if (!user) {
-      throw new BadRequestException('User not found');
-    }
-
-    // Check plan limits
-    await this.usageTrackingService.checkProductLimit(user.id);
-
+  async create(dto: CreateProductDto): Promise<Product> {
+    // Generate slug from name
     const slugBase = dto.name
       .toLowerCase()
       .trim()
@@ -39,11 +28,11 @@ export class ProductsService {
     let slug = slugBase;
     let suffix = 1;
 
-    // Ensure slug is unique per user
+    // Ensure slug is unique per store
     // eslint-disable-next-line no-constant-condition
     while (true) {
       const exists = await this.productRepo.exist({
-        where: { user: { id: user.id }, slug },
+        where: { store_id: dto.store_id, slug },
       });
 
       if (!exists) {
@@ -57,52 +46,46 @@ export class ProductsService {
     const newProduct = this.productRepo.create({
       ...dto,
       slug,
-      user,
     });
 
-    const savedProduct = await this.productRepo.save(newProduct);
-    delete savedProduct.user;
-
-    return savedProduct;
+    return this.productRepo.save(newProduct);
   }
 
-  async findAll(userId: number, ListProductsDto: ListProductsDto) {
-    const { page = 1, limit = 10, keyword } = ListProductsDto;
+  async findAllByStore(storeId: string, listProductsDto: ListProductsDto) {
+    const { page = 1, limit = 10, keyword } = listProductsDto;
     const skip = (page - 1) * limit;
 
-    const where: any = { user: { id: userId } };
+    const where: any = { store_id: storeId };
     if (keyword) {
       where.name = ILike(`%${keyword}%`);
     }
 
-    // Retrieve data
     const [items, total] = await this.productRepo.findAndCount({
       where,
       skip,
       take: limit,
       order: { created_at: 'DESC', name: 'DESC' },
-      relations: { posts: true },
+      relations: { variants: true },
       select: {
         id: true,
         name: true,
-        sku: true,
         slug: true,
         description: true,
-        main_image: true,
+        image_url: true,
         images: true,
-        deleted_at: true,
-        price: true,
-        status: true,
-        stock: true,
+        is_active: true,
+        barcode: true,
         created_at: true,
         updated_at: true,
-        posts: {
+        variants: {
           id: true,
+          label: true,
+          price: true,
+          is_default: true,
         },
       },
     });
 
-    // Return a structure that includes the results and pagination metadata
     return {
       total,
       page,
@@ -112,16 +95,52 @@ export class ProductsService {
     };
   }
 
-  async findOne(id: number) {
-    return await this.productRepo.findOne({ where: { id } });
+  async findOne(id: string): Promise<Product> {
+    const product = await this.productRepo.findOne({
+      where: { id },
+      relations: { variants: true, store: true },
+    });
+
+    if (!product) {
+      throw new NotFoundException(`Product with ID ${id} not found`);
+    }
+
+    return product;
   }
 
-  async update(id: number, dto: Partial<CreateProductDto>) {
-    await this.productRepo.update(id, dto);
-    return await this.productRepo.findOne({ where: { id } });
+  async findBySlug(storeId: string, slug: string): Promise<Product> {
+    const product = await this.productRepo.findOne({
+      where: { store_id: storeId, slug },
+      relations: { variants: true },
+    });
+
+    if (!product) {
+      throw new NotFoundException(`Product not found`);
+    }
+
+    return product;
   }
 
-  async remove(id: number) {
-    return await this.productRepo.delete(id);
+  async update(id: string, dto: Partial<CreateProductDto>): Promise<Product> {
+    const product = await this.findOne(id);
+
+    // Don't allow changing store_id
+    delete dto.store_id;
+
+    Object.assign(product, dto);
+    return this.productRepo.save(product);
+  }
+
+  async remove(id: string): Promise<void> {
+    const result = await this.productRepo.softDelete(id);
+    if (result.affected === 0) {
+      throw new NotFoundException(`Product with ID ${id} not found`);
+    }
+  }
+
+  async countByStore(storeId: string): Promise<number> {
+    return this.productRepo.count({
+      where: { store_id: storeId },
+    });
   }
 }

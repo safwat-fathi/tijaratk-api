@@ -2,9 +2,9 @@ import { ApiProperty, ApiPropertyOptional } from '@nestjs/swagger';
 import {
   IsDateString,
   IsNotEmpty,
-  IsNumber,
   IsOptional,
   IsString,
+  IsUUID,
   Length,
   MaxLength,
 } from 'class-validator';
@@ -12,12 +12,12 @@ import {
 export class CreatePostDto {
   @ApiProperty({
     description: ' Product ID',
-    example: 1,
+    example: '550e8400-e29b-41d4-a716-446655440000',
     required: true,
   })
   @IsNotEmpty()
-  @IsNumber()
-  product_id: number;
+  @IsUUID()
+  product_id: string;
 
   @ApiProperty({
     description: 'Page ID',

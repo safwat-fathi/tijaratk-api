@@ -5,6 +5,13 @@ import CONSTANTS from 'src/common/constants';
 
 import { AuthService } from '../auth.service';
 
+/**
+ * Facebook OAuth Strategy
+ *
+ * NOTE: Facebook login is currently disabled.
+ * This strategy is kept for future use but won't be called
+ * since the Facebook endpoints in AuthController are commented out.
+ */
 @Injectable()
 export class FacebookStrategy extends PassportStrategy(
   Strategy,
@@ -12,10 +19,10 @@ export class FacebookStrategy extends PassportStrategy(
 ) {
   constructor(private readonly authService: AuthService) {
     super({
-      clientID: process.env.FACEBOOK_APP_ID,
-      clientSecret: process.env.FACEBOOK_APP_SECRET,
-      callbackURL: process.env.FACEBOOK_CALLBACK_URL,
-      profileFields: ['id', 'emails', 'name'], // specify fields you need
+      clientID: process.env.FACEBOOK_APP_ID || 'disabled',
+      clientSecret: process.env.FACEBOOK_APP_SECRET || 'disabled',
+      callbackURL: process.env.FACEBOOK_CALLBACK_URL || 'http://localhost',
+      profileFields: ['id', 'emails', 'name'],
       scope: [
         'email',
         'public_profile',
@@ -31,6 +38,15 @@ export class FacebookStrategy extends PassportStrategy(
     });
   }
 
+  /**
+   * Validate Facebook user callback.
+   *
+   * NOTE: This method is currently not called since Facebook endpoints are disabled.
+   * When enabling Facebook OAuth:
+   * 1. Uncomment the Facebook endpoints in AuthController
+   * 2. Uncomment validateFacebookUser in AuthService
+   * 3. This validate method will then be called by Passport
+   */
   async validate(
     req: any,
     accessToken: string,
@@ -38,7 +54,6 @@ export class FacebookStrategy extends PassportStrategy(
     profile: Profile,
     done: (error: any, user?: any, info?: any) => void,
   ): Promise<any> {
-    // Extract necessary profile info
     const { id, emails, name } = profile;
 
     const user = {
@@ -49,15 +64,13 @@ export class FacebookStrategy extends PassportStrategy(
       accessToken,
     };
 
-    // Check if this is a linking request
+    // For linking requests, just return the facebook user object
     if (req.query.state) {
       try {
         const state = JSON.parse(
           Buffer.from(req.query.state, 'base64').toString(),
         );
         if (state.linkUserId) {
-          // This is a linking request, do NOT validate/create user yet.
-          // Just return the facebook user object.
           return done(null, user);
         }
       } catch (e) {
@@ -65,9 +78,12 @@ export class FacebookStrategy extends PassportStrategy(
       }
     }
 
-    // Use your AuthService to find or create a user
-    const validatedUser = await this.authService.validateFacebookUser(user);
+    // NOTE: validateFacebookUser is currently commented out in AuthService
+    // Uncomment it when enabling Facebook OAuth
+    // const validatedUser = await this.authService.validateFacebookUser(user);
+    // done(null, { ...validatedUser, accessToken });
 
-    done(null, { ...validatedUser, accessToken });
+    // For now, just return the user object (won't be called anyway)
+    done(null, user);
   }
 }

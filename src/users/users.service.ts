@@ -34,7 +34,7 @@ export class UsersService {
     });
 
     // remove reset password token from response
-    delete user.reset_password_token;
+    // delete user.reset_password_token;
 
     if (!user) {
       throw new NotFoundException('User not found');

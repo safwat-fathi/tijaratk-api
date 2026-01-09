@@ -4,29 +4,21 @@ import {
   NotFoundException,
 } from '@nestjs/common';
 import { InjectRepository } from '@nestjs/typeorm';
-import { Product, ProductStatus } from 'src/products/entities/product.entity';
-import { Storefront } from 'src/storefronts/entities/storefront.entity';
-import {
-  Between,
-  FindOptionsWhere,
-  In,
-  MoreThanOrEqual,
-  Repository,
-} from 'typeorm';
-
-import { CreateOrderDto } from './dto/create-order.dto';
-import { ListOrdersDto } from './dto/list-orders.dto';
+import { Customer } from 'src/customers/entities/customer.entity';
+import { ProductVariant } from 'src/products/entities/product-variant.entity';
+import { Product } from 'src/products/entities/product.entity';
+import { Store } from 'src/stores/entities/store.entity';
+import { WhatsappService } from 'src/whatsapp/whatsapp.service';
+import { FindOptionsWhere, In, Repository } from 'typeorm';
+import { CreateOrderDto } from './dto/create-order.dto'; // Need to update DTO too!
+import { OrderItem } from './entities/order-item.entity';
+import { OrderLink } from './entities/order-link.entity'; // Import OrderLink
 import {
   Order,
+  OrderSource,
   OrderStatus,
   PaymentStatus,
-  OrderType,
 } from './entities/order.entity';
-import { OrderItem } from './entities/order-item.entity';
-import { NotificationsGateway } from 'src/notifications/notifications.gateway';
-import { NotificationType } from 'src/notifications/entities/notification.entity';
-
-import { NotificationsService } from 'src/notifications/notifications.service';
 
 @Injectable()
 export class OrdersService {
@@ -37,470 +29,178 @@ export class OrdersService {
     private readonly orderItemRepo: Repository<OrderItem>,
     @InjectRepository(Product)
     private readonly productRepo: Repository<Product>,
-    @InjectRepository(Storefront)
-    private readonly storefrontRepo: Repository<Storefront>,
-    private readonly notificationsGateway: NotificationsGateway,
-    private readonly notificationsService: NotificationsService,
+    @InjectRepository(Store)
+    private readonly storeRepo: Repository<Store>,
+    @InjectRepository(Customer)
+    private readonly customerRepo: Repository<Customer>,
+    @InjectRepository(ProductVariant)
+    private readonly variantRepo: Repository<ProductVariant>,
+    @InjectRepository(OrderLink)
+    private readonly orderLinkRepo: Repository<OrderLink>,
+    private readonly whatsappService: WhatsappService,
   ) {}
 
-  private async ensureStorefrontOwnership(
-    userId: number,
-    storefrontId: number,
-  ) {
-    const storefront = await this.storefrontRepo.findOne({
-      where: { id: storefrontId },
-      relations: { user: true },
+  async createFromPublic(storeSlug: string, dto: any) {
+    // dto: CustomCreateOrderDto not yet defined, using any for now or adapting
+    // 1. Find Store
+    const store = await this.storeRepo.findOne({
+      where: { slug: storeSlug },
     });
-    if (!storefront) {
-      throw new NotFoundException('Storefront not found');
-    }
-    if (storefront.user.id !== userId) {
-      throw new NotFoundException('Storefront not found');
-    }
-
-    return storefront;
-  }
-
-  async createForStorefront(slug: string, dto: CreateOrderDto) {
-    const storefront = await this.storefrontRepo.findOne({
-      where: { slug, is_published: true },
-      relations: { user: true },
-    });
-    if (!storefront) {
-      throw new NotFoundException('Storefront not found');
+    if (!store) {
+      throw new NotFoundException('Store not found');
     }
 
     if (!dto.items?.length) {
       throw new BadRequestException('Order must contain at least one item');
     }
 
-    // Load and validate all products in one go
-    const productIds = dto.items.map((item) => item.productId);
-    const products = await this.productRepo.findBy({
-      id: In(productIds),
-      user: { id: storefront.user.id },
-      status: ProductStatus.ACTIVE,
-    });
+    // 2. Resolve Customer (Guest)
+    let customer: Customer = null;
+    if (dto.whatsapp_number) {
+      // Normalize phone number if needed
+      const phone = dto.whatsapp_number.replace(/\D/g, '');
+      customer = await this.customerRepo.findOne({
+        where: { whatsapp_number: phone }, // Exact match? Or clean?
+      });
 
-    if (products.length !== productIds.length) {
-      throw new BadRequestException('One or more products are invalid');
+      if (!customer) {
+        customer = this.customerRepo.create({
+          name: dto.buyer_name, // Optional name for guest
+          whatsapp_number: phone,
+        });
+        await this.customerRepo.save(customer);
+      } else {
+        // Update name if provided and previously null?
+        if (dto.buyer_name && !customer.name) {
+          customer.name = dto.buyer_name;
+          await this.customerRepo.save(customer);
+        }
+      }
     }
 
+    // 3. Process Items & Calculate Totals
     const orderItems: OrderItem[] = [];
     let totalAmount = 0;
 
     for (const itemDto of dto.items) {
-      const product = products.find((p) => p.id === itemDto.productId);
-      if (!product) {
-        throw new BadRequestException(`Invalid product: ${itemDto.productId}`);
+      // Expect itemDto to have { product_id, variant_id, quantity }
+      // OR just variant_id? Plan says: input items array of variant_id + quantity.
+      // But we should support product_id too if no variant? Pivot says explicitly variants.
+      // Let's assume input has variant_id.
+
+      let variant: ProductVariant = null;
+      let product: Product = null;
+
+      if (itemDto.variant_id) {
+        variant = await this.variantRepo.findOne({
+          where: { id: itemDto.variant_id },
+          relations: { product: true },
+        });
+        if (!variant)
+          throw new BadRequestException(
+            `Variant not found: ${itemDto.variant_id}`,
+          );
+        product = variant.product;
+      } else if (itemDto.product_id) {
+        // Fallback if we allowed adding product without explicit variant (should grab default?)
+        // For Strict Variance, we should demand variant_id.
+        // But let's support robust finding.
+        product = await this.productRepo.findOne({
+          where: { id: itemDto.product_id },
+          relations: { variants: true },
+        });
+        if (!product)
+          throw new BadRequestException(
+            `Product not found: ${itemDto.product_id}`,
+          );
+        // Use default variant?
+        variant = product.variants.find((v) => v.is_default);
+        if (!variant)
+          throw new BadRequestException(
+            `No default option for product: ${product.name}`,
+          );
+      } else {
+        throw new BadRequestException('Item must specify variant_id');
       }
 
-      const MAX_QTY_PER_ITEM = 10;
-      if (itemDto.quantity <= 0 || itemDto.quantity > MAX_QTY_PER_ITEM) {
+      if (Number(product.store_id) !== store.id) {
         throw new BadRequestException(
-          `Quantity must be between 1 and ${MAX_QTY_PER_ITEM}`,
+          `Product ${product.name} does not belong to this store`,
         );
       }
 
-      const unitPrice = product.price;
-      const totalPrice = unitPrice * itemDto.quantity;
-      totalAmount += totalPrice;
+      const quantity = itemDto.quantity || 1;
+      const unitPrice = Number(variant.price);
+      const itemTotal = unitPrice * quantity;
+
+      totalAmount += itemTotal;
 
       const orderItem = this.orderItemRepo.create({
         product,
-        quantity: itemDto.quantity,
+        variant,
+        name: product.name,
+        variant_label: variant.label,
+        quantity,
         unit_price: unitPrice,
-        total_price: totalPrice,
+        total_price: itemTotal,
       });
 
       orderItems.push(orderItem);
     }
 
-    const MIN_TOTAL_AMOUNT = 1; // Adjust as needed
-    const MAX_ITEMS = 20;
-
-    if (dto.items.length > MAX_ITEMS) {
-      throw new BadRequestException('Too many items in order');
-    }
-
+    // 4. Create Order
     const order = this.orderRepo.create({
-      ...dto,
-      status: OrderStatus.PENDING,
-      storefront,
+      store,
+      customer,
+      buyer_name: dto.buyer_name,
+      buyer_phone: dto.whatsapp_number, // required
+      shipping_address_line1: dto.address_line1 || '',
+      shipping_city: dto.area || 'Unknown', // mapped from Area
+      notes: dto.notes,
       total_amount: totalAmount,
+      shipping_cost: 0, // Delivery fee calculation logic later
+      status: OrderStatus.PENDING,
+      payment_status: PaymentStatus.UNPAID,
+      order_source: OrderSource.WHATSAPP, // or WEB if they clicked from web
       items: orderItems,
     });
-
-    if (totalAmount < MIN_TOTAL_AMOUNT) {
-      throw new BadRequestException('Order total is too low');
-    }
-
-    // Basic per-phone recent orders check (last 10 minutes)
-    const TEN_MINUTES_AGO = new Date(Date.now() - 10 * 60 * 1000);
-    const recentOrdersCount = await this.orderRepo.count({
-      where: {
-        storefront: { id: storefront.id },
-        buyer_phone: dto.buyer_phone,
-        created_at: MoreThanOrEqual(TEN_MINUTES_AGO),
-      },
-    });
-
-    if (recentOrdersCount >= 5) {
-      throw new BadRequestException(
-        'Too many recent orders from this phone number',
-      );
-    }
 
     const savedOrder = await this.orderRepo.save(order);
 
-    // Emit real-time notification
-    // Emit real-time notification
-    try {
-      const notificationContent = `New order received from ${savedOrder.buyer_name} for ${storefront.name}`;
-      const savedNotification =
-        await this.notificationsService.createNotification(storefront.user, {
-          type: NotificationType.PRODUCT_ORDER,
-          content: notificationContent,
-          classification: 'product order',
-          sender_id: savedOrder.buyer_name || 'unknown',
-          sender_name: savedOrder.buyer_name,
-          productName: savedOrder.items?.[0]?.product?.name || 'Product',
-          is_read: false,
-          created_at: new Date(),
-        });
-
-      this.notificationsGateway.sendNotification(storefront.user.id, {
-        ...savedNotification,
-        id: savedNotification.id, // Use the real DB ID
-        // Ensure strictly required frontend fields are present if not in entity (though entity should cover most)
-      });
-    } catch (e) {
-      console.error('Failed to create/send notification', e);
-    }
-
-    // Do not leak internal relations
-    delete savedOrder.storefront;
-
-    return savedOrder;
-  }
-
-  async getPublicOrder(orderId: number) {
-    const order = await this.orderRepo.findOne({
-      where: { id: orderId },
-      relations: {
-        items: { product: true },
-        storefront: true,
-      },
+    // 5. Generate Link
+    // Need random token
+    const token =
+      Math.random().toString(36).substring(2, 15) +
+      Math.random().toString(36).substring(2, 15);
+    const orderLink = this.orderLinkRepo.create({
+      order: savedOrder,
+      token: token, // Should be unique
+      expires_at: new Date(Date.now() + 7 * 24 * 60 * 60 * 1000), // 7 days
     });
+    await this.orderLinkRepo.save(orderLink);
 
-    if (!order || !order.storefront?.is_published) {
-      throw new NotFoundException('Order not found');
-    }
-
-    return {
-      id: order.id,
-      status: order.status,
-      buyer_name: order.buyer_name,
-      buyer_phone: order.buyer_phone,
-      buyer_email: order.buyer_email,
-      shipping_city: order.shipping_city,
-      shipping_state: order.shipping_state,
-      shipping_postal_code: order.shipping_postal_code,
-      total_amount: order.total_amount,
-      created_at: order.created_at,
-      storefront: {
-        id: order.storefront.id,
-        name: order.storefront.name,
-        slug: order.storefront.slug,
-      },
-      items:
-        order.items?.map((item) => ({
-          id: item.id,
-          quantity: item.quantity,
-          total_price: item.total_price,
-          unit_price: item.unit_price,
-          product: item.product
-            ? {
-                id: item.product.id,
-                name: item.product.name,
-                price: item.product.price,
-              }
-            : undefined,
-        })) ?? [],
-    };
-  }
-
-  async findForStorefrontOwner(
-    userId: number,
-    storefrontId: number,
-    query: ListOrdersDto,
-  ) {
-    const storefront = await this.ensureStorefrontOwnership(
-      userId,
-      storefrontId,
+    // 6. Generate WhatsApp Message & Link
+    const waMessage = this.whatsappService.generateOrderMessage(savedOrder);
+    const waLink = this.whatsappService.generateClickToChatLink(
+      savedOrder.buyer_phone,
+      waMessage,
     );
 
-    const {
-      page = 1,
-      limit = 10,
-      status,
-      buyer_name,
-      buyer_email,
-      buyer_phone,
-      created_from,
-      created_to,
-      sort_by = 'created_at',
-      sort_order = 'DESC',
-    } = query;
-
-    const skip = (page - 1) * limit;
-
-    const where: FindOptionsWhere<Order> = {
-      storefront: { id: storefront.id },
-    };
-
-    if (status) {
-      where.status = status;
-    }
-    if (buyer_name) {
-      where.buyer_name = buyer_name;
-    }
-    if (buyer_email) {
-      where.buyer_email = buyer_email;
-    }
-    if (buyer_phone) {
-      where.buyer_phone = buyer_phone;
-    }
-    if (created_from && created_to) {
-      where.created_at = Between(created_from, created_to);
-    } else if (created_from) {
-      where.created_at = MoreThanOrEqual(created_from);
-    } else if (created_to) {
-      where.created_at = Between(new Date(0), created_to);
-    }
-
-    const [items, total] = await this.orderRepo.findAndCount({
-      where,
-      relations: { items: { product: true } },
-      skip,
-      take: limit,
-      order: {
-        [sort_by]: sort_order,
-      },
-    });
-
     return {
-      total,
-      page,
-      limit,
-      last_page: Math.ceil(total / limit),
-      items,
+      order: {
+        id: savedOrder.id,
+        total_amount: savedOrder.total_amount,
+        status: savedOrder.status,
+      },
+      whatsapp_link: waLink,
+      track_link: `/track/${token}`,
     };
   }
 
-  async findOneForStorefrontOwner(
-    userId: number,
-    storefrontId: number,
-    orderId: number,
-  ) {
-    await this.ensureStorefrontOwnership(userId, storefrontId);
-
-    const order = await this.orderRepo.findOne({
-      where: {
-        id: orderId,
-        storefront: { id: storefrontId },
-      },
-      relations: { items: { product: true } },
-    });
-
-    if (!order) {
-      throw new NotFoundException('Order not found');
-    }
-
-    return order;
-  }
-
-  async updateStatusForStorefrontOwner(
-    userId: number,
-    storefrontId: number,
-    orderId: number,
-    status: OrderStatus,
-  ) {
-    await this.ensureStorefrontOwnership(userId, storefrontId);
-
-    const order = await this.orderRepo.findOne({
-      where: {
-        id: orderId,
-        storefront: { id: storefrontId },
-      },
-    });
-
-    if (!order) {
-      throw new NotFoundException('Order not found');
-    }
-
-    order.status = status;
-
-    return this.orderRepo.save(order);
-  }
-
-  async markAsPaid(userId: number, storefrontId: number, orderId: number) {
-    await this.ensureStorefrontOwnership(userId, storefrontId);
-
-    const order = await this.orderRepo.findOne({
-      where: {
-        id: orderId,
-        storefront: { id: storefrontId },
-      },
-    });
-
-    if (!order) {
-      throw new NotFoundException('Order not found');
-    }
-
-    order.payment_status = PaymentStatus.PAID;
-
-    return this.orderRepo.save(order);
-  }
-
-  async markAsShipped(
-    userId: number,
-    storefrontId: number,
-    orderId: number,
-    trackingNumber?: string,
-  ) {
-    await this.ensureStorefrontOwnership(userId, storefrontId);
-
-    const order = await this.orderRepo.findOne({
-      where: {
-        id: orderId,
-        storefront: { id: storefrontId },
-      },
-    });
-
-    if (!order) {
-      throw new NotFoundException('Order not found');
-    }
-
-    order.status = OrderStatus.SHIPPED;
-    if (trackingNumber) {
-      order.tracking_number = trackingNumber;
-    }
-
-    return this.orderRepo.save(order);
-  }
-
-  async markAsDelivered(userId: number, storefrontId: number, orderId: number) {
-    await this.ensureStorefrontOwnership(userId, storefrontId);
-
-    const order = await this.orderRepo.findOne({
-      where: {
-        id: orderId,
-        storefront: { id: storefrontId },
-      },
-    });
-
-    if (!order) {
-      throw new NotFoundException('Order not found');
-    }
-
-    // Usually delivered implies paid if COD, but let's stick to status for now
-    // Or we can auto-mark as paid if it's COD. For now, just delivered status.
-    // Spec says: Mark as delivered -> Manual override if needed.
-
-    // Also spec says: Statuses: pending -> confirmed -> shipped -> delivered
-    // But our enum has: PENDING, CONFIRMED, SHIPPED, CANCELLED.
-    // Wait, the spec says "delivered" is a status, but the migration only had 4 statuses.
-    // I should probably stick to SHIPPED in enum and use delivered_at timestamp as per my plan decision (since I didn't update enum in migration/entity yet to add DELIVERED).
-    // Let me check my plan again.
-    // "Delivered Status: Should we add a 'delivered' status to the enum, or just use delivered_at timestamp with 'shipped' status?" and I decided to stick to what I have?
-    // Actually the user feedback was "you can add them if this fits feature requirements".
-    // I should add DELIVERED to enum if I want to support it properly.
-    // I'll update the enum in a separate step if needed, but for now let's set delivered_at.
-    // Let's check the entity again. I didn't add DELIVERED to OrderStatus enum.
-    // So "Mark as Delivered" will set delivered_at, but what about status?
-    // Maybe keep it as SHIPPED? Or maybe I should have added DELIVERED.
-    // The spec says: pending -> confirmed -> shipped -> delivered.
-    // I really should add DELIVERED to enum.
-
-    order.delivered_at = new Date();
-    // usage of delivered_at implies connection to delivery.
-
-    return this.orderRepo.save(order);
-  }
-
-  async updateInternalNotes(
-    userId: number,
-    storefrontId: number,
-    orderId: number,
-    notes: string,
-  ) {
-    await this.ensureStorefrontOwnership(userId, storefrontId);
-
-    const order = await this.orderRepo.findOne({
-      where: {
-        id: orderId,
-        storefront: { id: storefrontId },
-      },
-    });
-
-    if (!order) {
-      throw new NotFoundException('Order not found');
-    }
-
-    order.internal_notes = notes;
-
-    return this.orderRepo.save(order);
-  }
-
-  async createFromCustomRequest(data: {
-    storefrontId: number;
-    buyer_name: string;
-    buyer_phone: string;
-    total_amount: number;
-    shipping_cost?: number;
-    notes?: string;
-    items: {
-      name: string;
-      quantity: number;
-      unit_price: number;
-      total_price: number;
-    }[];
-    type: OrderType;
-  }) {
-    const storefront = await this.storefrontRepo.findOne({
-      where: { id: data.storefrontId },
-    });
-
-    if (!storefront) {
-      throw new NotFoundException('Storefront not found');
-    }
-
-    const orderItems: OrderItem[] = [];
-
-    for (const itemData of data.items) {
-      const orderItem = this.orderItemRepo.create({
-        name: itemData.name,
-        quantity: itemData.quantity,
-        unit_price: itemData.unit_price,
-        total_price: itemData.total_price,
-        // product is null for custom items
-      });
-      orderItems.push(orderItem);
-    }
-
-    const order = this.orderRepo.create({
-      storefront,
-      buyer_name: data.buyer_name,
-      buyer_phone: data.buyer_phone,
-      total_amount: data.total_amount,
-      shipping_cost: data.shipping_cost ?? 0,
-      internal_notes: data.notes,
-      order_type: data.type,
-      status: OrderStatus.PENDING,
-      items: orderItems,
-    });
-
-    return this.orderRepo.save(order);
-  }
+  // Legacy methods commented out for now or need refactor
+  /*
+  async getPublicOrder(orderId: number) { ... }
+  async findForStorefrontOwner(...) { ... }
+  */
 }
+

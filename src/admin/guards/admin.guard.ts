@@ -1,20 +1,19 @@
-import { CanActivate, ExecutionContext, Injectable, ForbiddenException } from '@nestjs/common';
-import { UserRole } from 'src/common/enums/user-role.enum';
+import {
+  CanActivate,
+  ExecutionContext,
+  Injectable,
+  ForbiddenException,
+} from '@nestjs/common';
+import { AuthenticatedUser } from 'src/auth/strategies/jwt.strategy';
 
 @Injectable()
 export class AdminGuard implements CanActivate {
   canActivate(context: ExecutionContext): boolean {
     const request = context.switchToHttp().getRequest();
-    const user = request.user;
-    
-    console.log('AdminGuard Check:', {
-      userExists: !!user,
-      role: user?.role,
-      expected: UserRole.ADMIN,
-    });
+    const user = request.user as AuthenticatedUser;
 
-    if (!user || user.role !== UserRole.ADMIN) {
-        throw new ForbiddenException('Access denied');
+    if (!user || !user.global_roles?.includes('admin')) {
+      throw new ForbiddenException('Access denied');
     }
 
     return true;

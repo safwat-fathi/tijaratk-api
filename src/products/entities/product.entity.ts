@@ -1,10 +1,10 @@
 import { Post } from 'src/posts/entities/post.entity';
-import { User } from 'src/users/entities/user.entity';
 import {
   Column,
   CreateDateColumn,
   DeleteDateColumn,
   Entity,
+  JoinColumn,
   ManyToOne,
   OneToMany,
   PrimaryGeneratedColumn,
@@ -12,23 +12,30 @@ import {
   Unique,
   UpdateDateColumn,
 } from 'typeorm';
-
-export enum ProductStatus {
-  ACTIVE = 'active',
-  INACTIVE = 'inactive',
-}
+import { Store } from '../../stores/entities/store.entity';
+import { InventoryEvent } from './inventory-event.entity';
+import { ProductVariant } from './product-variant.entity';
 
 @Entity('products')
-@Unique(['user', 'slug'])
+@Unique(['store', 'barcode'])
 export class Product {
-  @PrimaryGeneratedColumn()
-  id: number;
+  @PrimaryGeneratedColumn() // Migrating to UUID as per plan
+  id: string;
+
+  @Column({ name: 'store_id' })
+  store_id: string;
+
+  @ManyToOne(() => Store, (store) => store.products, {
+    onDelete: 'CASCADE',
+  })
+  @JoinColumn({ name: 'store_id' })
+  store: Relation<Store>;
 
   @Column()
   name: string;
 
-  @Column({ type: 'varchar', length: 64, nullable: true })
-  sku?: string;
+  @Column({ type: 'varchar', length: 50, nullable: true })
+  barcode: string;
 
   @Column({ type: 'varchar', length: 255, nullable: true })
   slug?: string;
@@ -37,32 +44,24 @@ export class Product {
   description?: string;
 
   @Column({ type: 'varchar', length: 512, nullable: true })
-  main_image?: string;
+  image_url?: string; // Renamed from main_image to match schema, or kept? Schema said image_url.
 
   @Column({ type: 'json', nullable: true })
   images?: string[];
 
+  @Column({ default: true })
+  is_active: boolean;
+
+  @OneToMany(() => ProductVariant, (variant) => variant.product, {
+    cascade: true,
+  })
+  variants: Relation<ProductVariant[]>;
+
+  @OneToMany(() => InventoryEvent, (event) => event.product)
+  inventory_events: Relation<InventoryEvent[]>;
+
   @OneToMany(() => Post, (post) => post.product)
   posts: Relation<Post[]>;
-
-  @Column()
-  price: number;
-
-  @Column()
-  stock: number;
-
-  @Column({
-    type: 'enum',
-    enum: ProductStatus,
-    default: ProductStatus.ACTIVE,
-  })
-  status: ProductStatus;
-
-  @ManyToOne(() => User, (user) => user.products)
-  user: Relation<User>;
-
-  // @OneToMany(() => Post, (post) => post.product)
-  // posts?: Relation<Post[]>;
 
   @CreateDateColumn()
   created_at: Date;

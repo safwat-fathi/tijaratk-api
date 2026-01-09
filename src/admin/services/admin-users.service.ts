@@ -3,6 +3,8 @@ import { InjectRepository } from '@nestjs/typeorm';
 import { User } from 'src/users/entities/user.entity';
 import { Repository } from 'typeorm';
 
+import { UserStatus } from 'src/users/entities/user.entity';
+
 @Injectable()
 export class AdminUsersService {
   constructor(
@@ -15,7 +17,6 @@ export class AdminUsersService {
       skip: (page - 1) * limit,
       take: limit,
       order: { created_at: 'DESC' },
-    //   select: ['id', 'email', 'first_name', 'last_name', 'is_active', 'role', 'created_at'], // Select explicitly if needed, but entity has some excludes
     });
 
     return {
@@ -34,7 +35,13 @@ export class AdminUsersService {
       throw new NotFoundException('User not found');
     }
 
-    user.is_active = !user.is_active;
+    // Toggle logic: If ACTIVE, set to BLOCKED. If BLOCKED/PENDING, set to ACTIVE.
+    if (user.status === UserStatus.ACTIVE) {
+      user.status = UserStatus.BLOCKED;
+    } else {
+      user.status = UserStatus.ACTIVE;
+    }
+
     return this.userRepository.save(user);
   }
 }

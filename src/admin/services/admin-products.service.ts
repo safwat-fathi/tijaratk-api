@@ -1,6 +1,6 @@
 import { Injectable } from '@nestjs/common';
 import { InjectRepository } from '@nestjs/typeorm';
-import { Product, ProductStatus } from 'src/products/entities/product.entity';
+import { Product } from 'src/products/entities/product.entity';
 import { Repository, ILike, Between, FindOptionsWhere } from 'typeorm';
 
 @Injectable()
@@ -16,12 +16,15 @@ export class AdminProductsService {
     search?: string,
     startDate?: string,
     endDate?: string,
-    storeId?: number,
+    storeId?: number, // Assuming store ID is number as per Store entity
   ) {
     const where: FindOptionsWhere<Product> = {};
 
     if (storeId) {
-      where.user = { storefront: { id: storeId } };
+      // Product links directly to Store
+      // Product.store_id is string in entity but Store.id is number?
+      // Let's assume TypeORM handles the join condition if we use the relation.
+      where.store = { id: storeId };
     }
 
     if (search) {
@@ -39,7 +42,7 @@ export class AdminProductsService {
       skip: (page - 1) * limit,
       take: limit,
       order: { created_at: 'DESC' },
-      relations: ['user', 'user.storefront'], // Include owner and storefront details
+      relations: ['store', 'store.owner'], // Include store and its owner
     });
 
     return {
@@ -52,16 +55,14 @@ export class AdminProductsService {
     };
   }
 
-  async toggleStatus(id: number) {
+  async toggleStatus(id: string) {
+    // Product.id is string (UUID)
     const product = await this.productRepository.findOne({ where: { id } });
     if (!product) {
       throw new Error('Product not found');
     }
 
-    product.status =
-      product.status === ProductStatus.ACTIVE
-        ? ProductStatus.INACTIVE
-        : ProductStatus.ACTIVE;
+    product.is_active = !product.is_active;
 
     return this.productRepository.save(product);
   }

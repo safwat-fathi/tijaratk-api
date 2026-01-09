@@ -2,12 +2,14 @@ import {
   Column,
   CreateDateColumn,
   Entity,
+  JoinColumn,
   ManyToOne,
   PrimaryGeneratedColumn,
   UpdateDateColumn,
   Relation,
 } from 'typeorm';
-import { Storefront } from '../../storefronts/entities/storefront.entity';
+import { Store } from '../../stores/entities/store.entity';
+import { Customer } from '../../customers/entities/customer.entity';
 import { Order } from './order.entity';
 
 export enum CustomRequestStatus {
@@ -23,12 +25,24 @@ export class CustomOrderRequest {
   @PrimaryGeneratedColumn()
   id: number;
 
-  @ManyToOne(() => Storefront, { onDelete: 'CASCADE' })
-  storefront: Relation<Storefront>;
+  @Column({ name: 'store_id' })
+  store_id: number;
 
-  @Column()
-  storefrontId: number;
+  @ManyToOne(() => Store, { onDelete: 'CASCADE' })
+  @JoinColumn({ name: 'store_id' })
+  store: Relation<Store>;
 
+  // Customer relation - aligned with Order entity pattern
+  @Column({ name: 'customer_id', nullable: true })
+  customer_id: number;
+
+  @ManyToOne(() => Customer, (customer) => customer.customOrderRequests, {
+    nullable: true,
+  })
+  @JoinColumn({ name: 'customer_id' })
+  customer: Relation<Customer>;
+
+  // Snapshot fields for guest checkout (when customer is not resolved)
   @Column({ type: 'varchar', length: 255 })
   buyer_name: string;
 

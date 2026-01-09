@@ -6,6 +6,7 @@ import {
   HttpCode,
   HttpStatus,
   Param,
+  ParseUUIDPipe,
   Patch,
   Post,
   Query,
@@ -29,8 +30,6 @@ import { UploadFile } from 'src/common/decorators/upload-file.decorator';
 import { ImageProcessorService } from 'src/common/services/image-processor.service';
 import { imageFileFilter } from 'src/common/utils/file-filters';
 
-import { CheckLimit } from '../billing/guards/limit.decorator';
-import { PlanLimitGuard } from '../billing/guards/plan-limit.guard';
 import { CreateProductDto } from './dto/create-product.dto';
 import { ListProductsDto } from './dto/list-products.dto';
 import { UpdateProductDto } from './dto/update-product.dto';
@@ -39,7 +38,7 @@ import { ProductsService } from './products.service';
 @ApiTags('Products')
 @ApiBearerAuth(CONSTANTS.ACCESS_TOKEN)
 @UseGuards(AuthGuard(CONSTANTS.AUTH.JWT))
-@Controller('products')
+@Controller('stores/:storeId/products')
 export class ProductsController {
   constructor(
     private readonly productsService: ProductsService,
@@ -47,20 +46,77 @@ export class ProductsController {
   ) {}
 
   @Post()
-  @UseGuards(PlanLimitGuard)
-  @CheckLimit('product')
   @HttpCode(HttpStatus.CREATED)
   @ApiBody({ description: 'Create product', type: CreateProductDto })
-  @ApiOperation({ summary: 'Create product' })
+  @ApiOperation({ summary: 'Create product for a store' })
   @ApiResponse({
     status: HttpStatus.CREATED,
     description: 'The product has been successfully created.',
   })
-  create(@Body() data: CreateProductDto, @Req() req: Request) {
-    const userId = Number(req.user.id);
-
-    return this.productsService.create(userId, data);
+  create(
+    @Param('storeId', ParseUUIDPipe) storeId: string,
+    @Body() dto: CreateProductDto,
+  ) {
+    // Ensure store_id from path matches body
+    dto.store_id = storeId;
+    return this.productsService.create(dto);
   }
+
+  @Get()
+  @ApiOperation({ summary: 'Get all products for a store' })
+  @ApiResponse({
+    status: HttpStatus.OK,
+    description: 'Get all products',
+  })
+  findAll(
+    @Param('storeId', ParseUUIDPipe) storeId: string,
+    @Query() listProducts: ListProductsDto,
+  ) {
+    return this.productsService.findAllByStore(storeId, listProducts);
+  }
+
+  @Get(':id')
+  @ApiOperation({ summary: 'Get product by id' })
+  @ApiResponse({
+    status: HttpStatus.OK,
+    description: 'Get product by id',
+  })
+  findOne(@Param('id', ParseUUIDPipe) id: string) {
+    return this.productsService.findOne(id);
+  }
+
+  @Patch(':id')
+  @ApiOperation({ summary: 'Update product by id' })
+  @ApiResponse({
+    status: HttpStatus.OK,
+    description: 'Update product by id',
+  })
+  update(
+    @Param('id', ParseUUIDPipe) id: string,
+    @Body() dto: UpdateProductDto,
+  ) {
+    return this.productsService.update(id, dto);
+  }
+
+  @Delete(':id')
+  @ApiOperation({ summary: 'Delete product by id' })
+  @ApiResponse({
+    status: HttpStatus.OK,
+    description: 'Delete product by id',
+  })
+  async remove(@Param('id', ParseUUIDPipe) id: string) {
+    await this.productsService.remove(id);
+    return { message: 'Product deleted successfully' };
+  }
+}
+
+// Separate controller for image upload (not store-scoped)
+@ApiTags('Products')
+@ApiBearerAuth(CONSTANTS.ACCESS_TOKEN)
+@UseGuards(AuthGuard(CONSTANTS.AUTH.JWT))
+@Controller('products')
+export class ProductsUploadController {
+  constructor(private readonly imageProcessor: ImageProcessorService) {}
 
   @Post('upload')
   @HttpCode(HttpStatus.OK)
@@ -96,48 +152,5 @@ export class ProductsController {
     const host = req.get('host');
     const url = `${protocol}://${host}/uploads/${webpFilename}`;
     return { url };
-  }
-
-  @Get()
-  @ApiOperation({ summary: 'Get all products' })
-  @ApiResponse({
-    status: HttpStatus.OK,
-    description: 'Get all products',
-  })
-  findAll(@Query() listProducts: ListProductsDto, @Req() req: Request) {
-    const userId = Number(req.user.id);
-    return this.productsService.findAll(userId, listProducts);
-  }
-
-  @Get(':id')
-  @ApiOperation({ summary: 'Get product by id' })
-  @ApiResponse({
-    status: HttpStatus.OK,
-    description: 'Get product by id',
-  })
-  findOne(@Param('id') id: number) {
-    return this.productsService.findOne(id);
-  }
-
-  @Patch(':id')
-  @ApiOperation({ summary: 'Update product by id' })
-  @ApiResponse({
-    status: HttpStatus.OK,
-    description: 'Update product by id',
-  })
-  update(@Param('id') id: number, @Body() dto: UpdateProductDto) {
-    return this.productsService.update(id, dto);
-  }
-
-  @Delete(':id')
-  @ApiOperation({ summary: 'Delete product by id' })
-  @ApiResponse({
-    status: HttpStatus.OK,
-    description: 'Delete product by id',
-  })
-  async remove(@Param('id') id: number) {
-    await this.productsService.remove(id);
-
-    return { message: 'Product deleted successfully' };
   }
 }

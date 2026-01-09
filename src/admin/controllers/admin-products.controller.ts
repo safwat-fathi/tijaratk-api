@@ -7,15 +7,31 @@ import {
   Param,
 } from '@nestjs/common';
 import { AuthGuard } from '@nestjs/passport';
+import {
+  ApiBearerAuth,
+  ApiOperation,
+  ApiQuery,
+  ApiTags,
+} from '@nestjs/swagger';
+import CONSTANTS from 'src/common/constants';
 import { AdminGuard } from '../guards/admin.guard';
 import { AdminProductsService } from '../services/admin-products.service';
 
+@ApiTags('AdminProducts')
+@ApiBearerAuth(CONSTANTS.ACCESS_TOKEN)
 @Controller('admin/products')
-@UseGuards(AuthGuard('jwt'), AdminGuard)
+@UseGuards(AuthGuard(CONSTANTS.AUTH.JWT), AdminGuard)
 export class AdminProductsController {
   constructor(private readonly adminProductsService: AdminProductsService) {}
 
   @Get()
+  @ApiOperation({ summary: 'Get all products with pagination and filters' })
+  @ApiQuery({ name: 'page', required: false, type: Number, example: 1 })
+  @ApiQuery({ name: 'limit', required: false, type: Number, example: 10 })
+  @ApiQuery({ name: 'search', required: false, type: String })
+  @ApiQuery({ name: 'startDate', required: false, type: String })
+  @ApiQuery({ name: 'endDate', required: false, type: String })
+  @ApiQuery({ name: 'storeId', required: false, type: Number })
   findAll(
     @Query('page') page: number = 1,
     @Query('limit') limit: number = 10,
@@ -35,7 +51,8 @@ export class AdminProductsController {
   }
 
   @Patch(':id/toggle-status')
-  toggleStatus(@Param('id') id: number) {
-    return this.adminProductsService.toggleStatus(Number(id));
+  @ApiOperation({ summary: 'Toggle product active status' })
+  toggleStatus(@Param('id') id: string) {
+    return this.adminProductsService.toggleStatus(id);
   }
 }

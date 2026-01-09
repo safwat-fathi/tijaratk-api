@@ -7,75 +7,62 @@ import {
   Param,
   ParseIntPipe,
   Post,
-  UseGuards,
 } from '@nestjs/common';
 import { ApiBody, ApiOperation, ApiResponse, ApiTags } from '@nestjs/swagger';
-import { Throttle, ThrottlerGuard } from '@nestjs/throttler';
 
 import { CreateCustomOrderDto } from './dto/custom-order.dto';
 import { CreateOrderDto } from './dto/create-order.dto';
 import { CustomOrdersService } from './custom-orders.service';
 import { OrdersService } from './orders.service';
 import { InjectRepository } from '@nestjs/typeorm';
-import { Storefront } from '../storefronts/entities/storefront.entity';
+import { Store } from '../stores/entities/store.entity';
 import { Repository } from 'typeorm';
 import { NotFoundException } from '@nestjs/common';
 
-@ApiTags('Public Storefront Orders')
+@ApiTags('Public Store Orders')
 @Controller('public')
-@UseGuards(ThrottlerGuard)
 export class OrdersPublicController {
   constructor(
     private readonly ordersService: OrdersService,
     private readonly customOrdersService: CustomOrdersService,
-    @InjectRepository(Storefront)
-    private readonly storefrontRepo: Repository<Storefront>,
+    @InjectRepository(Store)
+    private readonly storeRepo: Repository<Store>,
   ) {}
 
-  @Post('storefronts/:slug/orders')
-  @Throttle({ default: { limit: 5, ttl: 60 * 15 } }) // max 5 orders per 10 minutes per IP
+  @Post('stores/:slug/orders')
   @HttpCode(HttpStatus.CREATED)
   @ApiBody({
-    description: 'Create an order for a storefront',
+    description: 'Create an order for a store',
     type: CreateOrderDto,
   })
-  @ApiOperation({ summary: 'Create storefront order (public, no auth)' })
+  @ApiOperation({ summary: 'Create store order (public, no auth)' })
   @ApiResponse({
     status: HttpStatus.CREATED,
     description: 'The order has been successfully created.',
   })
   createOrder(@Param('slug') slug: string, @Body() dto: CreateOrderDto) {
-    return this.ordersService.createForStorefront(slug, dto);
+    return this.ordersService.createFromPublic(slug, dto);
   }
 
-  @Post('storefronts/:slug/custom-orders')
-  @Throttle({ default: { limit: 5, ttl: 60 * 15 } })
+  @Post('stores/:slug/custom-orders')
   @HttpCode(HttpStatus.CREATED)
   @ApiBody({
-    description: 'Create a custom order request for a storefront',
+    description: 'Create a custom order request for a store',
     type: CreateCustomOrderDto,
   })
-  @ApiOperation({ summary: 'Create custom order request (public)' })
+  @ApiOperation({ summary: 'Create custom order request (public, no auth)' })
   @ApiResponse({
     status: HttpStatus.CREATED,
-    description: 'The custom request has been successfully created.',
+    description: 'The custom order request has been successfully created.',
   })
   async createCustomRequest(
     @Param('slug') slug: string,
     @Body() dto: CreateCustomOrderDto,
   ) {
-    const storefront = await this.storefrontRepo.findOne({ where: { slug } });
-    if (!storefront) {
-      throw new NotFoundException('Storefront not found');
+    const store = await this.storeRepo.findOne({ where: { slug } });
+    if (!store) {
+      throw new NotFoundException('Store not found');
     }
-    return this.customOrdersService.create(storefront.id, dto);
-  }
-
-  @Get('orders/:orderId')
-  @Throttle({ default: { limit: 20, ttl: 60 * 5 } })
-  @ApiOperation({ summary: 'Get public order details by ID' })
-  @ApiResponse({ status: HttpStatus.OK, description: 'Order details' })
-  getPublicOrder(@Param('orderId', ParseIntPipe) orderId: number) {
-    return this.ordersService.getPublicOrder(orderId);
+    return this.customOrdersService.create(store.id, dto);
   }
 }

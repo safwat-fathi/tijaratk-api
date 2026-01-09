@@ -1,13 +1,13 @@
 import { Injectable } from '@nestjs/common';
 import { InjectRepository } from '@nestjs/typeorm';
-import { Storefront } from 'src/storefronts/entities/storefront.entity';
+import { Store } from 'src/stores/entities/store.entity';
 import { Repository, ILike, Between, FindOptionsWhere } from 'typeorm';
 
 @Injectable()
 export class AdminStoresService {
   constructor(
-    @InjectRepository(Storefront)
-    private readonly storefrontRepository: Repository<Storefront>,
+    @InjectRepository(Store)
+    private readonly storeRepository: Repository<Store>,
   ) {}
 
   async findAll(
@@ -17,7 +17,7 @@ export class AdminStoresService {
     startDate?: string,
     endDate?: string,
   ) {
-    const where: FindOptionsWhere<Storefront> = {};
+    const where: FindOptionsWhere<Store> = {};
 
     if (search) {
       where.name = ILike(`%${search}%`);
@@ -29,12 +29,12 @@ export class AdminStoresService {
       where.created_at = Between(new Date(startDate), new Date()); // From start to now
     }
 
-    const [stores, total] = await this.storefrontRepository.findAndCount({
+    const [stores, total] = await this.storeRepository.findAndCount({
       where,
       skip: (page - 1) * limit,
       take: limit,
       order: { created_at: 'DESC' },
-      relations: ['user'], // Include owner details
+      relations: ['owner'], // Include owner details
     });
 
     return {
@@ -48,12 +48,12 @@ export class AdminStoresService {
   }
 
   async togglePublish(id: number) {
-    const store = await this.storefrontRepository.findOne({ where: { id } });
+    const store = await this.storeRepository.findOne({ where: { id } });
     if (!store) {
       throw new Error('Store not found');
     }
 
-    store.is_published = !store.is_published;
-    return this.storefrontRepository.save(store);
+    store.is_active = !store.is_active; // Toggling active status instead of is_published
+    return this.storeRepository.save(store);
   }
 }

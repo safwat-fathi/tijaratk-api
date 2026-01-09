@@ -1,101 +1,64 @@
-import { ApiProperty } from '@nestjs/swagger';
+import { ApiProperty, ApiPropertyOptional } from '@nestjs/swagger';
 import {
-  ArrayMaxSize,
   IsArray,
-  IsEnum,
   IsNotEmpty,
-  IsNumber,
   IsOptional,
   IsString,
-  IsUrl,
+  IsUUID,
+  MaxLength,
 } from 'class-validator';
-
-import { ProductStatus } from '../entities/product.entity';
 
 export class CreateProductDto {
   @ApiProperty({
-    type: String,
+    description: 'Store ID (UUID)',
+    example: '550e8400-e29b-41d4-a716-446655440000',
+  })
+  @IsNotEmpty()
+  @IsUUID()
+  store_id: string;
+
+  @ApiProperty({
     description: 'Product name',
-    example: 'Product 1',
-    required: true,
+    example: 'Organic Coffee Beans',
   })
   @IsNotEmpty()
   @IsString()
+  @MaxLength(255)
   name: string;
 
-  @ApiProperty({
-    type: String,
-    description: 'Product SKU (stock keeping unit)',
-    example: 'SKU-12345',
-    required: false,
+  @ApiPropertyOptional({
+    description: 'Product barcode',
+    example: '1234567890123',
   })
   @IsOptional()
   @IsString()
-  sku?: string;
+  @MaxLength(50)
+  barcode?: string;
 
-  @ApiProperty({
-    type: String,
+  @ApiPropertyOptional({
     description: 'Product description',
-    example: 'This is a great product with many features...',
-    required: false,
+    example: 'Premium organic coffee beans from Ethiopia',
   })
   @IsOptional()
   @IsString()
   description?: string;
 
-  @ApiProperty({
-    type: String,
+  @ApiPropertyOptional({
     description: 'Main product image URL',
-    example: 'https://example.com/image.jpg',
-    required: false,
+    example: 'https://example.com/images/coffee.webp',
   })
   @IsOptional()
   @IsString()
-  @IsUrl({ require_tld: false })
-  main_image?: string;
+  @MaxLength(512)
+  image_url?: string;
 
-  @ApiProperty({
+  @ApiPropertyOptional({
+    description: 'Additional product images',
+    example: ['https://example.com/images/coffee-1.webp'],
     type: [String],
-    description: 'Additional product image URLs (max 5)',
-    example: [
-      'https://example.com/image1.jpg',
-      'https://example.com/image2.jpg',
-    ],
-    required: false,
   })
   @IsOptional()
   @IsArray()
-  @IsUrl({ require_tld: false }, { each: true })
-  @ArrayMaxSize(5)
+  @IsString({ each: true })
   images?: string[];
-
-  @ApiProperty({
-    enum: ProductStatus,
-    description: 'Product status',
-    example: ProductStatus.ACTIVE,
-    required: true,
-  })
-  @IsNotEmpty()
-  @IsEnum(ProductStatus, { message: 'Invalid status value' })
-  status: ProductStatus;
-
-  @ApiProperty({
-    type: Number,
-    description: 'Product price',
-    example: 100,
-    required: true,
-  })
-  @IsNotEmpty()
-  @IsNumber()
-  price: number;
-
-  @ApiProperty({
-    type: Number,
-    description: 'Product stock',
-    example: 10,
-    required: true,
-  })
-  @IsNotEmpty()
-  @IsNumber()
-  stock: number;
 }

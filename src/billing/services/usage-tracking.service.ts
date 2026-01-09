@@ -28,12 +28,12 @@ export class UsageTrackingService {
     const periodMonth = this.getCurrentPeriodMonth();
 
     let usage = await this.usageTrackingRepository.findOne({
-      where: { userId, period_month: periodMonth },
+      where: { user_id: userId, period_month: periodMonth },
     });
 
     if (!usage) {
       usage = this.usageTrackingRepository.create({
-        userId,
+        user_id: userId,
         period_month: periodMonth,
         messages_received: 0,
         posts_created: 0,
@@ -86,7 +86,7 @@ export class UsageTrackingService {
     if (limits.max_products === null) return; // Unlimited
 
     const productCount = await this.productRepository.count({
-      where: { user: { id: userId } },
+      where: { store: { owner_user_id: userId } },
     });
 
     if (productCount >= limits.max_products) {
@@ -101,7 +101,7 @@ export class UsageTrackingService {
     const usage = await this.getCurrentUsage(userId);
 
     const productCount = await this.productRepository.count({
-      where: { user: { id: userId } },
+      where: { store: { owner_user_id: userId } },
     });
 
     const sub = await this.userSubscriptionsService.getUserSubscription(userId);

@@ -8,17 +8,28 @@ import {
   IsOptional,
   IsPositive,
   IsString,
+  IsUUID,
   ValidateNested,
 } from 'class-validator';
 
 class CreateOrderItemDto {
   @ApiProperty({
-    description: 'ID of the product being ordered',
-    example: 1,
+    description:
+      'ID of the product being ordered (optional if variant_id provided)',
+    example: 'uuid-string',
+    required: false,
   })
-  @IsInt()
-  @IsPositive()
-  productId: number;
+  @IsOptional()
+  @IsUUID()
+  product_id?: string;
+
+  @ApiProperty({
+    description: 'ID of the product variant being ordered',
+    example: 'uuid-string',
+  })
+  @IsOptional()
+  @IsUUID()
+  variant_id?: string;
 
   @ApiProperty({
     description: 'Quantity of the product',
@@ -34,16 +45,26 @@ export class CreateOrderDto {
     description: 'Full name of the buyer',
     example: 'John Doe',
   })
-  @IsNotEmpty()
+  @IsOptional()
   @IsString()
-  buyer_name: string;
+  buyer_name?: string;
+
   @ApiProperty({
-    description: 'Phone number of the buyer',
+    description: 'WhatsApp number of the buyer',
     example: '+201234567890',
     required: true,
   })
   @IsString()
-  buyer_phone: string;
+  whatsapp_number: string;
+
+  // Alias for legacy support if needed, but preferable to use whatsapp_number
+  @ApiProperty({
+    description: 'Legacy field for buyer phone, maps to whatsapp_number',
+    required: false,
+  })
+  @IsOptional()
+  buyer_phone?: string;
+
   @ApiProperty({
     description: 'Email address of the buyer',
     example: 'john@example.com',
@@ -57,44 +78,17 @@ export class CreateOrderDto {
     description: 'Shipping address line 1',
     example: '123 Main St',
   })
-  @IsNotEmpty()
+  @IsOptional()
   @IsString()
-  shipping_address_line1: string;
+  address_line1?: string;
 
   @ApiProperty({
-    description: 'Shipping address line 2',
-    example: 'Apartment 4B',
-    required: false,
+    description: 'Details/Area',
+    example: 'Dokki',
   })
   @IsOptional()
   @IsString()
-  shipping_address_line2?: string;
-
-  @ApiProperty({
-    description: 'Shipping city',
-    example: 'Cairo',
-  })
-  @IsNotEmpty()
-  @IsString()
-  shipping_city: string;
-
-  @ApiProperty({
-    description: 'Shipping state or region',
-    example: 'Giza',
-    required: false,
-  })
-  @IsOptional()
-  @IsString()
-  shipping_state?: string;
-
-  @ApiProperty({
-    description: 'Shipping postal code',
-    example: '12345',
-    required: false,
-  })
-  @IsOptional()
-  @IsString()
-  shipping_postal_code?: string;
+  area?: string;
 
   @ApiProperty({
     description: 'Optional notes from the buyer',

@@ -18,7 +18,11 @@ This file provides guidelines for AI agents and coding assistants when working w
 - Always add swagger docs to new routes.
 - Prefer descriptive variable and function names over abbreviations.
 - Keep functions and classes focused; avoid unnecessary complexity or over-engineering.
-- On defining entities with relations, always use `Relation<Post[]>` instead of `Post[]`.
+
+## Documentation
+
+- Always add swagger docs to new routes and make sure types are correct.
+- Always add TypeDoc comments to new functions and classes.
 
 ## Editing and files
 
@@ -31,6 +35,13 @@ This file provides guidelines for AI agents and coding assistants when working w
 
 - When possible, run existing tests relevant to the changes (for NestJS projects this is often `yarn test` or `yarn test:e2e`).
 - If you cannot run tests, reason carefully about correctness and highlight any assumptions in your final message.
+- Do not write spec files unless explicitly required to satisfy the request.
+
+## Database schema
+
+- Always use `SERIAL` for auto-incrementing primary keys no UUIDs.
+- For JSONB columns, always use `jsonb` instead of `json`.
+- For relations, always use `Relation<Post[]>` instead of `Post[]`.
 
 ## Dependencies and tooling changes
 

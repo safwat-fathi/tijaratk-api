@@ -1,95 +1,109 @@
-import { Controller, Post, Get, Param, Body, Patch, UseGuards, Query } from '@nestjs/common';
+import {
+  Controller,
+  Post,
+  Get,
+  Param,
+  Body,
+  Patch,
+  UseGuards,
+  NotFoundException,
+  Req,
+} from '@nestjs/common';
 import { CustomOrdersService } from './custom-orders.service';
-import { CreateCustomOrderDto, QuoteCustomOrderDto } from './dto/custom-order.dto';
+import {
+  CreateCustomOrderDto,
+  QuoteCustomOrderDto,
+} from './dto/custom-order.dto';
 import { AuthGuard } from '@nestjs/passport';
 import { InjectRepository } from '@nestjs/typeorm';
-import { Storefront } from '../storefronts/entities/storefront.entity';
+import { Store } from '../stores/entities/store.entity';
 import { Repository } from 'typeorm';
-import { NotFoundException, Req } from '@nestjs/common';
 
 import { Request } from 'express';
 import CONSTANTS from 'src/common/constants';
 
+/**
+ * Custom Orders Controller
+ *
+ * NOTE: This controller is currently disabled in orders.module.ts (commented out in controllers array)
+ *
+ * TODO: Enable this controller once User-Merchant relationship is established.
+ * The authorization pattern needs to verify that the authenticated user
+ * has permission to manage the store's custom orders (via merchant ownership).
+ */
 @Controller()
 export class CustomOrdersController {
   constructor(
     private readonly customOrdersService: CustomOrdersService,
-    @InjectRepository(Storefront)
-    private readonly storefrontRepo: Repository<Storefront>,
+    @InjectRepository(Store)
+    private readonly storeRepo: Repository<Store>,
   ) {}
 
-  // Public Endpoints
-
-  // Public Endpoints
-  // Moved to OrdersPublicController
-
-  // Actually, let's inject StorefrontsService properly to make this work.
-  // ...
-
   // Seller Endpoints (Authenticated)
+  // TODO: Add proper merchant ownership verification when User-Merchant relation is established
 
   @UseGuards(AuthGuard(CONSTANTS.AUTH.JWT))
-  @Get('storefronts/:storefrontId/custom-orders')
-  async findAll(
-    @Param('storefrontId') storefrontId: number,
-    @Req() req: Request,
-  ) {
-    const userId = Number(req.user.id);
-    const storefront = await this.storefrontRepo.findOne({
-      where: { id: storefrontId },
-      relations: ['user'],
+  @Get('stores/:storeId/custom-orders')
+  async findAll(@Param('storeId') storeId: number, @Req() req: Request) {
+    const store = await this.storeRepo.findOne({
+      where: { id: storeId },
     });
 
-    if (!storefront || storefront.user.id !== userId) {
-      throw new NotFoundException('Storefront not found');
+    if (!store) {
+      throw new NotFoundException('Store not found');
     }
 
-    return this.customOrdersService.findAllForStorefront(storefrontId);
+    // TODO: Add merchant ownership check
+    // if (store.merchant_id !== req.user.merchant_id) {
+    //   throw new ForbiddenException('Not authorized to access this store');
+    // }
+
+    return this.customOrdersService.findAllForStore(storeId);
   }
 
   @UseGuards(AuthGuard(CONSTANTS.AUTH.JWT))
-  @Get('storefronts/:storefrontId/custom-orders/:id')
+  @Get('stores/:storeId/custom-orders/:id')
   async findOne(
-    @Param('storefrontId') storefrontId: number,
+    @Param('storeId') storeId: number,
     @Param('id') id: number,
     @Req() req: Request,
   ) {
-    const userId = Number(req.user.id);
-    const storefront = await this.storefrontRepo.findOne({
-      where: { id: storefrontId },
-      relations: ['user'],
+    const store = await this.storeRepo.findOne({
+      where: { id: storeId },
     });
 
-    if (!storefront || storefront.user.id !== userId) {
-      throw new NotFoundException('Storefront not found');
+    if (!store) {
+      throw new NotFoundException('Store not found');
     }
+
+    // TODO: Add merchant ownership check
 
     const request = await this.customOrdersService.findOne(id);
 
-    if (request.storefrontId !== Number(storefrontId)) {
+    if (request.store_id !== Number(storeId)) {
       throw new NotFoundException('Request not found');
     }
     return request;
   }
 
   @UseGuards(AuthGuard(CONSTANTS.AUTH.JWT))
-  @Patch('storefronts/:storefrontId/custom-orders/:id/quote')
-  async quoteReference(
-    @Param('storefrontId') storefrontId: number,
+  @Patch('stores/:storeId/custom-orders/:id/quote')
+  async quoteRequest(
+    @Param('storeId') storeId: number,
     @Param('id') id: number,
     @Body() dto: QuoteCustomOrderDto,
     @Req() req: Request,
   ) {
-    const userId = Number(req.user.id);
-    const storefront = await this.storefrontRepo.findOne({
-      where: { id: storefrontId },
-      relations: ['user'],
+    const store = await this.storeRepo.findOne({
+      where: { id: storeId },
     });
 
-    if (!storefront || storefront.user.id !== userId) {
-      throw new NotFoundException('Storefront not found');
+    if (!store) {
+      throw new NotFoundException('Store not found');
     }
 
-    return this.customOrdersService.quote(id, storefrontId, dto);
+    // TODO: Add merchant ownership check
+
+    return this.customOrdersService.quote(id, storeId, dto);
   }
 }

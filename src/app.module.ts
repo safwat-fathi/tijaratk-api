@@ -15,13 +15,13 @@ import { FacebookModule } from './facebook/facebook.module';
 import { FacebookEventsModule } from './facebook-events/facebook-events.module';
 import { FacebookPageSubscriptionModule } from './facebook-page-subscription/facebook-page-subscription.module';
 import { HealthController } from './health/health.controller';
+import { MerchantsModule } from './merchants/merchants.module';
 import { NotificationsModule } from './notifications/notifications.module';
 import { OrdersModule } from './orders/orders.module';
 import { PostsModule } from './posts/posts.module';
 import { ProductsModule } from './products/products.module';
-import { StorefrontsModule } from './storefronts/storefronts.module';
-import { SubscriptionModule } from './subscription/subscription.module';
-import { UsersModule } from './users/users.module';
+import { StoresModule } from './stores/stores.module';
+import { WhatsappModule } from './whatsapp/whatsapp.module';
 
 const ENV = process.env.NODE_ENV;
 
@@ -43,7 +43,8 @@ const ENV = process.env.NODE_ENV;
     ScheduleModule.forRoot(),
     AdminModule,
     AuthModule,
-    UsersModule,
+    MerchantsModule,
+    StoresModule,
     ProductsModule,
     FacebookModule,
     FacebookPageSubscriptionModule,
@@ -51,11 +52,13 @@ const ENV = process.env.NODE_ENV;
     NotificationsModule,
     PostsModule,
     OrdersModule,
-    StorefrontsModule,
+    // StorefrontsModule, // Legacy - replaced by StoresModule
     // SubscriptionModule,
     CategoriesModule,
     BillingModule,
+    WhatsappModule,
   ],
   controllers: [HealthController],
 })
 export class AppModule {}
+

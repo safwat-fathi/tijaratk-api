@@ -1,7 +1,9 @@
 import { Logger } from '@nestjs/common';
-import { seedPlans, seedUserSubscription } from 'src/billing/plans.seed';
-import { seedCategories } from 'src/categories/categories.seed';
+import { seedRoles } from 'src/auth/roles.seed';
+import { seedPermissions } from 'src/auth/permissions.seed';
+import { seedPlans } from 'src/billing/plans.seed';
 import dataSource from 'src/config/orm.config';
+import { seedStoreCategories } from 'src/stores/store-categories.seed';
 
 async function bootstrap() {
   const logger = new Logger('Seed');
@@ -10,10 +12,14 @@ async function bootstrap() {
   await dataSource.initialize();
 
   try {
+    // Seed roles first (permissions depend on roles)
+    await seedRoles(dataSource);
+    // Seed permissions and assign to roles
+    await seedPermissions(dataSource);
     // Seed generic plans and addons
     await seedPlans(dataSource);
     // Seed categories
-    await seedCategories(dataSource);
+    await seedStoreCategories(dataSource);
 
     logger.log('Seeding completed successfully.');
   } catch (error) {
