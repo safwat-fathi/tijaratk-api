@@ -6,6 +6,7 @@ import {
 import { InjectRepository } from '@nestjs/typeorm';
 import { ILike, Repository } from 'typeorm';
 
+import { generateUniqueSlug } from '../common/utils/slug.utils';
 import { CreateProductDto } from './dto/create-product.dto';
 import { ListProductsDto } from './dto/list-products.dto';
 import { Product } from './entities/product.entity';
@@ -18,30 +19,12 @@ export class ProductsService {
   ) {}
 
   async create(dto: CreateProductDto): Promise<Product> {
-    // Generate slug from name
-    const slugBase = dto.name
-      .toLowerCase()
-      .trim()
-      .replace(/[^a-z0-9]+/g, '-')
-      .replace(/^-+|-+$/g, '');
-
-    let slug = slugBase;
-    let suffix = 1;
-
-    // Ensure slug is unique per store
-    // eslint-disable-next-line no-constant-condition
-    while (true) {
-      const exists = await this.productRepo.exist({
-        where: { store_id: dto.store_id, slug },
+    // Generate unique slug from product name (scoped to store)
+    const slug = await generateUniqueSlug(dto.name, async (s) => {
+      return this.productRepo.exists({
+        where: { store_id: dto.store_id, slug: s },
       });
-
-      if (!exists) {
-        break;
-      }
-
-      slug = `${slugBase}-${suffix}`;
-      suffix += 1;
-    }
+    });
 
     const newProduct = this.productRepo.create({
       ...dto,

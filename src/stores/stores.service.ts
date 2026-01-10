@@ -7,6 +7,7 @@ import { InjectRepository } from '@nestjs/typeorm';
 import { Repository } from 'typeorm';
 
 import { CacheService, CACHE_KEYS, CACHE_TTL } from '../common/cache.service';
+import { generateUniqueSlug } from '../common/utils/slug.utils';
 import { Store } from './entities/store.entity';
 import { StoreTheme } from './entities/store-theme.entity';
 import {
@@ -367,20 +368,10 @@ export class StoresService {
     // Generate slug from name if not provided
     let slug = data.slug;
     if (!slug) {
-      const slugBase = data.name
-        .toLowerCase()
-        .trim()
-        .replace(/[^a-z0-9]+/g, '-')
-        .replace(/^-+|-+$/g, '');
-
-      slug = slugBase;
-      let suffix = 1;
-
-      // Ensure slug is unique
-      while (!(await this.isSlugAvailable(slug))) {
-        slug = `${slugBase}-${suffix}`;
-        suffix += 1;
-      }
+      slug = await generateUniqueSlug(
+        data.name,
+        async (s) => !(await this.isSlugAvailable(s)),
+      );
     }
 
     // Build location WKT if coordinates provided
