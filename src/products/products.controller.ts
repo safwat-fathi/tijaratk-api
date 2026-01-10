@@ -6,7 +6,7 @@ import {
   HttpCode,
   HttpStatus,
   Param,
-  ParseUUIDPipe,
+  ParseIntPipe,
   Patch,
   Post,
   Query,
@@ -19,9 +19,13 @@ import {
   ApiBearerAuth,
   ApiBody,
   ApiConsumes,
+  ApiCreatedResponse,
+  ApiNotFoundResponse,
+  ApiOkResponse,
   ApiOperation,
-  ApiResponse,
+  ApiParam,
   ApiTags,
+  ApiUnauthorizedResponse,
 } from '@nestjs/swagger';
 import { Request } from 'express';
 import * as path from 'path';
@@ -33,84 +37,187 @@ import { imageFileFilter } from 'src/common/utils/file-filters';
 import { CreateProductDto } from './dto/create-product.dto';
 import { ListProductsDto } from './dto/list-products.dto';
 import { UpdateProductDto } from './dto/update-product.dto';
+import {
+  ProductResponseDto,
+  ProductListResponseDto,
+  ProductDeleteResponseDto,
+  ProductImageUploadResponseDto,
+} from './dto/product-response.dto';
 import { ProductsService } from './products.service';
 
+/**
+ * Products Controller - Authenticated endpoints for product management.
+ *
+ * Route pattern: /stores/:storeSlug/products
+ */
 @ApiTags('Products')
 @ApiBearerAuth(CONSTANTS.ACCESS_TOKEN)
 @UseGuards(AuthGuard(CONSTANTS.AUTH.JWT))
-@Controller('stores/:storeId/products')
+@Controller('stores/:storeSlug/products')
 export class ProductsController {
-  constructor(
-    private readonly productsService: ProductsService,
-    private readonly imageProcessor: ImageProcessorService,
-  ) {}
+  constructor(private readonly productsService: ProductsService) {}
 
   @Post()
   @HttpCode(HttpStatus.CREATED)
-  @ApiBody({ description: 'Create product', type: CreateProductDto })
-  @ApiOperation({ summary: 'Create product for a store' })
-  @ApiResponse({
-    status: HttpStatus.CREATED,
-    description: 'The product has been successfully created.',
+  @ApiOperation({
+    summary: 'Create product for a store',
+    description:
+      'Creates a new product for a store. A slug will be auto-generated from the product name.',
   })
-  create(
-    @Param('storeId', ParseUUIDPipe) storeId: string,
-    @Body() dto: CreateProductDto,
-  ) {
-    // Ensure store_id from path matches body
-    dto.store_id = storeId;
+  @ApiParam({
+    name: 'storeSlug',
+    description: 'Store slug (URL-friendly identifier)',
+    example: 'fashion-store',
+    type: String,
+  })
+  @ApiBody({ type: CreateProductDto })
+  @ApiCreatedResponse({
+    description: 'Product created successfully',
+    type: ProductResponseDto,
+  })
+  @ApiNotFoundResponse({
+    description: 'Store not found',
+  })
+  @ApiUnauthorizedResponse({
+    description: 'Unauthorized - valid JWT required',
+  })
+  create(@Param('storeSlug') storeSlug: string, @Body() dto: CreateProductDto) {
+    // Note: Service should lookup store by slug and get the store_id
+    dto.store_id = storeSlug;
     return this.productsService.create(dto);
   }
 
   @Get()
-  @ApiOperation({ summary: 'Get all products for a store' })
-  @ApiResponse({
-    status: HttpStatus.OK,
-    description: 'Get all products',
+  @ApiOperation({
+    summary: 'Get all products for a store',
+    description:
+      'Retrieves a paginated list of products for a store. Supports keyword search.',
+  })
+  @ApiParam({
+    name: 'storeSlug',
+    description: 'Store slug (URL-friendly identifier)',
+    example: 'fashion-store',
+    type: String,
+  })
+  @ApiOkResponse({
+    description: 'Paginated list of products',
+    type: ProductListResponseDto,
+  })
+  @ApiNotFoundResponse({
+    description: 'Store not found',
+  })
+  @ApiUnauthorizedResponse({
+    description: 'Unauthorized - valid JWT required',
   })
   findAll(
-    @Param('storeId', ParseUUIDPipe) storeId: string,
+    @Param('storeSlug') storeSlug: string,
     @Query() listProducts: ListProductsDto,
   ) {
-    return this.productsService.findAllByStore(storeId, listProducts);
+    return this.productsService.findAllByStore(storeSlug, listProducts);
   }
 
   @Get(':id')
-  @ApiOperation({ summary: 'Get product by id' })
-  @ApiResponse({
-    status: HttpStatus.OK,
-    description: 'Get product by id',
+  @ApiOperation({
+    summary: 'Get product by ID',
+    description: 'Retrieves detailed information about a specific product.',
   })
-  findOne(@Param('id', ParseUUIDPipe) id: string) {
-    return this.productsService.findOne(id);
+  @ApiParam({
+    name: 'storeSlug',
+    description: 'Store slug (URL-friendly identifier)',
+    example: 'fashion-store',
+    type: String,
+  })
+  @ApiParam({
+    name: 'id',
+    description: 'Product ID',
+    example: 1,
+    type: Number,
+  })
+  @ApiOkResponse({
+    description: 'Product details',
+    type: ProductResponseDto,
+  })
+  @ApiNotFoundResponse({
+    description: 'Product not found',
+  })
+  @ApiUnauthorizedResponse({
+    description: 'Unauthorized - valid JWT required',
+  })
+  findOne(@Param('id', ParseIntPipe) id: number) {
+    return this.productsService.findOne(String(id));
   }
 
   @Patch(':id')
-  @ApiOperation({ summary: 'Update product by id' })
-  @ApiResponse({
-    status: HttpStatus.OK,
-    description: 'Update product by id',
+  @ApiOperation({
+    summary: 'Update product by ID',
+    description:
+      'Updates an existing product. All fields are optional - only provided fields will be updated.',
   })
-  update(
-    @Param('id', ParseUUIDPipe) id: string,
-    @Body() dto: UpdateProductDto,
-  ) {
-    return this.productsService.update(id, dto);
+  @ApiParam({
+    name: 'storeSlug',
+    description: 'Store slug (URL-friendly identifier)',
+    example: 'fashion-store',
+    type: String,
+  })
+  @ApiParam({
+    name: 'id',
+    description: 'Product ID',
+    example: 1,
+    type: Number,
+  })
+  @ApiBody({ type: UpdateProductDto })
+  @ApiOkResponse({
+    description: 'Product updated successfully',
+    type: ProductResponseDto,
+  })
+  @ApiNotFoundResponse({
+    description: 'Product not found',
+  })
+  @ApiUnauthorizedResponse({
+    description: 'Unauthorized - valid JWT required',
+  })
+  update(@Param('id', ParseIntPipe) id: number, @Body() dto: UpdateProductDto) {
+    return this.productsService.update(String(id), dto);
   }
 
   @Delete(':id')
-  @ApiOperation({ summary: 'Delete product by id' })
-  @ApiResponse({
-    status: HttpStatus.OK,
-    description: 'Delete product by id',
+  @ApiOperation({
+    summary: 'Delete product by ID',
+    description: 'Soft-deletes a product. The product can be restored later.',
   })
-  async remove(@Param('id', ParseUUIDPipe) id: string) {
-    await this.productsService.remove(id);
+  @ApiParam({
+    name: 'storeSlug',
+    description: 'Store slug (URL-friendly identifier)',
+    example: 'fashion-store',
+    type: String,
+  })
+  @ApiParam({
+    name: 'id',
+    description: 'Product ID',
+    example: 1,
+    type: Number,
+  })
+  @ApiOkResponse({
+    description: 'Product deleted successfully',
+    type: ProductDeleteResponseDto,
+  })
+  @ApiNotFoundResponse({
+    description: 'Product not found',
+  })
+  @ApiUnauthorizedResponse({
+    description: 'Unauthorized - valid JWT required',
+  })
+  async remove(@Param('id', ParseIntPipe) id: number) {
+    await this.productsService.remove(String(id));
     return { message: 'Product deleted successfully' };
   }
 }
 
-// Separate controller for image upload (not store-scoped)
+/**
+ * Products Upload Controller - Endpoints for product image uploads.
+ *
+ * Not store-scoped - images can be uploaded independently.
+ */
 @ApiTags('Products')
 @ApiBearerAuth(CONSTANTS.ACCESS_TOKEN)
 @UseGuards(AuthGuard(CONSTANTS.AUTH.JWT))
@@ -125,9 +232,10 @@ export class ProductsUploadController {
     fileFilter: imageFileFilter,
     limits: { fileSize: 1024 * 1024 * 5 }, // 5MB
   })
-  @ApiResponse({
-    status: HttpStatus.OK,
-    description: 'Product image uploaded successfully',
+  @ApiOperation({
+    summary: 'Upload a product image',
+    description:
+      'Uploads a product image and converts it to WebP format. Returns the URL of the uploaded image.',
   })
   @ApiBody({
     schema: {
@@ -136,15 +244,22 @@ export class ProductsUploadController {
         file: {
           type: 'string',
           format: 'binary',
+          description: 'Image file (JPEG, PNG, WebP - max 5MB)',
         },
       },
     },
   })
-  @ApiOperation({ summary: 'Upload a product image' })
+  @ApiOkResponse({
+    description: 'Image uploaded successfully',
+    type: ProductImageUploadResponseDto,
+  })
+  @ApiUnauthorizedResponse({
+    description: 'Unauthorized - valid JWT required',
+  })
   async uploadImage(
     @UploadedFile() file: Express.Multer.File,
     @Req() req: Request,
-  ) {
+  ): Promise<ProductImageUploadResponseDto> {
     const filePath = path.join(process.cwd(), 'uploads', file.filename);
     const webpFilename = await this.imageProcessor.convertToWebP(filePath);
 
@@ -154,3 +269,4 @@ export class ProductsUploadController {
     return { url };
   }
 }
+

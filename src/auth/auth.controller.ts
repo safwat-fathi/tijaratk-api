@@ -12,9 +12,13 @@ import { AuthGuard } from '@nestjs/passport';
 import {
   ApiBearerAuth,
   ApiBody,
+  ApiCreatedResponse,
+  ApiNoContentResponse,
+  ApiOkResponse,
   ApiOperation,
-  ApiResponse,
   ApiTags,
+  ApiUnauthorizedResponse,
+  ApiBadRequestResponse,
 } from '@nestjs/swagger';
 import { Request } from 'express';
 import CONSTANTS from 'src/common/constants';
@@ -27,6 +31,14 @@ import {
   RequestOtpDto,
   VerifyOtpDto,
 } from './dto/auth.dto';
+import {
+  AdminLoginResponseDto,
+  AdminSignupResponseDto,
+  MerchantProfileResponseDto,
+  RefreshTokenResponseDto,
+  RequestOtpResponseDto,
+  VerifyOtpResponseDto,
+} from './dto/auth-response.dto';
 import { AuthenticatedUser } from './strategies/jwt.strategy';
 
 @ApiTags('Auth')
@@ -37,22 +49,42 @@ export class AuthController {
   // ==================== Admin Auth (Email + Password) ====================
 
   @Post('/admin/signup')
-  @ApiOperation({ summary: 'Admin signup (email + password)' })
-  @ApiResponse({ status: 201, description: 'Admin created successfully.' })
-  @ApiResponse({ status: 400, description: 'Bad Request.' })
-  async adminSignup(@Body() dto: AdminSignupDto) {
+  @ApiOperation({
+    summary: 'Admin signup (email + password)',
+    description:
+      'Creates a new admin user with email and password. The admin will be assigned the admin role and given an admin profile.',
+  })
+  @ApiBody({ type: AdminSignupDto })
+  @ApiCreatedResponse({
+    description: 'Admin created successfully',
+    type: AdminSignupResponseDto,
+  })
+  @ApiBadRequestResponse({
+    description: 'Bad request - User with this email already exists',
+  })
+  async adminSignup(
+    @Body() dto: AdminSignupDto,
+  ): Promise<AdminSignupResponseDto> {
     return this.authService.signupAdmin(dto);
   }
 
   @Post('/admin/login')
   @HttpCode(HttpStatus.OK)
-  @ApiOperation({ summary: 'Admin login (email + password)' })
-  @ApiResponse({
-    status: 200,
-    description: 'Return access and refresh tokens.',
+  @ApiOperation({
+    summary: 'Admin login (email + password)',
+    description:
+      'Authenticates an admin user with email and password. Returns JWT access and refresh tokens.',
   })
-  @ApiResponse({ status: 401, description: 'Unauthorized.' })
-  async adminLogin(@Body() dto: AdminLoginDto) {
+  @ApiBody({ type: AdminLoginDto })
+  @ApiOkResponse({
+    description:
+      'Successfully authenticated - returns access and refresh tokens with user details',
+    type: AdminLoginResponseDto,
+  })
+  @ApiUnauthorizedResponse({
+    description: 'Invalid credentials or account not active',
+  })
+  async adminLogin(@Body() dto: AdminLoginDto): Promise<AdminLoginResponseDto> {
     return this.authService.loginAdmin(dto);
   }
 
@@ -60,23 +92,37 @@ export class AuthController {
 
   @Post('/otp/request')
   @HttpCode(HttpStatus.OK)
-  @ApiOperation({ summary: 'Request OTP for phone-based login/signup' })
+  @ApiOperation({
+    summary: 'Request OTP for phone-based login/signup',
+    description:
+      'Sends an OTP to the specified phone number via SMS/WhatsApp. For merchants, login equals signup - new users are created automatically upon OTP verification.',
+  })
   @ApiBody({ type: RequestOtpDto })
-  @ApiResponse({ status: 200, description: 'OTP sent successfully.' })
-  async requestOtp(@Body() dto: RequestOtpDto) {
+  @ApiOkResponse({
+    description: 'OTP sent successfully',
+    type: RequestOtpResponseDto,
+  })
+  async requestOtp(@Body() dto: RequestOtpDto): Promise<RequestOtpResponseDto> {
     return this.authService.requestOtp(dto);
   }
 
   @Post('/otp/verify')
   @HttpCode(HttpStatus.OK)
-  @ApiOperation({ summary: 'Verify OTP and complete login/signup' })
-  @ApiBody({ type: VerifyOtpDto })
-  @ApiResponse({
-    status: 200,
-    description: 'Return access and refresh tokens.',
+  @ApiOperation({
+    summary: 'Verify OTP and complete login/signup',
+    description:
+      'Verifies the OTP code and completes authentication. Creates a new user if the phone number is not registered. Returns JWT tokens and user details.',
   })
-  @ApiResponse({ status: 400, description: 'Invalid OTP.' })
-  async verifyOtp(@Body() dto: VerifyOtpDto) {
+  @ApiBody({ type: VerifyOtpDto })
+  @ApiOkResponse({
+    description:
+      'Successfully verified - returns access and refresh tokens with user details',
+    type: VerifyOtpResponseDto,
+  })
+  @ApiBadRequestResponse({
+    description: 'Invalid OTP code',
+  })
+  async verifyOtp(@Body() dto: VerifyOtpDto): Promise<VerifyOtpResponseDto> {
     return this.authService.verifyOtp(dto);
   }
 
@@ -84,9 +130,21 @@ export class AuthController {
   @ApiBearerAuth(CONSTANTS.ACCESS_TOKEN)
   @UseGuards(AuthGuard(CONSTANTS.AUTH.JWT))
   @HttpCode(HttpStatus.CREATED)
-  @ApiOperation({ summary: 'Create merchant profile for authenticated user' })
-  @ApiResponse({ status: 201, description: 'Merchant profile created.' })
-  async createMerchantProfile(@Req() req: Request) {
+  @ApiOperation({
+    summary: 'Create merchant profile for authenticated user',
+    description:
+      'Creates a merchant profile for the currently authenticated user. If a profile already exists, returns the existing profile.',
+  })
+  @ApiCreatedResponse({
+    description: 'Merchant profile created or returned if already exists',
+    type: MerchantProfileResponseDto,
+  })
+  @ApiUnauthorizedResponse({
+    description: 'Unauthorized - valid JWT required',
+  })
+  async createMerchantProfile(
+    @Req() req: Request,
+  ): Promise<MerchantProfileResponseDto> {
     const user = req.user as unknown as AuthenticatedUser;
     return this.authService.createMerchantProfile(user.id);
   }
@@ -95,14 +153,21 @@ export class AuthController {
 
   @Post('/refresh')
   @HttpCode(HttpStatus.OK)
-  @ApiOperation({ summary: 'Refresh access token' })
-  @ApiBody({ type: RefreshDto })
-  @ApiResponse({
-    status: 200,
-    description: 'Return new access and refresh tokens.',
+  @ApiOperation({
+    summary: 'Refresh access token',
+    description:
+      'Exchanges a valid refresh token for new access and refresh tokens. The old refresh token is invalidated.',
   })
-  @ApiResponse({ status: 401, description: 'Unauthorized.' })
-  async refresh(@Body() body: RefreshDto) {
+  @ApiBody({ type: RefreshDto })
+  @ApiOkResponse({
+    description:
+      'Successfully refreshed - returns new access and refresh tokens',
+    type: RefreshTokenResponseDto,
+  })
+  @ApiUnauthorizedResponse({
+    description: 'Invalid or expired refresh token',
+  })
+  async refresh(@Body() body: RefreshDto): Promise<RefreshTokenResponseDto> {
     return this.authService.refresh(body.refresh_token);
   }
 
@@ -110,9 +175,18 @@ export class AuthController {
   @ApiBearerAuth(CONSTANTS.ACCESS_TOKEN)
   @UseGuards(AuthGuard(CONSTANTS.AUTH.JWT))
   @HttpCode(HttpStatus.NO_CONTENT)
-  @ApiOperation({ summary: 'Logout user and revoke refresh token' })
-  @ApiResponse({ status: 204, description: 'Logged out successfully.' })
-  async logout(@Req() req: Request) {
+  @ApiOperation({
+    summary: 'Logout user and revoke refresh token',
+    description:
+      'Logs out the current user by deleting their session and revoking the refresh token.',
+  })
+  @ApiNoContentResponse({
+    description: 'Successfully logged out',
+  })
+  @ApiUnauthorizedResponse({
+    description: 'Unauthorized - valid JWT required',
+  })
+  async logout(@Req() req: Request): Promise<void> {
     const user = req.user as unknown as AuthenticatedUser;
     await this.authService.logout(user.id);
   }

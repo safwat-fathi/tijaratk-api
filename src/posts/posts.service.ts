@@ -6,8 +6,8 @@ import {
 } from '@nestjs/common';
 import { Cron, CronExpression } from '@nestjs/schedule';
 import { InjectRepository } from '@nestjs/typeorm';
-import { FacebookPage } from 'src/facebook/entities/facebook-page.entity';
-import { FacebookService } from 'src/facebook/facebook.service';
+// import { FacebookPage } from 'src/facebook/entities/facebook-page.entity';
+// import { FacebookService } from 'src/facebook/facebook.service';
 import { Product } from 'src/products/entities/product.entity';
 import { User } from 'src/users/entities/user.entity';
 import { ILike, LessThanOrEqual, Repository } from 'typeorm';
@@ -28,13 +28,13 @@ export class PostsService {
     private readonly postRepository: Repository<Post>,
     @InjectRepository(Product)
     private readonly productRepository: Repository<Product>,
-    @InjectRepository(FacebookPage)
-    private readonly facebookPageRepository: Repository<FacebookPage>,
-    private readonly facebookService: FacebookService,
+    // @InjectRepository(FacebookPage)
+    // private readonly facebookPageRepository: Repository<FacebookPage>,
+    // private readonly facebookService: FacebookService,
   ) {}
 
   async create(userId: number, createPostDto: CreatePostDto): Promise<Post> {
-    const { page_id, product_id, title, content, media_url, scheduled_at } =
+    const { product_id, title, content, media_url, scheduled_at } =
       createPostDto;
     const user = await this.userRepository.findOne({
       where: { id: userId },
@@ -51,21 +51,13 @@ export class PostsService {
       throw new NotFoundException(`Product with ID ${product_id} not found`);
     }
 
-    // find the facebook page
-    const facebook_page = await this.facebookPageRepository.findOne({
-      where: { page_id: page_id },
-    });
-    if (!facebook_page) {
-      throw new NotFoundException(`Facebook page with ID ${page_id} not found`);
-    }
-
-    const productCount = await this.productRepository.count({
-      where: { id: product_id },
-    });
-
-    // NOTE: Post limit check is now handled by PlanLimitGuard on the controller
-    // using the new billing system (UsageTrackingService)
-    // The old user.subscription relationship has been removed
+    // Facebook page validation disabled for MVP
+    // const facebook_page = await this.facebookPageRepository.findOne({
+    //   where: { page_id: page_id },
+    // });
+    // if (!facebook_page) {
+    //   throw new NotFoundException(`Facebook page with ID ${page_id} not found`);
+    // }
 
     const post = this.postRepository.create({
       title: title,
@@ -74,19 +66,19 @@ export class PostsService {
       scheduled_at: scheduled_at ? new Date(scheduled_at) : null,
       product,
       is_published: false,
-      facebook_page,
+      // facebook_page,
     });
     const savedPost = await this.postRepository.save(post);
 
-    // If not scheduled or the scheduled time is in the past, publish immediately.
-    if (
-      !savedPost.scheduled_at ||
-      savedPost.scheduled_at.getTime() <= Date.now()
-    ) {
-      await this.publish(savedPost, createPostDto.page_id);
-      savedPost.is_published = true;
-      await this.postRepository.save(savedPost);
-    }
+    // Facebook publishing disabled for MVP
+    // if (
+    //   !savedPost.scheduled_at ||
+    //   savedPost.scheduled_at.getTime() <= Date.now()
+    // ) {
+    //   await this.publish(savedPost, createPostDto.page_id);
+    //   savedPost.is_published = true;
+    //   await this.postRepository.save(savedPost);
+    // }
 
     return savedPost;
   }
@@ -128,7 +120,7 @@ export class PostsService {
       skip,
       take: limit,
       order: { created_at: order },
-      relations: { product: true, facebook_page: true },
+      relations: { product: true },
     });
 
     // Return paginated response
@@ -152,39 +144,40 @@ export class PostsService {
     return post;
   }
 
+  // Facebook publishing disabled for MVP
   // Calls the FacebookService to publish the post on Facebook.
-  async publish(post: Post, page_id: string): Promise<void> {
-    try {
-      const fbResponse = await this.facebookService.publishPost(post, page_id);
-      post.facebook_post_id = fbResponse.id;
-      this.logger.log(
-        `Post ${post.id} published to Facebook with ID ${fbResponse.id}`,
-      );
-    } catch (error) {
-      this.logger.error(
-        `Failed to publish post ${post.id} to Facebook: ${error.message}`,
-      );
-    }
-  }
+  // async publish(post: Post, page_id: string): Promise<void> {
+  //   try {
+  //     const fbResponse = await this.facebookService.publishPost(post, page_id);
+  //     post.facebook_post_id = fbResponse.id;
+  //     this.logger.log(
+  //       `Post ${post.id} published to Facebook with ID ${fbResponse.id}`,
+  //     );
+  //   } catch (error) {
+  //     this.logger.error(
+  //       `Failed to publish post ${post.id} to Facebook: ${error.message}`,
+  //     );
+  //   }
+  // }
 
-  // Scheduler: runs every minute and publishes posts whose scheduled time has arrived.
-  @Cron(CronExpression.EVERY_30_MINUTES)
-  async publishScheduledPosts(): Promise<void> {
-    const now = new Date();
-    const posts = await this.postRepository.find({
-      where: {
-        scheduled_at: LessThanOrEqual(now),
-        is_published: false,
-      },
-      relations: { facebook_page: true },
-    });
-
-    if (posts.length === 0) return;
-
-    for (const post of posts) {
-      await this.publish(post, post.facebook_page.page_id);
-      post.is_published = true;
-      await this.postRepository.save(post);
-    }
-  }
+  // Scheduler disabled for MVP - no Facebook publishing
+  // @Cron(CronExpression.EVERY_30_MINUTES)
+  // async publishScheduledPosts(): Promise<void> {
+  //   const now = new Date();
+  //   const posts = await this.postRepository.find({
+  //     where: {
+  //       scheduled_at: LessThanOrEqual(now),
+  //       is_published: false,
+  //     },
+  //     relations: { facebook_page: true },
+  //   });
+  //
+  //   if (posts.length === 0) return;
+  //
+  //   for (const post of posts) {
+  //     await this.publish(post, post.facebook_page.page_id);
+  //     post.is_published = true;
+  //     await this.postRepository.save(post);
+  //   }
+  // }
 }

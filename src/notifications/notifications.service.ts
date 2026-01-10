@@ -40,35 +40,20 @@ export class NotificationsService {
       limit = 10,
       sort_by = NotificationSortBy.CREATED_AT,
       sort_order = SortOrder.DESC,
-      classification,
     } = listNotificationsDto;
 
     const orderOptions: FindOptionsOrder<Notification> = {};
-    // Use type-safe key assignment
     if (sort_by === NotificationSortBy.CREATED_AT) {
       orderOptions.created_at = sort_order;
-    } else if (sort_by === NotificationSortBy.SENTIMENT) {
-      orderOptions.sentiment = sort_order;
-      orderOptions.created_at = SortOrder.DESC;
-    } else if (sort_by === NotificationSortBy.CLASSIFICATION) {
-      orderOptions.classification = sort_order;
-      orderOptions.created_at = SortOrder.DESC;
     }
 
-    // Build the where clause dynamically
     const whereOptions: FindOptionsWhere<Notification> = {
       user: { id: userId },
     };
 
-    // Add classification filter if provided
-    if (classification) {
-      whereOptions.classification = classification;
-    }
-
     const [data, total] = await this.notificationRepository.findAndCount({
       where: whereOptions,
       order: orderOptions,
-      relations: { facebook_page: true },
       skip: (page - 1) * limit,
       take: limit,
     });

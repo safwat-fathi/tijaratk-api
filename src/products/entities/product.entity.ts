@@ -19,7 +19,7 @@ import { ProductVariant } from './product-variant.entity';
 @Entity('products')
 @Unique(['store', 'barcode'])
 export class Product {
-  @PrimaryGeneratedColumn() // Migrating to UUID as per plan
+  @PrimaryGeneratedColumn()
   id: string;
 
   @Column({ name: 'store_id' })

@@ -3,9 +3,9 @@ import { JwtModule } from '@nestjs/jwt';
 import { PassportModule } from '@nestjs/passport';
 import { TypeOrmModule } from '@nestjs/typeorm';
 import CONSTANTS from 'src/common/constants';
-import { FacebookPage } from 'src/facebook/entities/facebook-page.entity';
-import { FacebookModule } from 'src/facebook/facebook.module';
-import { FacebookService } from 'src/facebook/facebook.service';
+// import { FacebookPage } from 'src/facebook/entities/facebook-page.entity';
+// import { FacebookModule } from 'src/facebook/facebook.module';
+// import { FacebookService } from 'src/facebook/facebook.service';
 import { Notification } from 'src/notifications/entities/notification.entity';
 import { MerchantsModule } from 'src/merchants/merchants.module';
 
@@ -20,7 +20,7 @@ import { UserRole } from './entities/user-role.entity';
 import { StoreUserRole } from './entities/store-user-role.entity';
 import { AuthController } from './auth.controller';
 import { AuthService } from './auth.service';
-import { FacebookStrategy } from './strategies/facebook.strategy';
+// import { FacebookStrategy } from './strategies/facebook.strategy';
 import { JwtStrategy } from './strategies/jwt.strategy';
 
 @Module({
@@ -39,7 +39,7 @@ import { JwtStrategy } from './strategies/jwt.strategy';
       UserRole,
       StoreUserRole,
       // Legacy (for existing features)
-      FacebookPage,
+      // FacebookPage,
       Notification,
     ]),
     PassportModule.register({ defaultStrategy: CONSTANTS.AUTH.JWT }),
@@ -49,10 +49,10 @@ import { JwtStrategy } from './strategies/jwt.strategy';
         signOptions: { expiresIn: CONSTANTS.SESSION.EXPIRATION_TIME },
       }),
     }),
-    FacebookModule,
+    // FacebookModule,
     MerchantsModule,
   ],
-  providers: [AuthService, JwtStrategy, FacebookStrategy, FacebookService],
+  providers: [AuthService, JwtStrategy],
   controllers: [AuthController],
   exports: [AuthService, TypeOrmModule],
 })

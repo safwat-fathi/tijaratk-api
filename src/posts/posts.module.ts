@@ -1,9 +1,9 @@
 import { Module } from '@nestjs/common';
 import { TypeOrmModule } from '@nestjs/typeorm';
 import { ImageProcessorService } from 'src/common/services/image-processor.service';
-import { FacebookPage } from 'src/facebook/entities/facebook-page.entity';
-import { FacebookModule } from 'src/facebook/facebook.module';
-import { FacebookService } from 'src/facebook/facebook.service';
+// import { FacebookPage } from 'src/facebook/entities/facebook-page.entity';
+// import { FacebookModule } from 'src/facebook/facebook.module';
+// import { FacebookService } from 'src/facebook/facebook.service';
 import { Notification } from 'src/notifications/entities/notification.entity';
 import { Product } from 'src/products/entities/product.entity';
 import { User } from 'src/users/entities/user.entity';
@@ -20,12 +20,12 @@ import { PostsService } from './posts.service';
       Product,
       User,
       UserIdentity,
-      FacebookPage,
+      // FacebookPage,
       Notification,
     ]),
-    FacebookModule,
+    // FacebookModule,
   ],
   controllers: [PostsController],
-  providers: [PostsService, FacebookService, ImageProcessorService],
+  providers: [PostsService, ImageProcessorService],
 })
 export class PostsModule {}

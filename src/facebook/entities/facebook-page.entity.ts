@@ -1,5 +1,4 @@
 import { decrypt, encrypt } from 'src/common/utils/encryption.util';
-import { Notification } from 'src/notifications/entities/notification.entity';
 import { Post } from 'src/posts/entities/post.entity';
 import { User } from 'src/users/entities/user.entity';
 import {
@@ -32,9 +31,6 @@ export class FacebookPage {
 
   @Column()
   name: string;
-
-  @OneToMany(() => Notification, (notification) => notification.facebook_page)
-  notifications: Relation<Notification[]>;
 
   @Column({ nullable: true })
   category: string;

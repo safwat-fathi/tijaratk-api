@@ -9,10 +9,9 @@ import { InjectRepository } from '@nestjs/typeorm';
 import CONSTANTS from 'src/common/constants';
 import { Events } from 'src/common/enums/events.enum';
 import { UserLoginEvent } from 'src/events/user-login.event';
-import { FacebookService } from 'src/facebook/facebook.service';
-import { FacebookUser } from 'src/types/facebook-user.interface';
 import { Repository } from 'typeorm';
-import * as bcrypt from 'bcryptjs';
+import { hash, compare, genSalt } from 'bcryptjs';
+import { normalizePhoneNumber } from 'src/common/utils/phone.utils';
 
 import {
   AdminLoginDto,
@@ -22,10 +21,7 @@ import {
 } from './dto/auth.dto';
 import { User, UserStatus } from '../users/entities/user.entity';
 import { UserSession } from '../users/entities/user-session.entity';
-import {
-  UserIdentity,
-  SocialProvider,
-} from '../users/entities/user-identity.entity';
+import { UserIdentity } from '../users/entities/user-identity.entity';
 import { AdminProfile } from '../users/entities/admin-profile.entity';
 import { Merchant } from '../merchants/entities/merchant.entity';
 import { Role } from './entities/role.entity';
@@ -53,7 +49,7 @@ export class AuthService {
     @InjectRepository(StoreUserRole)
     private readonly storeUserRoleRepository: Repository<StoreUserRole>,
     private readonly jwtService: JwtService,
-    private readonly facebookService: FacebookService,
+    // private readonly facebookService: FacebookService,
     private readonly eventEmitter: EventEmitter2,
   ) {}
 
@@ -72,12 +68,15 @@ export class AuthService {
     }
 
     // Hash password
-    const salt = await bcrypt.genSalt();
-    const password_hash = await bcrypt.hash(dto.password, salt);
+    const salt = await genSalt();
+    const password_hash = await hash(dto.password, salt);
+
+    // Normalize phone to E.164 format before storing
+    const normalizedPhone = normalizePhoneNumber(dto.phone);
 
     const user = this.userRepository.create({
       email: dto.email,
-      phone: `admin_${Date.now()}`, // Placeholder for admin (required field)
+      phone: normalizedPhone,
       password_hash,
       name: dto.name || dto.email.split('@')[0],
       status: UserStatus.ACTIVE,
@@ -124,7 +123,7 @@ export class AuthService {
       throw new BadRequestException('Invalid credentials');
     }
 
-    const isMatch = await bcrypt.compare(dto.password, user.password_hash);
+    const isMatch = await compare(dto.password, user.password_hash);
 
     if (!isMatch) {
       throw new BadRequestException('Invalid credentials');
@@ -172,9 +171,12 @@ export class AuthService {
       throw new BadRequestException('Invalid OTP');
     }
 
+    // Normalize phone to E.164 format for consistent lookup and storage
+    const normalizedPhone = normalizePhoneNumber(dto.phone);
+
     // Find or create user by phone
     let user = await this.userRepository.findOne({
-      where: { phone: dto.phone },
+      where: { phone: normalizedPhone },
     });
 
     let isNewUser = false;
@@ -182,7 +184,7 @@ export class AuthService {
     if (!user) {
       // Create new user
       user = this.userRepository.create({
-        phone: dto.phone,
+        phone: normalizedPhone,
         status: UserStatus.ACTIVE,
         phone_verified_at: new Date(),
       });
@@ -289,6 +291,16 @@ export class AuthService {
   // ==================== JWT Creation with RBAC ====================
 
   async createJwtForUser(user: User) {
+    // Fetch user with subscription data
+    const userWithSubscription = await this.userRepository.findOne({
+      where: { id: user.id },
+      relations: {
+        userSubscription: {
+          plan: true,
+        },
+      },
+    });
+
     // Get global roles
     const globalRoleAssignments = await this.userRoleRepository.find({
       where: { user_id: user.id },
@@ -373,6 +385,7 @@ export class AuthService {
         email: user.email,
         name: user.name,
         status: user.status,
+        subscription: userWithSubscription?.userSubscription || null,
       },
     };
   }

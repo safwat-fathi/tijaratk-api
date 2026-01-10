@@ -1,6 +1,7 @@
 import { Module } from '@nestjs/common';
 import { TypeOrmModule } from '@nestjs/typeorm';
 
+import { CacheService } from '../common/cache.service';
 import { Store } from './entities/store.entity';
 import { StoreTheme } from './entities/store-theme.entity';
 import { StoreThemeEditorAuthGuard } from './guards/store-theme-editor.guard';
@@ -21,6 +22,7 @@ import { StoresService } from './stores.service';
     StoresService,
     StoreThemeEditorTokenService,
     StoreThemeEditorAuthGuard,
+    CacheService,
   ],
   exports: [StoresService, StoreThemeEditorTokenService],
 })

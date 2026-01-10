@@ -1,6 +1,4 @@
 export enum NotificationSortBy {
-  SENTIMENT = 'sentiment',
-  CLASSIFICATION = 'classification',
   CREATED_AT = 'created_at',
 }
 

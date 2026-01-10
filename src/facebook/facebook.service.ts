@@ -408,22 +408,11 @@ export class FacebookService {
     });
 
     if (user) {
-      // Analyze the message content
-      const analysis = await this.textAnalysisService.analyzeText(
-        event.content,
-      );
-
       const newNotification = this.notificationRepo.create({
         content: event.content,
         type: event.type,
         user,
-        facebook_page: user.facebook_pages.find(
-          (page) => page.page_id === event.page_id,
-        ),
         sender_id: event.sender_id,
-        sentiment: analysis.sentiment,
-        classification: analysis.classification,
-        message_id: event.message_id,
       });
 
       await this.notificationRepo.save(newNotification);
@@ -439,25 +428,12 @@ export class FacebookService {
     });
 
     if (user) {
-      // Analyze the comment content
-      const analysis = await this.textAnalysisService.analyzeText(
-        event.content,
-      );
-
       const newNotification = this.notificationRepo.create({
         content: event.content,
         type: event.type,
         user,
-        facebook_page: user.facebook_pages.find(
-          (page) => page.page_id === event.page_id,
-        ),
         sender_id: event.sender_id,
         sender_name: event.sender_name,
-        sentiment: analysis.sentiment,
-        classification: analysis.classification,
-        comment_id: event.comment_id,
-        post_id: event.post_id,
-        permalink_url: event.post.permalink_url,
       });
 
       await this.notificationRepo.save(newNotification);

@@ -1,20 +1,26 @@
 import {
   Controller,
   Get,
+  Param,
+  Patch,
   Query,
   UseGuards,
-  Patch,
-  Param,
 } from '@nestjs/common';
 import { AuthGuard } from '@nestjs/passport';
 import {
   ApiBearerAuth,
+  ApiOkResponse,
   ApiOperation,
-  ApiQuery,
+  ApiParam,
   ApiTags,
 } from '@nestjs/swagger';
 import CONSTANTS from 'src/common/constants';
 import { AdminGuard } from '../guards/admin.guard';
+import {
+  AdminProductListResponseDto,
+  AdminProductsQueryDto,
+  AdminToggleProductStatusResponseDto,
+} from '../dto';
 import { AdminProductsService } from '../services/admin-products.service';
 
 @ApiTags('AdminProducts')
@@ -25,34 +31,47 @@ export class AdminProductsController {
   constructor(private readonly adminProductsService: AdminProductsService) {}
 
   @Get()
-  @ApiOperation({ summary: 'Get all products with pagination and filters' })
-  @ApiQuery({ name: 'page', required: false, type: Number, example: 1 })
-  @ApiQuery({ name: 'limit', required: false, type: Number, example: 10 })
-  @ApiQuery({ name: 'search', required: false, type: String })
-  @ApiQuery({ name: 'startDate', required: false, type: String })
-  @ApiQuery({ name: 'endDate', required: false, type: String })
-  @ApiQuery({ name: 'storeId', required: false, type: Number })
+  @ApiOperation({
+    summary: 'Get all products with pagination and filters',
+    description:
+      'Retrieves a paginated list of all products in the system with optional search, date, and store filters. Only accessible by admin users.',
+  })
+  @ApiOkResponse({
+    description: 'Successfully retrieved the list of products',
+    type: AdminProductListResponseDto,
+  })
   findAll(
-    @Query('page') page: number = 1,
-    @Query('limit') limit: number = 10,
-    @Query('search') search?: string,
-    @Query('startDate') startDate?: string,
-    @Query('endDate') endDate?: string,
-    @Query('storeId') storeId?: number,
-  ) {
+    @Query() query: AdminProductsQueryDto,
+  ): Promise<AdminProductListResponseDto> {
     return this.adminProductsService.findAll(
-      Number(page),
-      Number(limit),
-      search,
-      startDate,
-      endDate,
-      storeId ? Number(storeId) : undefined,
+      query.page ?? 1,
+      query.limit ?? 10,
+      query.search,
+      query.startDate,
+      query.endDate,
+      query.storeId,
     );
   }
 
   @Patch(':id/toggle-status')
-  @ApiOperation({ summary: 'Toggle product active status' })
-  toggleStatus(@Param('id') id: string) {
+  @ApiOperation({
+    summary: 'Toggle product active status',
+    description:
+      'Toggles the product active status. If the product is currently active, it will be deactivated. If inactive, it will be activated.',
+  })
+  @ApiParam({
+    name: 'id',
+    description: 'Product ID (Primary Key)',
+    example: '1',
+    type: Number,
+  })
+  @ApiOkResponse({
+    description: 'Successfully toggled product status',
+    type: AdminToggleProductStatusResponseDto,
+  })
+  toggleStatus(
+    @Param('id') id: string,
+  ): Promise<AdminToggleProductStatusResponseDto> {
     return this.adminProductsService.toggleStatus(id);
   }
 }

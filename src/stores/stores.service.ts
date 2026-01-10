@@ -6,6 +6,7 @@ import {
 import { InjectRepository } from '@nestjs/typeorm';
 import { Repository } from 'typeorm';
 
+import { CacheService, CACHE_KEYS, CACHE_TTL } from '../common/cache.service';
 import { Store } from './entities/store.entity';
 import { StoreTheme } from './entities/store-theme.entity';
 import {
@@ -29,6 +30,7 @@ export class StoresService {
     @InjectRepository(StoreTheme)
     private readonly storeThemeRepository: Repository<StoreTheme>,
     private readonly themeEditorTokenService: StoreThemeEditorTokenService,
+    private readonly cacheService: CacheService,
   ) {}
 
   // ==================== Nearby Store Search Methods ====================
@@ -148,32 +150,40 @@ export class StoresService {
   // ==================== Public Storefront Methods ====================
 
   /**
-   * Get public store data for storefront display
+   * Get public store data for storefront display (cached)
    */
   async getPublicStore(slug: string): Promise<Store> {
-    const store = await this.storeRepository.findOne({
-      where: { slug, is_open: true },
-      relations: ['owner', 'theme'],
-      select: {
-        id: true,
-        name: true,
-        slug: true,
-        description: true,
-        is_open: true,
-        address_text: true,
-        owner: {
-          id: true,
-          name: true,
-          phone: true,
-        },
+    const cacheKey = CACHE_KEYS.STORE_PUBLIC(slug);
+
+    return this.cacheService.getOrSet(
+      cacheKey,
+      CACHE_TTL.STORE_PUBLIC,
+      async () => {
+        const store = await this.storeRepository.findOne({
+          where: { slug, is_open: true },
+          relations: ['owner', 'theme'],
+          select: {
+            id: true,
+            name: true,
+            slug: true,
+            description: true,
+            is_open: true,
+            address_text: true,
+            owner: {
+              id: true,
+              name: true,
+              phone: true,
+            },
+          },
+        });
+
+        if (!store) {
+          throw new NotFoundException(`Store not found or is closed`);
+        }
+
+        return store;
       },
-    });
-
-    if (!store) {
-      throw new NotFoundException(`Store not found or is closed`);
-    }
-
-    return store;
+    );
   }
 
   /**
@@ -262,30 +272,52 @@ export class StoresService {
   }
 
   /**
-   * Get a store's theme by slug (for public storefront)
+   * Get a store's theme by slug (for public storefront, cached)
    */
   async getStoreThemeBySlug(
     slug: string,
     expectedStoreId?: number,
   ): Promise<StorefrontThemeConfig> {
-    const store = await this.storeRepository.findOne({
-      where: { slug },
-      select: ['id'],
-    });
+    // If expectedStoreId is provided, skip cache (editor mode)
+    if (expectedStoreId) {
+      const store = await this.storeRepository.findOne({
+        where: { slug },
+        select: ['id'],
+      });
 
-    if (!store) {
-      throw new NotFoundException(`Store with slug '${slug}' not found`);
+      if (!store) {
+        throw new NotFoundException(`Store with slug '${slug}' not found`);
+      }
+
+      if (store.id !== expectedStoreId) {
+        throw new ForbiddenException('Store ID mismatch');
+      }
+
+      return this.getStoreTheme(store.id);
     }
 
-    if (expectedStoreId && store.id !== expectedStoreId) {
-      throw new ForbiddenException('Store ID mismatch');
-    }
+    const cacheKey = CACHE_KEYS.STORE_THEME(slug);
 
-    return this.getStoreTheme(store.id);
+    return this.cacheService.getOrSet(
+      cacheKey,
+      CACHE_TTL.STORE_THEME,
+      async () => {
+        const store = await this.storeRepository.findOne({
+          where: { slug },
+          select: ['id'],
+        });
+
+        if (!store) {
+          throw new NotFoundException(`Store with slug '${slug}' not found`);
+        }
+
+        return this.getStoreTheme(store.id);
+      },
+    );
   }
 
   /**
-   * Update a store's theme by slug
+   * Update a store's theme by slug (invalidates cache)
    */
   async updateStoreThemeBySlug(
     slug: string,
@@ -305,7 +337,12 @@ export class StoresService {
       throw new ForbiddenException('Store ID mismatch');
     }
 
-    return this.updateStoreTheme(store.id, config);
+    const result = await this.updateStoreTheme(store.id, config);
+
+    // Invalidate store caches after theme update
+    await this.cacheService.invalidateStore(slug);
+
+    return result;
   }
 
   // ==================== Owner-Scoped Methods ====================
@@ -370,10 +407,7 @@ export class StoresService {
   /**
    * Find a specific store for a user (with ownership verification)
    */
-  async findOneForOwner(
-    userId: number,
-    storeId: number,
-  ): Promise<Store> {
+  async findOneForOwner(userId: number, storeId: number): Promise<Store> {
     const store = await this.storeRepository.findOne({
       where: { id: storeId, owner_user_id: userId },
       relations: ['owner', 'theme', 'category'],
@@ -387,7 +421,7 @@ export class StoresService {
   }
 
   /**
-   * Update a store for a user (with ownership verification)
+   * Update a store for a user (with ownership verification, invalidates cache)
    */
   async updateForOwner(
     userId: number,
@@ -405,6 +439,7 @@ export class StoresService {
     }>,
   ): Promise<Store> {
     const store = await this.findOneForOwner(userId, storeId);
+    const oldSlug = store.slug;
 
     // Build location WKT if coordinates provided
     if (data.longitude !== undefined && data.latitude !== undefined) {
@@ -414,88 +449,111 @@ export class StoresService {
     delete data.latitude;
 
     Object.assign(store, data);
-    return this.storeRepository.save(store);
+    const updated = await this.storeRepository.save(store);
+
+    // Invalidate store caches (old slug if changed, always new slug)
+    await this.cacheService.invalidateStore(oldSlug);
+    if (data.slug && data.slug !== oldSlug) {
+      await this.cacheService.invalidateStore(data.slug);
+    }
+
+    return updated;
   }
 
   // ==================== Public Product Methods ====================
 
   /**
-   * Get products for a public store
+   * Get products for a public store (cached)
    */
   async getPublicStoreProducts(
     slug: string,
     query: { page?: number; limit?: number; keyword?: string },
   ) {
-    const store = await this.storeRepository.findOne({
-      where: { slug, is_open: true },
-      select: ['id'],
-    });
-
-    if (!store) {
-      throw new NotFoundException('Store not found or is closed');
-    }
-
     const { page = 1, limit = 10, keyword } = query;
-    const skip = (page - 1) * limit;
+    const cacheKey = CACHE_KEYS.STORE_PRODUCTS(slug, page, limit, keyword);
 
-    // Use query builder for product search
-    const qb = this.storeRepository.manager
-      .createQueryBuilder()
-      .select('product')
-      .from('products', 'product')
-      .leftJoinAndSelect('product.variants', 'variants')
-      .where('product.store_id = :storeId', { storeId: store.id })
-      .andWhere('product.is_active = :isActive', { isActive: true })
-      .orderBy('product.created_at', 'DESC')
-      .skip(skip)
-      .take(limit);
+    return this.cacheService.getOrSet(
+      cacheKey,
+      CACHE_TTL.STORE_PRODUCTS,
+      async () => {
+        const store = await this.storeRepository.findOne({
+          where: { slug, is_open: true },
+          select: ['id'],
+        });
 
-    if (keyword) {
-      qb.andWhere('product.name ILIKE :keyword', { keyword: `%${keyword}%` });
-    }
+        if (!store) {
+          throw new NotFoundException('Store not found or is closed');
+        }
 
-    const [items, total] = await qb.getManyAndCount();
+        const skip = (page - 1) * limit;
 
-    return {
-      total,
-      page,
-      limit,
-      last_page: Math.ceil(total / limit),
-      items,
-    };
+        // Use query builder for product search
+        const qb = this.storeRepository.manager
+          .createQueryBuilder()
+          .select('product')
+          .from('products', 'product')
+          .leftJoinAndSelect('product.variants', 'variants')
+          .where('product.store_id = :storeId', { storeId: store.id })
+          .andWhere('product.is_active = :isActive', { isActive: true })
+          .orderBy('product.created_at', 'DESC')
+          .skip(skip)
+          .take(limit);
+
+        if (keyword) {
+          qb.andWhere('product.name ILIKE :keyword', {
+            keyword: `%${keyword}%`,
+          });
+        }
+
+        const [items, total] = await qb.getManyAndCount();
+
+        return {
+          total,
+          page,
+          limit,
+          last_page: Math.ceil(total / limit),
+          items,
+        };
+      },
+    );
   }
 
   /**
-   * Get a single product for a public store
+   * Get a single product for a public store (cached)
    */
-  async getPublicStoreProduct(
-    slug: string,
-    productSlug: string,
-  ) {
-    const store = await this.storeRepository.findOne({
-      where: { slug, is_open: true },
-      select: ['id'],
-    });
+  async getPublicStoreProduct(slug: string, productSlug: string) {
+    const cacheKey = CACHE_KEYS.STORE_PRODUCT(slug, productSlug);
 
-    if (!store) {
-      throw new NotFoundException('Store not found or is closed');
-    }
+    return this.cacheService.getOrSet(
+      cacheKey,
+      CACHE_TTL.STORE_PRODUCT,
+      async () => {
+        const store = await this.storeRepository.findOne({
+          where: { slug, is_open: true },
+          select: ['id'],
+        });
 
-    const product = await this.storeRepository.manager
-      .createQueryBuilder()
-      .select('product')
-      .from('products', 'product')
-      .leftJoinAndSelect('product.variants', 'variants')
-      .where('product.store_id = :storeId', { storeId: store.id })
-      .andWhere('product.slug = :productSlug', { productSlug })
-      .andWhere('product.is_active = :isActive', { isActive: true })
-      .getOne();
+        if (!store) {
+          throw new NotFoundException('Store not found or is closed');
+        }
 
-    if (!product) {
-      throw new NotFoundException('Product not found');
-    }
+        const product = await this.storeRepository.manager
+          .createQueryBuilder()
+          .select('product')
+          .from('products', 'product')
+          .leftJoinAndSelect('product.variants', 'variants')
+          .where('product.store_id = :storeId', { storeId: store.id })
+          .andWhere('product.slug = :productSlug', { productSlug })
+          .andWhere('product.is_active = :isActive', { isActive: true })
+          .getOne();
 
-    return product;
+        if (!product) {
+          throw new NotFoundException('Product not found');
+        }
+
+        return product;
+      },
+    );
   }
 
   // ==================== Private Helpers ====================
@@ -525,8 +583,7 @@ export class StoresService {
    * Build the theme editor preview URL
    */
   private buildThemeEditorUrl(slug: string, token: string): string {
-    const baseUrl =
-      process.env.STOREFRONT_BASE_URL || 'http://localhost:3001';
+    const baseUrl = process.env.STOREFRONT_BASE_URL || 'http://localhost:3000';
     return `${baseUrl}/${slug}/preview?token=${token}`;
   }
 }

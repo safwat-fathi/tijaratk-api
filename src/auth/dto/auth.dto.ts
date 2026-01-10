@@ -7,6 +7,7 @@ import {
   MinLength,
 } from 'class-validator';
 import { ApiProperty, ApiPropertyOptional } from '@nestjs/swagger';
+import { IsPhoneNumberIntl } from 'src/common/validators/is-phone-number.validator';
 
 // ==================== Admin Auth DTOs ====================
 
@@ -14,17 +15,36 @@ import { ApiProperty, ApiPropertyOptional } from '@nestjs/swagger';
  * Admin signup - email + password (manual creation only)
  */
 export class AdminSignupDto {
-  @ApiProperty({ example: 'admin@tijaratk.com' })
+  @ApiProperty({
+    description: 'Admin phone number in international format (E.164)',
+    example: '+201234567890',
+  })
+  @IsString()
+  @IsNotEmpty()
+  @IsPhoneNumberIntl({ allowedCountries: ['SA', 'EG'] })
+  phone: string;
+
+  @ApiProperty({
+    description: 'Admin email address',
+    example: 'admin@tijaratk.com',
+  })
   @IsEmail()
   email: string;
 
-  @ApiProperty({ example: 'securepassword123' })
+  @ApiProperty({
+    description: 'Admin password (minimum 8 characters)',
+    example: 'SecureP@ss123',
+    minLength: 8,
+  })
   @IsString()
   @IsNotEmpty()
   @MinLength(8)
   password: string;
 
-  @ApiPropertyOptional({ example: 'Admin' })
+  @ApiPropertyOptional({
+    description: 'Admin display name',
+    example: 'أحمد المدير',
+  })
   @IsString()
   @IsOptional()
   name?: string;
@@ -34,11 +54,17 @@ export class AdminSignupDto {
  * Admin login - email + password
  */
 export class AdminLoginDto {
-  @ApiProperty({ example: 'admin@tijaratk.com' })
+  @ApiProperty({
+    description: 'Admin email address',
+    example: 'admin@tijaratk.com',
+  })
   @IsEmail()
   email: string;
 
-  @ApiProperty({ example: 'securepassword123' })
+  @ApiProperty({
+    description: 'Admin password',
+    example: 'SecureP@ss123',
+  })
   @IsString()
   @IsNotEmpty()
   password: string;
@@ -50,10 +76,13 @@ export class AdminLoginDto {
  * Request OTP for merchant login/signup (login == signup)
  */
 export class RequestOtpDto {
-  @ApiProperty({ example: '+201234567890' })
+  @ApiProperty({
+    description: 'Admin phone number in international format (E.164)',
+    example: '+201234567890',
+  })
   @IsString()
   @IsNotEmpty()
-  @Matches(/^\+?[1-9]\d{1,14}$/, { message: 'Invalid phone number format' })
+  @IsPhoneNumberIntl({ allowedCountries: ['SA', 'EG'] })
   phone: string;
 }
 
@@ -61,12 +90,20 @@ export class RequestOtpDto {
  * Verify OTP and complete login/signup
  */
 export class VerifyOtpDto {
-  @ApiProperty({ example: '+201234567890' })
+  @ApiProperty({
+    description: 'Admin phone number in international format (E.164)',
+    example: '+201234567890',
+  })
   @IsString()
   @IsNotEmpty()
+  @IsPhoneNumberIntl({ allowedCountries: ['SA', 'EG'] })
   phone: string;
 
-  @ApiProperty({ example: '123456' })
+  @ApiProperty({
+    description: 'OTP code received via SMS/WhatsApp',
+    example: '123456',
+    minLength: 4,
+  })
   @IsString()
   @IsNotEmpty()
   @MinLength(4)
@@ -77,12 +114,18 @@ export class VerifyOtpDto {
  * Complete merchant profile after first OTP verification
  */
 export class CompleteMerchantProfileDto {
-  @ApiProperty({ example: 'Mohamed Store' })
+  @ApiProperty({
+    description: 'Store/Business name',
+    example: 'متجر محمد للأزياء',
+  })
   @IsString()
   @IsNotEmpty()
   name: string;
 
-  @ApiPropertyOptional({ example: 'mohamed@example.com' })
+  @ApiPropertyOptional({
+    description: 'Merchant email address for notifications',
+    example: 'merchant@example.com',
+  })
   @IsEmail()
   @IsOptional()
   email?: string;
@@ -94,7 +137,11 @@ export class CompleteMerchantProfileDto {
  * Refresh token request
  */
 export class RefreshDto {
-  @ApiProperty()
+  @ApiProperty({
+    description: 'JWT refresh token',
+    example:
+      'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJzdWIiOjEsInBob25lIjoiKzk2NjUwMTIzNDU2NyIsImlhdCI6MTcwNDExOTYwMCwiZXhwIjoxNzA0NzI0NDAwfQ.example_signature',
+  })
   @IsNotEmpty()
   refresh_token: string;
 }
