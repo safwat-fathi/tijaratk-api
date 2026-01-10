@@ -4,12 +4,17 @@ import {
   NotFoundException,
 } from '@nestjs/common';
 import { InjectRepository } from '@nestjs/typeorm';
+import * as crypto from 'crypto';
 import { Repository } from 'typeorm';
 
-import { CacheService, CACHE_KEYS, CACHE_TTL } from '../common/cache.service';
+import { CACHE_KEYS, CACHE_TTL, CacheService } from '../common/cache.service';
 import { generateUniqueSlug } from '../common/utils/slug.utils';
+import { Order, OrderStatus } from '../orders/entities/order.entity';
+import { Product } from '../products/entities/product.entity';
+import { StoreStatsResponseDto } from './dto/store-stats.dto';
 import { Store } from './entities/store.entity';
 import { StoreTheme } from './entities/store-theme.entity';
+import { StoreVisit } from './entities/store-visit.entity';
 import {
   STORE_THEME_EDITOR_SCOPE,
   StoreThemeEditorTokenService,
@@ -30,6 +35,12 @@ export class StoresService {
     private readonly storeRepository: Repository<Store>,
     @InjectRepository(StoreTheme)
     private readonly storeThemeRepository: Repository<StoreTheme>,
+    @InjectRepository(StoreVisit)
+    private readonly storeVisitRepository: Repository<StoreVisit>,
+    @InjectRepository(Order)
+    private readonly orderRepository: Repository<Order>,
+    @InjectRepository(Product)
+    private readonly productRepository: Repository<Product>,
     private readonly themeEditorTokenService: StoreThemeEditorTokenService,
     private readonly cacheService: CacheService,
   ) {}
@@ -547,7 +558,126 @@ export class StoresService {
     );
   }
 
-  // ==================== Private Helpers ====================
+  // ==================== Dashboard Stats Methods ====================
+
+  /**
+   * Get dashboard statistics for a store
+   * @param storeId Store ID
+   * @param userId Owner user ID (for verification)
+   */
+  async getStoreStats(
+    storeId: number,
+    userId: number,
+  ): Promise<StoreStatsResponseDto> {
+    // Verify ownership first (not cached)
+    const store = await this.storeRepository.findOne({
+      where: { id: storeId, owner_user_id: userId },
+      select: ['id'],
+    });
+
+    if (!store) {
+      throw new NotFoundException('Store not found');
+    }
+
+    // Use caching for the actual stats
+    const cacheKey = CACHE_KEYS.STORE_STATS(storeId);
+
+    return this.cacheService.getOrSet(
+      cacheKey,
+      CACHE_TTL.STORE_STATS,
+      async () => {
+        // Get store visits count
+        const storeVisits = await this.storeVisitRepository.count({
+          where: { store_id: storeId },
+        });
+
+        // Get order statistics
+        const totalOrders = await this.orderRepository.count({
+          where: { store_id: String(storeId) },
+        });
+
+        const newOrders = await this.orderRepository.count({
+          where: { store_id: String(storeId), status: OrderStatus.PENDING },
+        });
+
+        // Incomplete = not completed and not cancelled
+        const incompleteOrders = await this.orderRepository.count({
+          where: [
+            { store_id: String(storeId), status: OrderStatus.PENDING },
+            { store_id: String(storeId), status: OrderStatus.CONFIRMED },
+            { store_id: String(storeId), status: OrderStatus.SHIPPED },
+          ],
+        });
+
+        // Get total sales from completed orders
+        const salesResult = await this.orderRepository
+          .createQueryBuilder('order')
+          .select('COALESCE(SUM(order.total_amount), 0)', 'total')
+          .where('order.store_id = :storeId', { storeId: String(storeId) })
+          .andWhere('order.status = :status', { status: OrderStatus.COMPLETED })
+          .getRawOne();
+
+        const totalSales = parseFloat(salesResult?.total) || 0;
+
+        // Get products count
+        const productsCount = await this.productRepository.count({
+          where: { store_id: String(storeId), is_active: true },
+        });
+
+        return {
+          store_visits: storeVisits,
+          total_orders: totalOrders,
+          new_orders: newOrders,
+          incomplete_orders: incompleteOrders,
+          total_sales: totalSales,
+          products_count: productsCount,
+        };
+      },
+    );
+  }
+
+  /**
+   * Record a store visit (for analytics)
+   * @param slug Store slug
+   * @param visitorInfo Visitor information
+   */
+  async recordStoreVisit(
+    slug: string,
+    visitorInfo: {
+      ip?: string;
+      userAgent?: string;
+      referer?: string;
+    },
+  ): Promise<void> {
+    const store = await this.storeRepository.findOne({
+      where: { slug, is_open: true },
+      select: ['id'],
+    });
+
+    if (!store) {
+      // Silently fail if store doesn't exist
+      return;
+    }
+
+    // Hash IP for privacy
+    let visitorIpHash: string | undefined;
+    if (visitorInfo.ip) {
+      visitorIpHash = crypto
+        .createHash('sha256')
+        .update(visitorInfo.ip)
+        .digest('hex')
+        .substring(0, 64);
+    }
+
+    const visit = this.storeVisitRepository.create({
+      store_id: store.id,
+      visitor_ip_hash: visitorIpHash,
+      user_agent: visitorInfo.userAgent,
+      referer: visitorInfo.referer,
+    });
+
+    await this.storeVisitRepository.save(visit);
+  }
 
   /**
    * Merge provided theme config with defaults.

@@ -1,4 +1,14 @@
-import { Controller, Get, Param, Query } from '@nestjs/common';
+import {
+  Controller,
+  Get,
+  Headers,
+  HttpCode,
+  HttpStatus,
+  Ip,
+  Param,
+  Post,
+  Query,
+} from '@nestjs/common';
 import {
   ApiNotFoundResponse,
   ApiOkResponse,
@@ -104,5 +114,31 @@ export class StoresPublicController {
     @Param('productSlug') productSlug: string,
   ) {
     return this.storesService.getPublicStoreProduct(slug, productSlug);
+  }
+
+  @Post(':slug/visit')
+  @HttpCode(HttpStatus.NO_CONTENT)
+  @ApiOperation({
+    summary: 'Record a store visit',
+    description:
+      'Records a page visit for analytics. Called by the storefront when a user visits the store page.',
+  })
+  @ApiParam({
+    name: 'slug',
+    description: 'Store slug (URL-friendly identifier)',
+    example: 'fashion-store',
+    type: String,
+  })
+  async recordVisit(
+    @Param('slug') slug: string,
+    @Ip() ip: string,
+    @Headers('user-agent') userAgent?: string,
+    @Headers('referer') referer?: string,
+  ): Promise<void> {
+    await this.storesService.recordStoreVisit(slug, {
+      ip,
+      userAgent,
+      referer,
+    });
   }
 }

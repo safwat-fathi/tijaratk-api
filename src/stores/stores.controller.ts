@@ -29,12 +29,13 @@ import CONSTANTS from 'src/common/constants';
 
 import { CheckSlugDto } from './dto/check-slug.dto';
 import { CreateStoreDto } from './dto/create-store.dto';
-import { UpdateStoreDto } from './dto/update-store.dto';
 import {
   CheckSlugResponseDto,
   StoreResponseDto,
   ThemeEditorSessionResponseDto,
 } from './dto/store-response.dto';
+import { StoreStatsResponseDto } from './dto/store-stats.dto';
+import { UpdateStoreDto } from './dto/update-store.dto';
 import { StoresService } from './stores.service';
 
 /**
@@ -203,5 +204,34 @@ export class StoresController {
     const userId = (req.user as any).id;
     return this.storesService.createThemeEditorSession(userId, id);
   }
-}
 
+  @Get(':id/stats')
+  @ApiOperation({
+    summary: 'Get dashboard statistics for a store',
+    description:
+      'Retrieves counter statistics for the merchant dashboard, including store visits, orders, sales, and products count.',
+  })
+  @ApiParam({
+    name: 'id',
+    description: 'Store ID',
+    example: 1,
+    type: Number,
+  })
+  @ApiOkResponse({
+    description: 'Dashboard counter statistics',
+    type: StoreStatsResponseDto,
+  })
+  @ApiNotFoundResponse({
+    description: 'Store not found',
+  })
+  @ApiUnauthorizedResponse({
+    description: 'Unauthorized - valid JWT required',
+  })
+  getStats(
+    @Req() req: Request,
+    @Param('id', ParseIntPipe) id: number,
+  ): Promise<StoreStatsResponseDto> {
+    const userId = (req.user as any).id;
+    return this.storesService.getStoreStats(id, userId);
+  }
+}

@@ -1,4 +1,4 @@
-import { CACHE_MANAGER, Cache } from '@nestjs/cache-manager';
+import { Cache, CACHE_MANAGER } from '@nestjs/cache-manager';
 import { Inject, Injectable, Logger } from '@nestjs/common';
 
 /**
@@ -15,6 +15,7 @@ export const CACHE_KEYS = {
   ) => `store:products:${slug}:${page}:${limit}:${keyword || ''}`,
   STORE_PRODUCT: (storeSlug: string, productSlug: string) =>
     `store:product:${storeSlug}:${productSlug}`,
+  STORE_STATS: (storeId: number) => `store:stats:${storeId}`,
 } as const;
 
 /**
@@ -25,6 +26,7 @@ export const CACHE_TTL = {
   STORE_THEME: 10 * 60 * 1000, // 10 minutes
   STORE_PRODUCTS: 2 * 60 * 1000, // 2 minutes
   STORE_PRODUCT: 5 * 60 * 1000, // 5 minutes
+  STORE_STATS: 1 * 60 * 1000, // 1 minute (shorter for real-time stats)
 } as const;
 
 /**
@@ -87,11 +89,12 @@ export class CacheService {
   /**
    * Invalidate a specific product cache.
    */
-  async invalidateProduct(storeSlug: string, productSlug: string): Promise<void> {
+  async invalidateProduct(
+    storeSlug: string,
+    productSlug: string,
+  ): Promise<void> {
     await this.del(CACHE_KEYS.STORE_PRODUCT(storeSlug, productSlug));
-    this.logger.debug(
-      `Invalidated product cache: ${storeSlug}/${productSlug}`,
-    );
+    this.logger.debug(`Invalidated product cache: ${storeSlug}/${productSlug}`);
   }
 
   /**
