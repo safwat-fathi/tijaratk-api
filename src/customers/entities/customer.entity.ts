@@ -3,7 +3,10 @@ import {
   CreateDateColumn,
   Entity,
   Index,
+  JoinColumn,
+  ManyToOne,
   OneToMany,
+  PrimaryColumn,
   PrimaryGeneratedColumn,
   Relation,
 } from 'typeorm';
@@ -12,8 +15,16 @@ import type { CustomOrderRequest } from '../../orders/entities/custom-order-requ
 
 @Entity('customers')
 export class Customer {
+  @PrimaryColumn()
+  user_id: number;
+
+  @Index({ unique: true })
   @PrimaryGeneratedColumn()
   id: number;
+
+  @ManyToOne('User', { onDelete: 'CASCADE' })
+  @JoinColumn({ name: 'user_id' })
+  user: Relation<any>;
 
   @Column({ type: 'varchar', length: 120, nullable: true })
   name: string;

@@ -2,13 +2,13 @@ import {
   Column,
   CreateDateColumn,
   Entity,
-  Index,
   JoinColumn,
   ManyToOne,
   PrimaryGeneratedColumn,
   Relation,
+  Index,
+  UpdateDateColumn,
 } from 'typeorm';
-
 import { Store } from './store.entity';
 
 /**
@@ -47,4 +47,7 @@ export class StoreVisit {
   @Index()
   @CreateDateColumn()
   created_at: Date;
+
+  @UpdateDateColumn()
+  updated_at: Date;
 }

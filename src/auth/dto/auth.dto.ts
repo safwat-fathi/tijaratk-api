@@ -43,7 +43,7 @@ export class AdminSignupDto {
 
   @ApiPropertyOptional({
     description: 'Admin display name',
-    example: 'أحمد المدير',
+    example: 'Safwat',
   })
   @IsString()
   @IsOptional()
