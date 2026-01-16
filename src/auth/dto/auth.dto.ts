@@ -8,6 +8,8 @@ import {
 } from 'class-validator';
 import { ApiProperty, ApiPropertyOptional } from '@nestjs/swagger';
 import { IsPhoneNumberIntl } from 'src/common/validators/is-phone-number.validator';
+import { UserStatus } from 'src/users/entities/user.entity';
+import { UserRole } from 'src/common/enums/user-role.enum';
 
 // ==================== Admin Auth DTOs ====================
 
@@ -70,7 +72,96 @@ export class AdminLoginDto {
   password: string;
 }
 
-// ==================== Merchant Auth DTOs (OTP-based) ====================
+// ==================== Merchant Auth DTOs (Password-based) ====================
+
+export class AuthenticatedUser {
+  @ApiProperty()
+  id: number;
+
+  @ApiProperty()
+  phone: string;
+
+  @ApiProperty({ required: false })
+  email?: string;
+
+  @ApiProperty({ required: false })
+  name?: string;
+
+  @ApiProperty({ enum: UserStatus })
+  status: UserStatus;
+
+  @ApiProperty({ required: false })
+  subscription?: any;
+
+  @ApiProperty({ enum: UserRole, isArray: true })
+  global_roles: UserRole[];
+
+  @ApiProperty({ isArray: true, type: String })
+  permissions: string[];
+}
+
+/**
+ * Merchant signup - Password based
+ */
+export class MerchantSignupDto {
+  @ApiProperty({
+    description: 'Merchant full name',
+    example: 'Mohamed Ahmed',
+  })
+  @IsString()
+  @IsNotEmpty()
+  name: string;
+
+  @ApiProperty({
+    description: 'Merchant phone number in international format (E.164)',
+    example: '+201234567890',
+  })
+  @IsString()
+  @IsNotEmpty()
+  @IsPhoneNumberIntl({ allowedCountries: ['SA', 'EG'] })
+  phone: string;
+
+  @ApiProperty({
+    description: 'Merchant email address',
+    example: 'merchant@example.com',
+  })
+  @IsEmail()
+  email: string;
+
+  @ApiProperty({
+    description: 'Password (minimum 8 characters)',
+    example: 'SecureP@ss123',
+    minLength: 8,
+  })
+  @IsString()
+  @IsNotEmpty()
+  @MinLength(8)
+  password: string;
+}
+
+/**
+ * Merchant login - Password based
+ */
+export class MerchantLoginDto {
+  @ApiProperty({
+    description: 'Merchant phone number',
+    example: '+201234567890',
+  })
+  @IsString()
+  @IsNotEmpty()
+  @IsPhoneNumberIntl({ allowedCountries: ['SA', 'EG'] })
+  phone: string;
+
+  @ApiProperty({
+    description: 'Password',
+    example: 'SecureP@ss123',
+  })
+  @IsString()
+  @IsNotEmpty()
+  password: string;
+}
+
+// ==================== Merchant Auth DTOs (OTP-based - Legacy/Alternative) ====================
 
 /**
  * Request OTP for merchant login/signup (login == signup)

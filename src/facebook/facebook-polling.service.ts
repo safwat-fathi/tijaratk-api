@@ -32,39 +32,41 @@ export class FacebookPollingService {
     });
   }
 
-  @OnEvent(Events.USER_LOGGED_OUT)
-  async handleUserLogoutEvent(payload: UserLoginEvent) {
-    this.logger.debug(
-      `Received ${Events.USER_LOGGED_OUT} event for userId=${payload.userId}`,
-    );
+  // Facebook integration disabled
+  // @OnEvent(Events.USER_LOGGED_OUT)
+  // async handleUserLogoutEvent(payload: UserLoginEvent) {
+  //   this.logger.debug(
+  //     `Received ${Events.USER_LOGGED_OUT} event for userId=${payload.userId}`,
+  //   );
 
-    const intervalId = this.pollingIntervals.get(payload.userId);
-    if (intervalId) {
-      clearInterval(intervalId);
-      this.pollingIntervals.delete(payload.userId);
-      this.logger.debug(
-        `Cleared polling interval for userId=${payload.userId}`,
-      );
-    }
-  }
+  //   const intervalId = this.pollingIntervals.get(payload.userId);
+  //   if (intervalId) {
+  //     clearInterval(intervalId);
+  //     this.pollingIntervals.delete(payload.userId);
+  //     this.logger.debug(
+  //       `Cleared polling interval for userId=${payload.userId}`,
+  //     );
+  //   }
+  // }
 
-  @OnEvent(Events.USER_LOGGED_IN)
-  async handleUserLoginEvent(payload: UserLoginEvent) {
-    this.logger.debug(
-      `Received user.logged_in event for userId=${payload.userId}`,
-    );
-    await this.pollFacebookFeed(payload.userId);
+  // Facebook integration disabled
+  // @OnEvent(Events.USER_LOGGED_IN)
+  // async handleUserLoginEvent(payload: UserLoginEvent) {
+  //   this.logger.debug(
+  //     `Received user.logged_in event for userId=${payload.userId}`,
+  //   );
+  //   await this.pollFacebookFeed(payload.userId);
 
-    if (!this.pollingIntervals.has(payload.userId)) {
-      const intervalId = setInterval(
-        () => {
-          this.pollFacebookFeed(payload.userId);
-        },
-        5 * 60 * 1000,
-      ); // 5 minutes
-      this.pollingIntervals.set(payload.userId, intervalId);
-    }
-  }
+  //   if (!this.pollingIntervals.has(payload.userId)) {
+  //     const intervalId = setInterval(
+  //       () => {
+  //         this.pollFacebookFeed(payload.userId);
+  //       },
+  //       5 * 60 * 1000,
+  //     ); // 5 minutes
+  //     this.pollingIntervals.set(payload.userId, intervalId);
+  //   }
+  // }
 
   async pollFacebookFeed(userId: number) {
     this.logger.debug('Polling Facebook Graph API (using HttpService)...');

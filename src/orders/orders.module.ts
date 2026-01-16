@@ -33,9 +33,9 @@ import { CustomOrdersController } from './custom-orders.controller';
     ]),
   ],
   controllers: [
-    // OrdersController,
+    OrdersController,
     OrdersPublicController,
-    // CustomOrdersController,
+    CustomOrdersController,
   ],
   providers: [OrdersService, CustomOrdersService],
   exports: [OrdersService, CustomOrdersService],

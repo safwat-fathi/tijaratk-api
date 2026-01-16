@@ -9,16 +9,31 @@ import { ProductVariant } from 'src/products/entities/product-variant.entity';
 import { Product } from 'src/products/entities/product.entity';
 import { Store } from 'src/stores/entities/store.entity';
 import { WhatsappService } from 'src/whatsapp/whatsapp.service';
-import { FindOptionsWhere, In, Repository } from 'typeorm';
-import { CreateOrderDto } from './dto/create-order.dto'; // Need to update DTO too!
+import {
+  FindOptionsOrder,
+  FindOptionsWhere,
+  Between,
+  Like,
+  MoreThanOrEqual,
+  LessThanOrEqual,
+  Repository,
+  In,
+} from 'typeorm';
+import { CreateOrderDto } from './dto/create-order.dto';
 import { OrderItem } from './entities/order-item.entity';
-import { OrderLink } from './entities/order-link.entity'; // Import OrderLink
+import { OrderLink } from './entities/order-link.entity';
 import {
   Order,
   OrderSource,
   OrderStatus,
   PaymentStatus,
 } from './entities/order.entity';
+import { ListOrdersDto } from './dto/list-orders.dto';
+import { UpdateOrderStatusDto } from './dto/update-order-status.dto';
+import { UpdatePaymentStatusDto } from './dto/update-payment-status.dto';
+import { UpdateOrderTrackingDto } from './dto/update-order-tracking.dto';
+import { UpdateOrderNotesDto } from './dto/update-order-notes.dto';
+import { SortOrder } from 'src/common/enums/sort.enums';
 
 @Injectable()
 export class OrdersService {
@@ -197,10 +212,118 @@ export class OrdersService {
     };
   }
 
-  // Legacy methods commented out for now or need refactor
-  /*
-  async getPublicOrder(orderId: number) { ... }
-  async findForStorefrontOwner(...) { ... }
-  */
+  async findAll(storeId: number, dto: ListOrdersDto) {
+    const {
+      status,
+      buyer_name,
+      buyer_phone,
+      buyer_email,
+      created_from,
+      created_to,
+      sort_by = 'created_at',
+      sort_order = SortOrder.DESC,
+      page,
+      limit,
+    } = dto;
+
+    const where: FindOptionsWhere<Order> = {
+      store: { id: storeId },
+    };
+
+    if (status) {
+      where.status = status;
+    }
+    if (buyer_name) {
+      where.buyer_name = Like(`%${buyer_name}%`);
+    }
+    if (buyer_phone) {
+      where.buyer_phone = Like(`%${buyer_phone}%`);
+    }
+    if (buyer_email) {
+      where.buyer_email = Like(`%${buyer_email}%`);
+    }
+    if (created_from && created_to) {
+      where.created_at = Between(created_from, created_to);
+    } else if (created_from) {
+      where.created_at = MoreThanOrEqual(created_from);
+    } else if (created_to) {
+      where.created_at = LessThanOrEqual(created_to);
+    }
+
+    const order: FindOptionsOrder<Order> = {};
+    if (sort_by) {
+      order[sort_by] = sort_order;
+    }
+
+    const [items, total] = await this.orderRepo.findAndCount({
+      where,
+      order,
+      take: limit,
+      skip: (page - 1) * limit,
+      relations: { items: { product: true }, customer: true },
+    });
+
+    return {
+      items,
+      total,
+      page,
+      limit,
+      last_page: Math.ceil(total / limit),
+    };
+  }
+
+  async findOne(id: number, storeId: number) {
+    const order = await this.orderRepo.findOne({
+      where: { id, store: { id: storeId } },
+      relations: {
+        items: { product: true, variant: true },
+        customer: true,
+      },
+    });
+
+    if (!order) {
+      throw new NotFoundException(`Order #${id} not found`);
+    }
+    return order;
+  }
+
+  async updateStatus(id: number, storeId: number, dto: UpdateOrderStatusDto) {
+    const order = await this.findOne(id, storeId);
+    order.status = dto.status;
+    return this.orderRepo.save(order);
+  }
+
+  async updateTracking(
+    id: number,
+    storeId: number,
+    dto: UpdateOrderTrackingDto,
+  ) {
+    const order = await this.findOne(id, storeId);
+    if (dto.tracking_number) {
+      order.tracking_number = dto.tracking_number;
+    }
+
+    if (dto.tracking_number && order.status === OrderStatus.PENDING) {
+      order.status = OrderStatus.SHIPPED;
+    }
+
+    return this.orderRepo.save(order);
+  }
+
+  async updateNotes(id: number, storeId: number, dto: UpdateOrderNotesDto) {
+    const order = await this.findOne(id, storeId);
+    order.internal_notes = dto.internal_notes;
+    return this.orderRepo.save(order);
+  }
+
+  async updatePaymentStatus(
+    id: number,
+    storeId: number,
+    dto: UpdatePaymentStatusDto,
+  ) {
+    const order = await this.findOne(id, storeId);
+    order.payment_status = dto.status;
+    return this.orderRepo.save(order);
+  }
 }
 

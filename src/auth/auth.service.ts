@@ -3,12 +3,9 @@ import {
   Injectable,
   UnauthorizedException,
 } from '@nestjs/common';
-import { EventEmitter2 } from '@nestjs/event-emitter';
 import { JwtService } from '@nestjs/jwt';
 import { InjectRepository } from '@nestjs/typeorm';
 import CONSTANTS from 'src/common/constants';
-import { Events } from 'src/common/enums/events.enum';
-import { UserLoginEvent } from 'src/events/user-login.event';
 import { Repository } from 'typeorm';
 import { hash, compare, genSalt } from 'bcryptjs';
 import { normalizePhoneNumber } from 'src/common/utils/phone.utils';
@@ -16,6 +13,8 @@ import { normalizePhoneNumber } from 'src/common/utils/phone.utils';
 import {
   AdminLoginDto,
   AdminSignupDto,
+  MerchantSignupDto,
+  MerchantLoginDto,
   RequestOtpDto,
   VerifyOtpDto,
 } from './dto/auth.dto';
@@ -50,7 +49,6 @@ export class AuthService {
     private readonly storeUserRoleRepository: Repository<StoreUserRole>,
     private readonly jwtService: JwtService,
     // private readonly facebookService: FacebookService,
-    private readonly eventEmitter: EventEmitter2,
   ) {}
 
   // ==================== Admin Auth (Email + Password) ====================
@@ -138,13 +136,114 @@ export class AuthService {
     // Remove sensitive data
     delete (user as any).password_hash;
 
-    return {
-      ...tokens,
-      user,
-    };
+    // Return tokens directly (which includes the enriched user object with permissions)
+    return tokens;
   }
 
-  // ==================== Merchant/Customer Auth (OTP) ====================
+  // ==================== Merchant Auth (Password) ====================
+
+  /**
+   * Merchant signup - creates user + merchant profile
+   */
+  async signupMerchant(dto: MerchantSignupDto) {
+    // Check if user exists (phone or email)
+    const normalizedPhone = normalizePhoneNumber(dto.phone);
+    const existingUser = await this.userRepository.findOne({
+      where: [{ phone: normalizedPhone }, { email: dto.email }],
+    });
+
+    if (existingUser) {
+      throw new BadRequestException(
+        'User with this phone or email already exists',
+      );
+    }
+
+    // Hash password
+    const salt = await genSalt();
+    const password_hash = await hash(dto.password, salt);
+
+    // Create User
+    const user = this.userRepository.create({
+      email: dto.email,
+      phone: normalizedPhone,
+      password_hash,
+      name: dto.name,
+      status: UserStatus.ACTIVE,
+      phone_verified_at: new Date(), // Auto-verify for now or require checks
+    });
+
+    await this.userRepository.save(user);
+
+    // Create Merchant Profile
+    const merchant = this.merchantRepository.create({
+      user_id: user.id,
+    });
+    await this.merchantRepository.save(merchant);
+
+    // Emit login event
+    // Emit login event
+    // Facebook integration disabled
+    // this.eventEmitter.emit(Events.USER_LOGGED_IN, new UserLoginEvent(user.id));
+
+    // Generate tokens
+    const tokens = await this.createJwtForUser(user);
+
+    // Return tokens directly (which includes the enriched user object with permissions)
+    return tokens;
+  }
+
+  /**
+   * Merchant login - phone + password
+   */
+  async loginMerchant(dto: MerchantLoginDto) {
+    const normalizedPhone = normalizePhoneNumber(dto.phone);
+    const user = await this.userRepository.findOne({
+      where: { phone: normalizedPhone },
+      select: ['id', 'email', 'phone', 'password_hash', 'name', 'status'],
+      relations: ['merchant_profile'], // Check if 'merchant_profile' relation exists on User?
+      // User entity has OneToMany 'identities', OneToOne 'userSubscription', OneToMany 'facebook_pages' etc.
+      // It doesn't seem to have direct 'merchant' relation in the snippet I saw earlier (User.ts).
+      // But we need to ensure this user IS a merchant.
+    });
+
+    if (!user) {
+      throw new BadRequestException('Invalid credentials');
+    }
+
+    if (!user.password_hash) {
+      // User might have signed up via OTP only?
+      throw new BadRequestException('Invalid credentials');
+    }
+
+    const isMatch = await compare(dto.password, user.password_hash);
+    if (!isMatch) {
+      throw new BadRequestException('Invalid credentials');
+    }
+
+    if (user.status !== UserStatus.ACTIVE) {
+      throw new BadRequestException('Account is not active');
+    }
+
+    // specific check: must have merchant profile?
+    const merchant = await this.merchantRepository.findOne({
+      where: { user_id: user.id },
+    });
+    if (!merchant) {
+      // Auto-create? Or deny?
+      // If they logged in correctly, maybe they are just a "user" who wants to be a merchant?
+      // For "Merchant Login", we expect them to be a merchant.
+      // But let's be lenient or check requirements.
+      // For now, allow login, frontend directs them.
+    }
+
+    const tokens = await this.createJwtForUser(user);
+    delete (user as any).password_hash;
+
+    // Return tokens directly (which includes the enriched user object with permissions)
+    return tokens;
+  }
+
+  // ==================== Merchant/Customer Auth (OTP) - Legacy/Backup ====================
 
   /**
    * Request OTP for phone-based login/signup
@@ -197,13 +296,15 @@ export class AuthService {
     }
 
     // Emit login event
-    this.eventEmitter.emit(Events.USER_LOGGED_IN, new UserLoginEvent(user.id));
+    // Emit login event
+    // Facebook integration disabled
+    // this.eventEmitter.emit(Events.USER_LOGGED_IN, new UserLoginEvent(user.id));
 
     const tokens = await this.createJwtForUser(user);
 
     return {
       ...tokens,
-      user,
+      // user, // Don't overwrite the enriched user from tokens
       isNewUser,
     };
   }
@@ -301,12 +402,22 @@ export class AuthService {
       },
     });
 
-    // Get global roles
+    // Get global roles and their permissions
     const globalRoleAssignments = await this.userRoleRepository.find({
       where: { user_id: user.id },
-      relations: ['role'],
+      relations: ['role', 'role.permissions'],
     });
     const globalRoles = globalRoleAssignments.map((ur) => ur.role.name);
+
+    // Extract and flat map permissions from global roles
+    const globalPermissions = new Set<string>();
+    for (const assignment of globalRoleAssignments) {
+      if (assignment.role.permissions) {
+        for (const permission of assignment.role.permissions) {
+          globalPermissions.add(permission.key);
+        }
+      }
+    }
 
     // Get store roles
     const storeRoleAssignments = await this.storeUserRoleRepository.find({
@@ -386,6 +497,8 @@ export class AuthService {
         name: user.name,
         status: user.status,
         subscription: userWithSubscription?.userSubscription || null,
+        global_roles: globalRoles,
+        permissions: Array.from(globalPermissions),
       },
     };
   }

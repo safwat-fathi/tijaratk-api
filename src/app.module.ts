@@ -1,7 +1,7 @@
 import { CacheModule } from '@nestjs/cache-manager';
 import { Module } from '@nestjs/common';
 import { ConfigModule } from '@nestjs/config';
-import { EventEmitterModule } from '@nestjs/event-emitter';
+
 // import { ScheduleModule } from '@nestjs/schedule';
 import { ThrottlerModule } from '@nestjs/throttler';
 import { TypeOrmModule } from '@nestjs/typeorm';
@@ -32,7 +32,6 @@ const ENV = process.env.NODE_ENV;
       isGlobal: true,
       ttl: 3600, // Default TTL is 1 hour
     }),
-    EventEmitterModule.forRoot(),
     TypeOrmModule.forRoot({ ...dataSource.options, autoLoadEntities: true }),
     ThrottlerModule.forRoot([
       {

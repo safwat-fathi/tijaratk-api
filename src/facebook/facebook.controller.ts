@@ -41,26 +41,26 @@ export class FacebookController {
     return await this.facebookService.unregisterPage(userId, pageId);
   }
 
-  @ApiExcludeEndpoint()
-  @Get('/webhook')
-  verifyWebhook(@Query() query: any, @Res() res: Response) {
-    const mode = query['hub.mode'];
-    const token = query['hub.verify_token'];
-    const challenge = query['hub.challenge'];
+  // @ApiExcludeEndpoint()
+  // @Get('/webhook')
+  // verifyWebhook(@Query() query: any, @Res() res: Response) {
+  //   const mode = query['hub.mode'];
+  //   const token = query['hub.verify_token'];
+  //   const challenge = query['hub.challenge'];
 
-    if (mode === 'subscribe' && token === this.verifyToken) {
-      this.logger.log('Webhook verified successfully');
-      return res.status(200).send(challenge);
-    } else {
-      this.logger.error('Webhook verification failed');
-      return res.sendStatus(403);
-    }
-  }
+  //   if (mode === 'subscribe' && token === this.verifyToken) {
+  //     this.logger.log('Webhook verified successfully');
+  //     return res.status(200).send(challenge);
+  //   } else {
+  //     this.logger.error('Webhook verification failed');
+  //     return res.sendStatus(403);
+  //   }
+  // }
 
-  @ApiExcludeEndpoint()
-  @Post('/webhook')
-  async handleWebhook(@Body() body: any, @Res() res: Response) {
-    await this.facebookService.handleWebhook(body);
-    return res.sendStatus(200);
-  }
+  // @ApiExcludeEndpoint()
+  // @Post('/webhook')
+  // async handleWebhook(@Body() body: any, @Res() res: Response) {
+  //   await this.facebookService.handleWebhook(body);
+  //   return res.sendStatus(200);
+  // }
 }

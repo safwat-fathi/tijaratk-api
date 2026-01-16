@@ -62,15 +62,16 @@ export class SubscriptionService {
     await this.subscriptionRepository.remove(subscription);
   }
 
-  @OnEvent(Events.USER_LOGGED_IN)
-  async handleUserLoginEvent(payload: UserLoginEvent) {
-    this.logger.debug(
-      `Received user.logged_in event for userId=${payload.userId}`,
-    );
+  // Facebook integration disabled
+  // @OnEvent(Events.USER_LOGGED_IN)
+  // async handleUserLoginEvent(payload: UserLoginEvent) {
+  //   this.logger.debug(
+  //     `Received user.logged_in event for userId=${payload.userId}`,
+  //   );
 
-    // This service is deprecated - the old Subscription entity no longer has a users relation
-    // New billing system uses UserSubscription entity instead
-    // Returning null for backward compatibility
-    return null;
-  }
+  //   // This service is deprecated - the old Subscription entity no longer has a users relation
+  //   // New billing system uses UserSubscription entity instead
+  //   // Returning null for backward compatibility
+  //   return null;
+  // }
 }

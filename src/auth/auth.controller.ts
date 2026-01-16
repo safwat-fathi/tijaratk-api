@@ -27,6 +27,8 @@ import { AuthService } from './auth.service';
 import {
   AdminLoginDto,
   AdminSignupDto,
+  MerchantLoginDto,
+  MerchantSignupDto,
   RefreshDto,
   RequestOtpDto,
   VerifyOtpDto,
@@ -89,6 +91,46 @@ export class AuthController {
   }
 
   // ==================== Merchant/Customer Auth (OTP) ====================
+
+  // ==================== Merchant Auth (Password) ====================
+
+  @Post('/merchant/signup')
+  @ApiOperation({
+    summary: 'Merchant signup (password-based)',
+    description:
+      'Creates a new merchant account with email, phone, and password.',
+  })
+  @ApiBody({ type: MerchantSignupDto })
+  @ApiCreatedResponse({
+    description: 'Merchant created successfully',
+    type: AdminLoginResponseDto, // Reusing AdminLoginResponseDto as it has same structure (tokens + user)
+  })
+  @ApiBadRequestResponse({
+    description: 'User with this phone or email already exists',
+  })
+  async merchantSignup(@Body() dto: MerchantSignupDto) {
+    return this.authService.signupMerchant(dto);
+  }
+
+  @Post('/merchant/login')
+  @HttpCode(HttpStatus.OK)
+  @ApiOperation({
+    summary: 'Merchant login (password-based)',
+    description: 'Authenticates a merchant with phone and password.',
+  })
+  @ApiBody({ type: MerchantLoginDto })
+  @ApiOkResponse({
+    description: 'Successfully authenticated',
+    type: AdminLoginResponseDto,
+  })
+  @ApiUnauthorizedResponse({
+    description: 'Invalid credentials',
+  })
+  async merchantLogin(@Body() dto: MerchantLoginDto) {
+    return this.authService.loginMerchant(dto);
+  }
+
+  // ==================== Merchant/Customer Auth (OTP - Legacy) ====================
 
   @Post('/otp/request')
   @HttpCode(HttpStatus.OK)

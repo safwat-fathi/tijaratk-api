@@ -18,23 +18,24 @@ export class UserEventsListener {
     private readonly usersService: UsersService,
   ) {}
 
-  @OnEvent(Events.USER_LOGGED_IN)
-  async handleUserLoggedInEvent(payload: UserLoginEvent) {
-    // Retrieve the user's pages, for example:
-    const user = await this.usersService.getUserById(payload.userId);
-    const pages = await this.facebookService.getUserPages(user.id);
+  // Facebook integration disabled
+  // @OnEvent(Events.USER_LOGGED_IN)
+  // async handleUserLoggedInEvent(payload: UserLoginEvent) {
+  //   // Retrieve the user's pages, for example:
+  //   const user = await this.usersService.getUserById(payload.userId);
+  //   const pages = await this.facebookService.getUserPages(user.id);
 
-    // Process each page asynchronously.
-    pages.forEach((page) => {
-      // This call to subscribePage is handled asynchronously.
-      this.facebookPageSubscriptionService
-        .subscribePage(page.page_id, page.access_token, user.id)
-        .catch((err) => {
-          // Handle or log the error without affecting the login process.
-          this.logger.error(
-            `Failed to subscribe page ${page.page_id} for user ${user.id}: ${err.message}`,
-          );
-        });
-    });
-  }
+  //   // Process each page asynchronously.
+  //   pages.forEach((page) => {
+  //     // This call to subscribePage is handled asynchronously.
+  //     this.facebookPageSubscriptionService
+  //       .subscribePage(page.page_id, page.access_token, user.id)
+  //       .catch((err) => {
+  //         // Handle or log the error without affecting the login process.
+  //         this.logger.error(
+  //           `Failed to subscribe page ${page.page_id} for user ${user.id}: ${err.message}`,
+  //         );
+  //       });
+  //   });
+  // }
 }
