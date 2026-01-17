@@ -18,6 +18,7 @@ import { QueryFailedExceptionFilter } from './common/filters/db-exception.filter
 import { FBExceptionFilter } from './common/filters/fb-exception.filter';
 import { ValidationExceptionFilter } from './common/filters/validation-exception.filter';
 import { ResponseTransformInterceptor } from './common/interceptors/response-transform.transform';
+import cookieParser from 'cookie-parser';
 
 async function bootstrap() {
   const app = await NestFactory.create(AppModule);
@@ -42,6 +43,9 @@ async function bootstrap() {
       crossOriginResourcePolicy: false, // Allow cross-origin resource loading
     }),
   );
+
+  // cookies
+  app.use(cookieParser());
 
   // cors
   app.enableCors({

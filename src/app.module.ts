@@ -1,5 +1,5 @@
 import { CacheModule } from '@nestjs/cache-manager';
-import { Module } from '@nestjs/common';
+import { MiddlewareConsumer, Module, NestModule } from '@nestjs/common';
 import { ConfigModule } from '@nestjs/config';
 
 // import { ScheduleModule } from '@nestjs/schedule';
@@ -22,6 +22,7 @@ import { OrdersModule } from './orders/orders.module';
 import { ProductsModule } from './products/products.module';
 import { StoresModule } from './stores/stores.module';
 import { WhatsappModule } from './whatsapp/whatsapp.module';
+import { SessionMiddleware } from './common/middlewares/session.middleware';
 
 const ENV = process.env.NODE_ENV;
 
@@ -60,5 +61,9 @@ const ENV = process.env.NODE_ENV;
   ],
   controllers: [HealthController],
 })
-export class AppModule {}
+export class AppModule implements NestModule {
+  configure(consumer: MiddlewareConsumer) {
+    consumer.apply(SessionMiddleware).forRoutes('*');
+  }
+}
 

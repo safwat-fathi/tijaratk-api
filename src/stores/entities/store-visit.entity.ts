@@ -7,7 +7,6 @@ import {
   PrimaryGeneratedColumn,
   Relation,
   Index,
-  UpdateDateColumn,
 } from 'typeorm';
 import { Store } from './store.entity';
 
@@ -16,11 +15,12 @@ import { Store } from './store.entity';
  * Used for dashboard analytics to show store visit counts.
  */
 @Entity('store_visits')
+@Index(['store_id', 'created_at'])
+@Index(['store_id', 'session_id'])
 export class StoreVisit {
-  @PrimaryGeneratedColumn()
+  @PrimaryGeneratedColumn('increment')
   id: number;
 
-  @Index()
   @Column({ name: 'store_id' })
   store_id: number;
 
@@ -31,10 +31,11 @@ export class StoreVisit {
   @JoinColumn({ name: 'store_id' })
   store: Relation<Store>;
 
-  /**
-   * Hashed IP address for privacy.
-   * We don't store raw IPs to comply with data protection.
-   */
+  /** Session ID stored in cookie */
+  @Column({ type: 'uuid' })
+  session_id: string;
+
+  /** Optional privacy-safe IP hash */
   @Column({ type: 'varchar', length: 64, nullable: true })
   visitor_ip_hash?: string;
 
@@ -44,10 +45,6 @@ export class StoreVisit {
   @Column({ type: 'varchar', length: 512, nullable: true })
   referer?: string;
 
-  @Index()
   @CreateDateColumn()
   created_at: Date;
-
-  @UpdateDateColumn()
-  updated_at: Date;
 }

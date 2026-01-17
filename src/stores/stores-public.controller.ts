@@ -1,3 +1,4 @@
+import { Request } from 'express';
 import {
   Controller,
   Get,
@@ -8,6 +9,8 @@ import {
   Param,
   Post,
   Query,
+  Body,
+  Req,
 } from '@nestjs/common';
 import {
   ApiNotFoundResponse,
@@ -26,6 +29,7 @@ import {
   PublicStoreSeoDto,
   PublicStoreThemeDto,
 } from './dto/store-public-response.dto';
+import { TrackVisitDto } from './dto/track-visit.dto';
 import { StoresService } from './stores.service';
 
 /**
@@ -181,7 +185,7 @@ export class StoresPublicController {
     return this.storesService.getPublicStoreProduct(slug, productSlug);
   }
 
-  @Post(':slug/visit')
+  @Post(':id/visit')
   @HttpCode(HttpStatus.NO_CONTENT)
   @ApiOperation({
     summary: 'Record a store visit',
@@ -189,21 +193,26 @@ export class StoresPublicController {
       'Records a page visit for analytics. Called by the storefront when a user visits the store page.',
   })
   @ApiParam({
-    name: 'slug',
-    description: 'Store slug (URL-friendly identifier)',
-    example: 'fashion-store',
-    type: String,
+    name: 'id',
+    description: 'Store id (URL-friendly identifier)',
+    example: 1,
+    type: Number,
   })
   async recordVisit(
-    @Param('slug') slug: string,
-    @Ip() ip: string,
-    @Headers('user-agent') userAgent?: string,
-    @Headers('referer') referer?: string,
+    @Req() req: Request,
+    @Param('id') id: number,
+    @Body() dto: TrackVisitDto,
+    @Ip() requestIp: string,
+    @Headers('user-agent') requestUserAgent?: string,
+    @Headers('referer') requestReferer?: string,
   ): Promise<void> {
-    await this.storesService.recordStoreVisit(slug, {
-      ip,
-      userAgent,
-      referer,
+    const sessionId = req.sessionId;
+
+    await this.storesService.recordStoreVisit(id, {
+      ip: dto.ip || requestIp,
+      userAgent: dto.userAgent || requestUserAgent,
+      referer: dto.referer || requestReferer,
+      sessionId,
     });
   }
 }

@@ -759,47 +759,32 @@ export class StoresService {
     });
   }
 
-  /**
-   * Record a store visit (for analytics)
-   * @param slug Store slug
-   * @param visitorInfo Visitor information
-   */
   async recordStoreVisit(
-    slug: string,
+    storeId: number, // pass ID directly
     visitorInfo: {
+      sessionId: string;
       ip?: string;
       userAgent?: string;
       referer?: string;
     },
   ): Promise<void> {
-    const store = await this.storeRepository.findOne({
-      where: { slug, is_active: true },
-      select: ['id'],
-    });
-
-    if (!store) {
-      // Silently fail if store doesn't exist
-      return;
-    }
-
-    // Hash IP for privacy
     let visitorIpHash: string | undefined;
+
     if (visitorInfo.ip) {
       visitorIpHash = crypto
         .createHash('sha256')
-        .update(visitorInfo.ip)
+        .update(visitorInfo.ip + process.env.IP_HASH_SALT)
         .digest('hex')
         .substring(0, 64);
     }
 
-    const visit = this.storeVisitRepository.create({
-      store_id: store.id,
+    await this.storeVisitRepository.insert({
+      store_id: storeId,
+      session_id: visitorInfo.sessionId,
       visitor_ip_hash: visitorIpHash,
       user_agent: visitorInfo.userAgent,
       referer: visitorInfo.referer,
     });
-
-    await this.storeVisitRepository.save(visit);
   }
 
   /**
