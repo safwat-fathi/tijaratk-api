@@ -9,11 +9,11 @@ import {
   UpdateDateColumn,
 } from 'typeorm';
 import { Store } from './store.entity';
-import { StorefrontThemeConfig } from '../types/theme-config';
+import { StoreThemeConfig } from '../types/theme-config';
 
 /**
  * Store theme entity - separate table for theme configuration.
- * 
+ *
  * Benefits:
  * - Theme changes frequently, business data doesn't
  * - Allows versioning and rollback
@@ -39,7 +39,7 @@ export class StoreTheme {
    * Store only overrides - merge with DEFAULT_THEME at runtime.
    */
   @Column({ type: 'jsonb', default: {} })
-  config: StorefrontThemeConfig;
+  config: StoreThemeConfig;
 
   /**
    * Theme version for rollback support.

@@ -15,14 +15,14 @@ import type { CustomOrderRequest } from '../../orders/entities/custom-order-requ
 
 @Entity('customers')
 export class Customer {
-  @PrimaryColumn()
-  user_id: number;
-
-  @Index({ unique: true })
   @PrimaryGeneratedColumn()
   id: number;
 
-  @ManyToOne('User', { onDelete: 'CASCADE' })
+  @Index()
+  @Column({ nullable: true })
+  user_id: number;
+
+  @ManyToOne('User', { onDelete: 'SET NULL', nullable: true })
   @JoinColumn({ name: 'user_id' })
   user: Relation<any>;
 

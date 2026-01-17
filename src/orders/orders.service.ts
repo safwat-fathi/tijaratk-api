@@ -176,7 +176,7 @@ export class OrdersService {
       shipping_cost: 0, // Delivery fee calculation logic later
       status: OrderStatus.PENDING,
       payment_status: PaymentStatus.UNPAID,
-      order_source: OrderSource.WHATSAPP, // or WEB if they clicked from web
+      order_source: OrderSource.WEB,
       items: orderItems,
     });
 
@@ -290,6 +290,12 @@ export class OrdersService {
   async updateStatus(id: number, storeId: number, dto: UpdateOrderStatusDto) {
     const order = await this.findOne(id, storeId);
     order.status = dto.status;
+    
+    // Set delivered_at timestamp when marking as completed
+    if (dto.status === OrderStatus.COMPLETED && !order.delivered_at) {
+      order.delivered_at = new Date();
+    }
+    
     return this.orderRepo.save(order);
   }
 
@@ -303,7 +309,11 @@ export class OrdersService {
       order.tracking_number = dto.tracking_number;
     }
 
-    if (dto.tracking_number && order.status === OrderStatus.PENDING) {
+    if (
+      dto.tracking_number &&
+      (order.status === OrderStatus.PENDING ||
+        order.status === OrderStatus.CONFIRMED)
+    ) {
       order.status = OrderStatus.SHIPPED;
     }
 

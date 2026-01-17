@@ -73,11 +73,7 @@ export class StoreResponseDto {
   })
   description?: string;
 
-  @ApiProperty({
-    description: 'Whether the store is currently open for orders',
-    example: true,
-  })
-  is_open: boolean;
+
 
   @ApiPropertyOptional({
     description: 'Physical address text',

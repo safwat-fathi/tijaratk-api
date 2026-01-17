@@ -1,4 +1,5 @@
 import { ApiProperty, ApiPropertyOptional } from '@nestjs/swagger';
+import { Unit } from '../entities/product-variant.entity';
 
 // ==================== Product Variant Response DTO ====================
 
@@ -8,15 +9,34 @@ import { ApiProperty, ApiPropertyOptional } from '@nestjs/swagger';
 export class ProductVariantResponseDto {
   @ApiProperty({
     description: 'Variant ID',
-    example: 1,
+    example: '1',
   })
-  id: number;
+  id: string;
 
   @ApiProperty({
     description: 'Variant label',
-    example: 'أحمر - مقاس L',
+    example: '1 kg',
   })
   label: string;
+
+  @ApiPropertyOptional({
+    description: 'Unit of measurement',
+    enum: Unit,
+    example: Unit.KG,
+  })
+  unit?: Unit;
+
+  @ApiProperty({
+    description: 'Stock quantity',
+    example: 10,
+  })
+  stock: number;
+
+  @ApiPropertyOptional({
+    description: 'Unit value',
+    example: 1,
+  })
+  unit_value?: number;
 
   @ApiProperty({
     description: 'Variant price',
@@ -25,16 +45,28 @@ export class ProductVariantResponseDto {
   price: number;
 
   @ApiPropertyOptional({
+    description: 'Sale price',
+    example: 120.0,
+  })
+  sale_price?: number;
+
+  @ApiPropertyOptional({
+    description: 'Cost price',
+    example: 100.0,
+  })
+  cost_price?: number;
+
+  @ApiPropertyOptional({
+    description: 'Wholesale price',
+    example: 110.0,
+  })
+  wholesale_price?: number;
+
+  @ApiPropertyOptional({
     description: 'Whether this is the default variant',
     example: true,
   })
   is_default?: boolean;
-
-  @ApiPropertyOptional({
-    description: 'Variant SKU',
-    example: 'TSHIRT-RED-L',
-  })
-  sku?: string;
 }
 
 // ==================== Product Response DTOs ====================
@@ -45,25 +77,25 @@ export class ProductVariantResponseDto {
 export class ProductResponseDto {
   @ApiProperty({
     description: 'Product ID',
-    example: 1,
+    example: '1',
   })
-  id: number;
+  id: string;
 
   @ApiProperty({
     description: 'Store ID',
-    example: 1,
+    example: '1',
   })
-  store_id: number;
+  store_id: string;
 
   @ApiProperty({
     description: 'Product name',
-    example: 'قميص قطني أنيق',
+    example: 'Organic Coffee Beans',
   })
   name: string;
 
   @ApiProperty({
     description: 'Product slug for URL',
-    example: 'cotton-shirt',
+    example: 'organic-coffee-beans',
   })
   slug: string;
 
@@ -75,13 +107,13 @@ export class ProductResponseDto {
 
   @ApiPropertyOptional({
     description: 'Product description',
-    example: 'قميص قطني 100% بتصميم عصري ومريح',
+    example: 'Premium organic coffee beans from Ethiopia',
   })
   description?: string;
 
   @ApiPropertyOptional({
     description: 'Product main image URL',
-    example: 'https://cdn.example.com/products/cotton-shirt.jpg',
+    example: 'https://cdn.example.com/products/coffee.jpg',
   })
   image_url?: string;
 
@@ -89,8 +121,8 @@ export class ProductResponseDto {
     description: 'Additional product images',
     type: [String],
     example: [
-      'https://cdn.example.com/products/cotton-shirt-1.jpg',
-      'https://cdn.example.com/products/cotton-shirt-2.jpg',
+      'https://cdn.example.com/products/coffee-1.jpg',
+      'https://cdn.example.com/products/coffee-2.jpg',
     ],
   })
   images?: string[];

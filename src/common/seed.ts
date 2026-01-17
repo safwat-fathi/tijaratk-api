@@ -3,7 +3,7 @@ import { seedRoles } from 'src/auth/roles.seed';
 import { seedPermissions } from 'src/auth/permissions.seed';
 import { seedPlans } from 'src/billing/plans.seed';
 import dataSource from 'src/config/orm.config';
-import { seedStoreCategories } from 'src/stores/store-categories.seed';
+import { seedCategories } from 'src/categories/categories.seed';
 
 async function bootstrap() {
   const logger = new Logger('Seed');
@@ -19,7 +19,7 @@ async function bootstrap() {
     // Seed generic plans and addons
     await seedPlans(dataSource);
     // Seed categories
-    await seedStoreCategories(dataSource);
+    await seedCategories(dataSource);
 
     logger.log('Seeding completed successfully.');
   } catch (error) {

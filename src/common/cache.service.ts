@@ -7,6 +7,8 @@ import { Inject, Injectable, Logger } from '@nestjs/common';
 export const CACHE_KEYS = {
   STORE_PUBLIC: (slug: string) => `store:public:${slug}`,
   STORE_THEME: (slug: string) => `store:theme:${slug}`,
+  STORE_SEO: (slug: string) => `store:seo:${slug}`,
+  STORE_CATEGORY: (slug: string) => `store:category:${slug}`,
   STORE_PRODUCTS: (
     slug: string,
     page: number,
@@ -22,8 +24,11 @@ export const CACHE_KEYS = {
  * TTL values in milliseconds for different cache types.
  */
 export const CACHE_TTL = {
+  LONG: 60 * 60 * 1000, // 1 hour (for theme)
   STORE_PUBLIC: 5 * 60 * 1000, // 5 minutes
-  STORE_THEME: 10 * 60 * 1000, // 10 minutes
+  STORE_THEME: 60 * 60 * 1000, // 1 hour (explicit named reference)
+  STORE_SEO: 10 * 60 * 1000, // 10 minutes
+  STORE_CATEGORY: 10 * 60 * 1000, // 10 minutes
   STORE_PRODUCTS: 2 * 60 * 1000, // 2 minutes
   STORE_PRODUCT: 5 * 60 * 1000, // 5 minutes
   STORE_STATS: 1 * 60 * 1000, // 1 minute (shorter for real-time stats)

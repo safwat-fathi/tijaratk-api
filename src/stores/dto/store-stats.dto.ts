@@ -11,7 +11,7 @@ export class StoreStatsResponseDto {
   store_visits: number;
 
   @ApiProperty({
-    description: 'Total number of orders (all statuses)',
+    description: 'Total number of completed orders',
     example: 45,
   })
   total_orders: number;
@@ -39,4 +39,35 @@ export class StoreStatsResponseDto {
     example: 28,
   })
   products_count: number;
+
+  @ApiProperty({
+    description: 'Monthly orders overview for the last 6 months',
+    type: () => [StoreStatsChartDataDto],
+  })
+  orders_overview: StoreStatsChartDataDto[];
+
+  @ApiProperty({
+    description: 'Quarterly performance metrics',
+    type: () => [StoreStatsQuarterlyDto],
+  })
+  quarterly_performance: StoreStatsQuarterlyDto[];
+}
+
+export class StoreStatsChartDataDto {
+  @ApiProperty({ description: 'Month name (e.g., Jan)', example: 'Jan' })
+  name: string;
+
+  @ApiProperty({ description: 'Total orders count', example: 150 })
+  value: number;
+}
+
+export class StoreStatsQuarterlyDto {
+  @ApiProperty({ description: 'Quarter name (e.g., Q1)', example: 'Q1' })
+  name: string;
+
+  @ApiProperty({ description: 'Completed orders count', example: 45 })
+  completed: number;
+
+  @ApiProperty({ description: 'Cancelled orders count', example: 5 })
+  cancelled: number;
 }

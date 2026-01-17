@@ -1,7 +1,7 @@
 import { ApiProperty } from '@nestjs/swagger';
 import { IsOptional } from 'class-validator';
 
-import { StorefrontThemeConfig as StoreThemeConfig } from '../types/theme-config';
+import { StoreThemeConfig } from '../types/theme-config';
 
 export class UpdateStoreThemeDto {
   @ApiProperty({

@@ -54,12 +54,6 @@ export class PublicStoreResponseDto {
   })
   description?: string;
 
-  @ApiProperty({
-    description: 'Whether the store is currently open',
-    example: true,
-  })
-  is_open: boolean;
-
   @ApiPropertyOptional({
     description: 'Physical address text',
     example: 'شارع الملك فهد، الرياض، المملكة العربية السعودية',
@@ -229,4 +223,55 @@ export class PublicProductListResponseDto {
     type: [PublicProductResponseDto],
   })
   items: PublicProductResponseDto[];
+}
+
+// ==================== Public Store Resources DTOs ====================
+
+/**
+ * DTO for public store theme configuration.
+ */
+export class PublicStoreThemeDto {
+  @ApiProperty({
+    description: 'Store theme configuration',
+    example: { primaryColor: '#000000', layout: 'grid' },
+  })
+  config: any; // Typed as StoreThemeConfig in service
+}
+
+/**
+ * DTO for public store SEO information.
+ */
+export class PublicStoreSeoDto {
+  @ApiPropertyOptional({ description: 'SEO Title' })
+  title?: string;
+  @ApiPropertyOptional({ description: 'SEO Description' })
+  description?: string;
+  @ApiPropertyOptional({ description: 'Canonical URL' })
+  canonical_url?: string;
+  @ApiPropertyOptional({ description: 'OpenGraph Image' })
+  image?: string;
+  @ApiPropertyOptional({ description: 'OpenGraph Data' })
+  og?: any;
+  @ApiPropertyOptional({ description: 'Twitter Card Data' })
+  twitter?: any;
+  @ApiPropertyOptional({ description: 'Schema.org Data' })
+  schema_org?: any;
+}
+
+/**
+ * DTO for public store category information.
+ */
+export class PublicStoreCategoryDto {
+  @ApiProperty({ description: 'Category Key' })
+  key: string;
+  @ApiProperty({ description: 'English Name' })
+  name_en: string;
+  @ApiProperty({ description: 'Arabic Name' })
+  name_ar: string;
+  @ApiPropertyOptional({ description: 'Category Icon' })
+  icon?: string;
+  @ApiPropertyOptional({ description: 'Suggested Sub Categories' })
+  suggested_sub_categories?: { name_en: string; name_ar: string }[];
+  @ApiPropertyOptional({ description: 'Parent Category ID' })
+  parent_id?: number;
 }

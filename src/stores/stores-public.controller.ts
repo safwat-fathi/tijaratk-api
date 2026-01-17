@@ -21,7 +21,10 @@ import { ListStoreProductsDto } from './dto/list-store-products.dto';
 import {
   PublicProductListResponseDto,
   PublicProductResponseDto,
+  PublicStoreCategoryDto,
   PublicStoreResponseDto,
+  PublicStoreSeoDto,
+  PublicStoreThemeDto,
 } from './dto/store-public-response.dto';
 import { StoresService } from './stores.service';
 
@@ -56,6 +59,68 @@ export class StoresPublicController {
   })
   getStore(@Param('slug') slug: string): Promise<PublicStoreResponseDto> {
     return this.storesService.getPublicStore(slug);
+  }
+
+  @Get(':slug/theme')
+  @ApiOperation({
+    summary: 'Get public store theme',
+    description: 'Retrieves store theme configuration (cached for 1 hour).',
+  })
+  @ApiParam({
+    name: 'slug',
+    description: 'Store slug',
+    type: String,
+  })
+  @ApiOkResponse({
+    description: 'Store theme configuration',
+    type: PublicStoreThemeDto,
+  })
+  @ApiNotFoundResponse({
+    description: 'Store not found or is closed',
+  })
+  async getStoreTheme(
+    @Param('slug') slug: string,
+  ): Promise<PublicStoreThemeDto> {
+    const config = await this.storesService.getPublicStoreTheme(slug);
+    return { config };
+  }
+
+  @Get(':slug/seo')
+  @ApiOperation({
+    summary: 'Get public store SEO',
+    description: 'Retrieves store SEO configuration.',
+  })
+  @ApiParam({
+    name: 'slug',
+    description: 'Store slug',
+    type: String,
+  })
+  @ApiOkResponse({
+    description: 'Store SEO configuration',
+    type: PublicStoreSeoDto,
+  })
+  async getStoreSeo(@Param('slug') slug: string): Promise<PublicStoreSeoDto> {
+    return this.storesService.getPublicStoreSeo(slug);
+  }
+
+  @Get(':slug/categories')
+  @ApiOperation({
+    summary: 'Get public store categories',
+    description: 'Retrieves store category information.',
+  })
+  @ApiParam({
+    name: 'slug',
+    description: 'Store slug',
+    type: String,
+  })
+  @ApiOkResponse({
+    description: 'Store category information',
+    type: PublicStoreCategoryDto,
+  })
+  async getStoreCategories(
+    @Param('slug') slug: string,
+  ): Promise<PublicStoreCategoryDto> {
+    return this.storesService.getPublicStoreCategories(slug);
   }
 
   @Get(':slug/products')

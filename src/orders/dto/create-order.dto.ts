@@ -5,12 +5,14 @@ import {
   IsEmail,
   IsInt,
   IsNotEmpty,
+  IsNumber,
   IsOptional,
   IsPositive,
   IsString,
   IsUUID,
   ValidateNested,
 } from 'class-validator';
+import { IsPhoneNumberIntl } from 'src/common/validators/is-phone-number.validator';
 
 class CreateOrderItemDto {
   @ApiProperty({
@@ -20,16 +22,18 @@ class CreateOrderItemDto {
     required: false,
   })
   @IsOptional()
-  @IsUUID()
-  product_id?: string;
+  @IsNumber()
+  @Type(() => Number)
+  product_id?: number;
 
   @ApiProperty({
     description: 'ID of the product variant being ordered',
     example: 'uuid-string',
   })
   @IsOptional()
-  @IsUUID()
-  variant_id?: string;
+  @IsNumber()
+  @Type(() => Number)
+  variant_id?: number;
 
   @ApiProperty({
     description: 'Quantity of the product',
@@ -55,6 +59,7 @@ export class CreateOrderDto {
     required: true,
   })
   @IsString()
+  @IsPhoneNumberIntl({ allowedCountries: ['EG'] })
   whatsapp_number: string;
 
   // Alias for legacy support if needed, but preferable to use whatsapp_number
@@ -63,6 +68,7 @@ export class CreateOrderDto {
     required: false,
   })
   @IsOptional()
+  @IsPhoneNumberIntl({ allowedCountries: ['EG'] })
   buyer_phone?: string;
 
   @ApiProperty({

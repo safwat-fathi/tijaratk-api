@@ -16,4 +16,13 @@ export class Category {
 
   @Column('jsonb', { default: [] })
   suggested_sub_categories: { name_en: string; name_ar: string }[];
+
+  @Column({ type: 'varchar', length: 50, nullable: true })
+  icon?: string;
+
+  @Column({ default: 0 })
+  sort_order: number;
+
+  @Column({ default: true })
+  is_active: boolean;
 }

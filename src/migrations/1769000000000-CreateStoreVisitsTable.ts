@@ -1,11 +1,11 @@
 import { MigrationInterface, QueryRunner } from 'typeorm';
 
-export class CreateStoreVisitsTable1736539220000 implements MigrationInterface {
-  name = 'CreateStoreVisitsTable1736539220000';
+export class CreateStoreVisitsTable1769000000000 implements MigrationInterface {
+  name = 'CreateStoreVisitsTable1769000000000';
 
   public async up(queryRunner: QueryRunner): Promise<void> {
     await queryRunner.query(`
-      CREATE TABLE "store_visits" (
+      CREATE TABLE IF NOT EXISTS "store_visits" (
         "id" SERIAL NOT NULL,
         "store_id" integer NOT NULL,
         "visitor_ip_hash" character varying(64),
@@ -18,11 +18,11 @@ export class CreateStoreVisitsTable1736539220000 implements MigrationInterface {
     `);
 
     await queryRunner.query(`
-      CREATE INDEX "IDX_store_visits_store_id" ON "store_visits" ("store_id")
+      CREATE INDEX IF NOT EXISTS "IDX_store_visits_store_id" ON "store_visits" ("store_id")
     `);
 
     await queryRunner.query(`
-      CREATE INDEX "IDX_store_visits_created_at" ON "store_visits" ("created_at")
+      CREATE INDEX IF NOT EXISTS "IDX_store_visits_created_at" ON "store_visits" ("created_at")
     `);
   }
 

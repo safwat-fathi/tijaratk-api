@@ -17,7 +17,7 @@ import { User } from '../../users/entities/user.entity';
 import { Product } from '../../products/entities/product.entity';
 import type { StoreTheme } from './store-theme.entity';
 import type { StoreSeo } from './store-seo.entity';
-import type { StoreCategory } from './store-category.entity';
+import { Category } from '../../categories/entities/category.entity';
 
 /**
  * Store type enum
@@ -57,7 +57,6 @@ export class Store {
   @JoinColumn({ name: 'owner_user_id' })
   owner: Relation<User>;
 
-
   @Column({ type: 'varchar', length: 120 })
   name: string;
 
@@ -67,11 +66,8 @@ export class Store {
   @Column({ type: 'text', nullable: true })
   description?: string;
 
-  @Column({ default: true })
-  is_open: boolean;
-
   @Column({ type: 'text', nullable: true })
-  address_text: string;
+  address_text?: string;
 
   // PostGIS geography(Point, 4326) for accurate earth-distance calculations
   // Format: WKT string 'POINT(lng lat)' - note: longitude comes first!
@@ -82,7 +78,7 @@ export class Store {
     srid: 4326,
     nullable: true,
   })
-  location: string;
+  location?: string;
 
   /**
    * Theme configuration - stored in separate store_themes table.
@@ -100,17 +96,17 @@ export class Store {
 
   /**
    * Primary category for this store.
-   * Links to store_categories table.
+   * Links to categories table.
    */
   @Column({ nullable: true })
   category_id?: number;
 
-  @ManyToOne('StoreCategory', {
+  @ManyToOne(() => Category, {
     nullable: true,
     onDelete: 'SET NULL',
   })
   @JoinColumn({ name: 'category_id' })
-  category?: Relation<StoreCategory>;
+  category?: Relation<Category>;
 
   @OneToMany(() => Product, (product) => product.store)
   products: Relation<Product[]>;

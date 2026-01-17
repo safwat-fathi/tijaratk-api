@@ -1,8 +1,4 @@
-import {
-  BadRequestException,
-  Injectable,
-  NotFoundException,
-} from '@nestjs/common';
+import { Injectable, NotFoundException } from '@nestjs/common';
 import { InjectRepository } from '@nestjs/typeorm';
 import { ILike, Repository } from 'typeorm';
 
@@ -22,12 +18,13 @@ export class ProductsService {
     // Generate unique slug from product name (scoped to store)
     const slug = await generateUniqueSlug(dto.name, async (s) => {
       return this.productRepo.exists({
-        where: { store_id: dto.store_id, slug: s },
+        where: { store_id: String(dto.store_id), slug: s },
       });
     });
 
     const newProduct = this.productRepo.create({
       ...dto,
+      store_id: String(dto.store_id),
       slug,
     });
 
@@ -38,7 +35,7 @@ export class ProductsService {
     const { page = 1, limit = 10, keyword } = listProductsDto;
     const skip = (page - 1) * limit;
 
-    const where: any = { store_id: storeId };
+    const where: any = { store_id: storeId, is_active: true };
     if (keyword) {
       where.name = ILike(`%${keyword}%`);
     }
@@ -65,6 +62,12 @@ export class ProductsService {
           label: true,
           price: true,
           is_default: true,
+          stock: true,
+          sale_price: true,
+          cost_price: true,
+          wholesale_price: true,
+          unit_value: true,
+          unit: true,
         },
       },
     });

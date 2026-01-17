@@ -53,7 +53,7 @@ import { ProductsService } from './products.service';
 @ApiTags('Products')
 @ApiBearerAuth(CONSTANTS.ACCESS_TOKEN)
 @UseGuards(AuthGuard(CONSTANTS.AUTH.JWT))
-@Controller('stores/:storeSlug/products')
+@Controller('stores/:storeId/products')
 export class ProductsController {
   constructor(private readonly productsService: ProductsService) {}
 
@@ -65,9 +65,9 @@ export class ProductsController {
       'Creates a new product for a store. A slug will be auto-generated from the product name.',
   })
   @ApiParam({
-    name: 'storeSlug',
-    description: 'Store slug (URL-friendly identifier)',
-    example: 'fashion-store',
+    name: 'storeId',
+    description: 'Store ID',
+    example: '1',
     type: String,
   })
   @ApiBody({ type: CreateProductDto })
@@ -81,9 +81,9 @@ export class ProductsController {
   @ApiUnauthorizedResponse({
     description: 'Unauthorized - valid JWT required',
   })
-  create(@Param('storeSlug') storeSlug: string, @Body() dto: CreateProductDto) {
+  create(@Param('storeId') storeId: string, @Body() dto: CreateProductDto) {
     // Note: Service should lookup store by slug and get the store_id
-    dto.store_id = storeSlug;
+    dto.store_id = Number(storeId);
     return this.productsService.create(dto);
   }
 
@@ -94,9 +94,9 @@ export class ProductsController {
       'Retrieves a paginated list of products for a store. Supports keyword search.',
   })
   @ApiParam({
-    name: 'storeSlug',
-    description: 'Store slug (URL-friendly identifier)',
-    example: 'fashion-store',
+    name: 'storeId',
+    description: 'Store ID',
+    example: '1',
     type: String,
   })
   @ApiOkResponse({
@@ -110,22 +110,16 @@ export class ProductsController {
     description: 'Unauthorized - valid JWT required',
   })
   findAll(
-    @Param('storeSlug') storeSlug: string,
+    @Param('storeId') storeId: string,
     @Query() listProducts: ListProductsDto,
   ) {
-    return this.productsService.findAllByStore(storeSlug, listProducts);
+    return this.productsService.findAllByStore(storeId, listProducts);
   }
 
   @Get(':id')
   @ApiOperation({
     summary: 'Get product by ID',
     description: 'Retrieves detailed information about a specific product.',
-  })
-  @ApiParam({
-    name: 'storeSlug',
-    description: 'Store slug (URL-friendly identifier)',
-    example: 'fashion-store',
-    type: String,
   })
   @ApiParam({
     name: 'id',
@@ -154,12 +148,6 @@ export class ProductsController {
       'Updates an existing product. All fields are optional - only provided fields will be updated.',
   })
   @ApiParam({
-    name: 'storeSlug',
-    description: 'Store slug (URL-friendly identifier)',
-    example: 'fashion-store',
-    type: String,
-  })
-  @ApiParam({
     name: 'id',
     description: 'Product ID',
     example: 1,
@@ -184,12 +172,6 @@ export class ProductsController {
   @ApiOperation({
     summary: 'Delete product by ID',
     description: 'Soft-deletes a product. The product can be restored later.',
-  })
-  @ApiParam({
-    name: 'storeSlug',
-    description: 'Store slug (URL-friendly identifier)',
-    example: 'fashion-store',
-    type: String,
   })
   @ApiParam({
     name: 'id',

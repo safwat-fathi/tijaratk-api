@@ -11,13 +11,14 @@ export interface StorefrontThemePalette {
   border?: string;
 }
 
-export interface StorefrontThemeConfig {
+export interface StoreThemeConfig {
   primaryColor?: string;
   layout?: StorefrontProductsLayout;
   palette?: StorefrontThemePalette;
+  logo?: string;
 }
 
-export const DEFAULT_STOREFRONT_THEME: StorefrontThemeConfig = {
+export const DEFAULT_STORE_THEME: StoreThemeConfig = {
   primaryColor: '#111827',
   layout: 'grid',
   palette: {
@@ -30,4 +31,5 @@ export const DEFAULT_STOREFRONT_THEME: StorefrontThemeConfig = {
     textMuted: '#475569',
     border: '#e2e8f0',
   },
+  logo: null,
 };

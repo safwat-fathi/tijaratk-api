@@ -53,7 +53,7 @@ export class AdminStoreResponseDto {
     description: 'Whether the store is currently open',
     example: true,
   })
-  is_open: boolean;
+
 
   @ApiPropertyOptional({
     description: 'Store physical address',

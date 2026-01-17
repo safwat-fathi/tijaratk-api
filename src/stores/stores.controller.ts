@@ -38,6 +38,7 @@ import { StoreStatsResponseDto } from './dto/store-stats.dto';
 import { UpdateStoreDto } from './dto/update-store.dto';
 import { StoresService } from './stores.service';
 
+
 /**
  * Stores Controller - Authenticated endpoints for store management.
  *
@@ -235,3 +236,4 @@ export class StoresController {
     return this.storesService.getStoreStats(id, userId);
   }
 }
+

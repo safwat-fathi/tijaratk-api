@@ -19,10 +19,7 @@ import {
   STORE_THEME_EDITOR_SCOPE,
   StoreThemeEditorTokenService,
 } from './store-theme-editor-token.service';
-import {
-  DEFAULT_STOREFRONT_THEME,
-  StorefrontThemeConfig,
-} from './types/theme-config';
+import { DEFAULT_STORE_THEME, StoreThemeConfig } from './types/theme-config';
 
 /**
  * Service for managing stores and their theme configurations.
@@ -67,7 +64,7 @@ export class StoresService {
           :radius
         )`,
       )
-      .andWhere('store.is_open = :isOpen', { isOpen: true })
+
       .andWhere('store.is_active = :isActive', { isActive: true })
       .setParameters({ lng, lat, radius: radiusMeters })
       .getMany();
@@ -94,7 +91,7 @@ export class StoresService {
         'distance',
       )
       .where('store.location IS NOT NULL')
-      .andWhere('store.is_open = :isOpen', { isOpen: true })
+
       .andWhere('store.is_active = :isActive', { isActive: true })
       .setParameters({ lng, lat })
       .orderBy('distance', 'ASC')
@@ -172,20 +169,15 @@ export class StoresService {
       CACHE_TTL.STORE_PUBLIC,
       async () => {
         const store = await this.storeRepository.findOne({
-          where: { slug, is_open: true },
-          relations: ['owner', 'theme'],
+          where: { slug },
           select: {
             id: true,
             name: true,
             slug: true,
             description: true,
-            is_open: true,
+
             address_text: true,
-            owner: {
-              id: true,
-              name: true,
-              phone: true,
-            },
+            // Owner info removed to slim down initial response
           },
         });
 
@@ -194,6 +186,80 @@ export class StoresService {
         }
 
         return store;
+      },
+    );
+  }
+
+  /**
+   * Get public store theme (long caching)
+   */
+  async getPublicStoreTheme(slug: string): Promise<StoreThemeConfig> {
+    const cacheKey = CACHE_KEYS.STORE_THEME(slug);
+
+    return this.cacheService.getOrSet(
+      cacheKey,
+      CACHE_TTL.STORE_THEME, // Long TTL
+      async () => {
+        const store = await this.storeRepository.findOne({
+          where: { slug },
+          select: ['id'],
+        });
+
+        if (!store) {
+          throw new NotFoundException(`Store not found or is closed`);
+        }
+
+        return this.getStoreTheme(store.id);
+      },
+    );
+  }
+
+  /**
+   * Get public store SEO
+   */
+  async getPublicStoreSeo(slug: string) {
+    const cacheKey = CACHE_KEYS.STORE_SEO(slug);
+
+    return this.cacheService.getOrSet(
+      cacheKey,
+      CACHE_TTL.STORE_SEO,
+      async () => {
+        const store = await this.storeRepository.findOne({
+          where: { slug, is_active: true },
+          relations: ['seo'],
+          select: ['id'],
+        });
+
+        if (!store) {
+          throw new NotFoundException(`Store not found or is closed`);
+        }
+
+        return store.seo || {};
+      },
+    );
+  }
+
+  /**
+   * Get public store categories
+   */
+  async getPublicStoreCategories(slug: string) {
+    const cacheKey = CACHE_KEYS.STORE_CATEGORY(slug);
+
+    return this.cacheService.getOrSet(
+      cacheKey,
+      CACHE_TTL.STORE_CATEGORY,
+      async () => {
+        const store = await this.storeRepository.findOne({
+          where: { slug, is_active: true },
+          relations: ['category'],
+          select: ['id'],
+        });
+
+        if (!store) {
+          throw new NotFoundException(`Store not found or is closed`);
+        }
+
+        return store.category || null;
       },
     );
   }
@@ -222,7 +288,7 @@ export class StoresService {
     storeId: number,
   ): Promise<{ token: string; expiresAt: Date; editorUrl: string }> {
     const store = await this.storeRepository.findOne({
-      where: { id: storeId, owner_user_id: userId },
+      where: { id: storeId, owner_user_id: userId, is_active: true },
     });
 
     if (!store) {
@@ -246,10 +312,14 @@ export class StoresService {
   /**
    * Get a store's theme configuration (merged with defaults)
    */
-  async getStoreTheme(storeId: number): Promise<StorefrontThemeConfig> {
+  async getStoreTheme(storeId: number): Promise<StoreThemeConfig> {
     const theme = await this.storeThemeRepository.findOne({
       where: { store_id: storeId, is_active: true },
     });
+
+    if (!theme) {
+      throw new NotFoundException('Store theme not found');
+    }
 
     return this.mergeThemeConfig(theme?.config);
   }
@@ -259,10 +329,10 @@ export class StoresService {
    */
   async updateStoreTheme(
     storeId: number,
-    config?: StorefrontThemeConfig,
-  ): Promise<StorefrontThemeConfig> {
+    config?: StoreThemeConfig,
+  ): Promise<StoreThemeConfig> {
     let theme = await this.storeThemeRepository.findOne({
-      where: { store_id: storeId },
+      where: { store_id: storeId, is_active: true },
     });
 
     const mergedConfig = this.mergeThemeConfig(config);
@@ -289,11 +359,11 @@ export class StoresService {
   async getStoreThemeBySlug(
     slug: string,
     expectedStoreId?: number,
-  ): Promise<StorefrontThemeConfig> {
+  ): Promise<StoreThemeConfig> {
     // If expectedStoreId is provided, skip cache (editor mode)
     if (expectedStoreId) {
       const store = await this.storeRepository.findOne({
-        where: { slug },
+        where: { slug, is_active: true },
         select: ['id'],
       });
 
@@ -333,11 +403,11 @@ export class StoresService {
    */
   async updateStoreThemeBySlug(
     slug: string,
-    config?: StorefrontThemeConfig,
+    config?: StoreThemeConfig,
     expectedStoreId?: number,
-  ): Promise<StorefrontThemeConfig> {
+  ): Promise<StoreThemeConfig> {
     const store = await this.storeRepository.findOne({
-      where: { slug },
+      where: { slug, is_active: true },
       select: ['id'],
     });
 
@@ -369,7 +439,6 @@ export class StoresService {
       slug?: string;
       description?: string;
       type?: string;
-      is_open?: boolean;
       address_text?: string;
       longitude?: number;
       latitude?: number;
@@ -397,7 +466,7 @@ export class StoresService {
       slug,
       description: data.description,
       type: data.type as any,
-      is_open: data.is_open ?? true,
+
       address_text: data.address_text,
       location,
       category_id: data.category_id,
@@ -411,7 +480,7 @@ export class StoresService {
    */
   async findOneForOwner(userId: number, storeId: number): Promise<Store> {
     const store = await this.storeRepository.findOne({
-      where: { id: storeId, owner_user_id: userId },
+      where: { id: storeId, owner_user_id: userId, is_active: true },
       relations: ['owner', 'theme', 'category'],
     });
 
@@ -433,7 +502,6 @@ export class StoresService {
       slug: string;
       description: string;
       type: string;
-      is_open: boolean;
       address_text: string;
       longitude: number;
       latitude: number;
@@ -479,7 +547,7 @@ export class StoresService {
       CACHE_TTL.STORE_PRODUCTS,
       async () => {
         const store = await this.storeRepository.findOne({
-          where: { slug, is_open: true },
+          where: { slug },
           select: ['id'],
         });
 
@@ -531,7 +599,7 @@ export class StoresService {
       CACHE_TTL.STORE_PRODUCT,
       async () => {
         const store = await this.storeRepository.findOne({
-          where: { slug, is_open: true },
+          where: { slug, is_active: true },
           select: ['id'],
         });
 
@@ -571,7 +639,7 @@ export class StoresService {
   ): Promise<StoreStatsResponseDto> {
     // Verify ownership first (not cached)
     const store = await this.storeRepository.findOne({
-      where: { id: storeId, owner_user_id: userId },
+      where: { id: storeId, owner_user_id: userId, is_active: true },
       select: ['id'],
     });
 
@@ -593,7 +661,7 @@ export class StoresService {
 
         // Get order statistics
         const totalOrders = await this.orderRepository.count({
-          where: { store_id: String(storeId) },
+          where: { store_id: String(storeId), status: OrderStatus.COMPLETED },
         });
 
         const newOrders = await this.orderRepository.count({
@@ -631,9 +699,64 @@ export class StoresService {
           incomplete_orders: incompleteOrders,
           total_sales: totalSales,
           products_count: productsCount,
+          orders_overview: await this.getOrdersOverview(String(storeId)),
+          quarterly_performance: await this.getQuarterlyPerformance(
+            String(storeId),
+          ),
         };
       },
     );
+  }
+
+  private async getOrdersOverview(storeId: string) {
+    const raw = await this.orderRepository
+      .createQueryBuilder('order')
+      .select("TO_CHAR(order.created_at, 'Mon')", 'name')
+      .addSelect('COUNT(order.id)', 'value')
+      .where('order.store_id = :storeId', { storeId })
+      .andWhere("order.created_at >= NOW() - INTERVAL '6 months'")
+      .groupBy(
+        "TO_CHAR(order.created_at, 'Mon'), DATE_TRUNC('month', order.created_at)",
+      )
+      .orderBy("DATE_TRUNC('month', order.created_at)", 'ASC')
+      .getRawMany();
+
+    return raw.map((r) => ({
+      name: r.name,
+      value: parseInt(r.value, 10),
+    }));
+  }
+
+  private async getQuarterlyPerformance(storeId: string) {
+    const raw = await this.orderRepository
+      .createQueryBuilder('order')
+      .select('EXTRACT(QUARTER FROM order.created_at)', 'quarter')
+      .addSelect(
+        "COUNT(CASE WHEN order.status = 'completed' THEN 1 END)",
+        'completed',
+      )
+      .addSelect(
+        "COUNT(CASE WHEN order.status = 'cancelled' THEN 1 END)",
+        'cancelled',
+      )
+      .where('order.store_id = :storeId', { storeId })
+      .andWhere(
+        'EXTRACT(YEAR FROM order.created_at) = EXTRACT(YEAR FROM NOW())',
+      )
+      .groupBy('quarter')
+      .orderBy('quarter', 'ASC')
+      .getRawMany();
+
+    // Ensure all 4 quarters are present
+    const quarters = ['1', '2', '3', '4'];
+    return quarters.map((q) => {
+      const found = raw.find((r) => r.quarter === q);
+      return {
+        name: `Q${q}`,
+        completed: found ? parseInt(found.completed, 10) : 0,
+        cancelled: found ? parseInt(found.cancelled, 10) : 0,
+      };
+    });
   }
 
   /**
@@ -650,7 +773,7 @@ export class StoresService {
     },
   ): Promise<void> {
     const store = await this.storeRepository.findOne({
-      where: { slug, is_open: true },
+      where: { slug, is_active: true },
       select: ['id'],
     });
 
@@ -684,17 +807,17 @@ export class StoresService {
    * Stores only overrides in DB, merges with defaults at runtime.
    */
   private mergeThemeConfig(
-    provided?: StorefrontThemeConfig | null,
-  ): StorefrontThemeConfig {
+    provided?: StoreThemeConfig | null,
+  ): StoreThemeConfig {
     if (!provided) {
-      return DEFAULT_STOREFRONT_THEME;
+      return DEFAULT_STORE_THEME;
     }
 
     return {
-      ...DEFAULT_STOREFRONT_THEME,
+      ...DEFAULT_STORE_THEME,
       ...provided,
       palette: {
-        ...DEFAULT_STOREFRONT_THEME.palette,
+        ...DEFAULT_STORE_THEME.palette,
         ...(provided.palette || {}),
       },
     };

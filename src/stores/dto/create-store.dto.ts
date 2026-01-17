@@ -47,15 +47,6 @@ export class CreateStoreDto {
   type?: StoreType;
 
   @ApiPropertyOptional({
-    type: Boolean,
-    description: 'Whether the store is open for orders',
-    default: true,
-  })
-  @IsOptional()
-  @IsBoolean()
-  is_open?: boolean;
-
-  @ApiPropertyOptional({
     type: String,
     description: 'Physical address text',
     example: '123 Main St, Cairo, Egypt',
