@@ -67,16 +67,6 @@ export async function seedPlans(dataSource: DataSource) {
   const addonRepository = dataSource.getRepository(Addon);
   const addonsData = [
     {
-      name: 'Extra Message Pack',
-      slug: 'message-pack',
-      description: 'Add 100 extra messages',
-      addon_type: AddonType.MESSAGE_PACK,
-      price: 250, // $2.50
-      billing_cycle: 'one_time',
-      provides_quantity: 100,
-      available_for_plans: ['free', 'pro'],
-    },
-    {
       name: 'Extra Staff Seat',
       slug: 'staff-seat',
       description: 'Add 1 extra staff member',
@@ -95,16 +85,6 @@ export async function seedPlans(dataSource: DataSource) {
       billing_cycle: 'monthly',
       provides_quantity: 25,
       available_for_plans: ['free'],
-    },
-    {
-      name: 'Extra Posts Pack',
-      slug: 'posts-pack',
-      description: 'Add 50 extra Facebook posts',
-      addon_type: AddonType.POSTS_PACK,
-      price: 300, // $3.00
-      billing_cycle: 'monthly',
-      provides_quantity: 50,
-      available_for_plans: ['free', 'pro'],
     },
   ];
 
