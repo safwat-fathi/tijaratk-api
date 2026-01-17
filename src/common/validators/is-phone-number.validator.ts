@@ -50,26 +50,53 @@ export function IsPhoneNumberIntl(
             return false;
           }
 
+          // Strategy 1: strict international parsing
           try {
             const phoneNumber = parsePhoneNumberWithError(value);
 
-            if (!phoneNumber?.isValid()) {
-              return false;
+            if (phoneNumber?.isValid()) {
+              // If we have specific allowed countries, check match
+              if (options?.allowedCountries?.length) {
+                const phoneCountry = phoneNumber.country;
+                if (
+                  phoneCountry &&
+                  options.allowedCountries.includes(phoneCountry)
+                ) {
+                  return true;
+                }
+                // If allowed countries are set but this number is from another country,
+                // don't fail yet! Valid international number might also be valid as a local number
+                // in an allowed country (unlikely but possible), or we just fall through.
+                // actually if it parses as a valid international number but NOT in our list,
+                // it is invalid per our strict country rules.
+                // BUT, "010..." might parse as a valid US number or similar if not careful?
+                // libphonenumber usually requires + for international.
+                // If it parses successfully as international but wrong country, return false?
+                // No, let's fall through to local parsing just in case input was ambiguous without +,
+                // although parsePhoneNumberWithError usually expects +.
+              } else {
+                return true;
+              }
             }
-
-            // If allowed countries are specified, check if the phone's country is in the list
-            if (options?.allowedCountries?.length) {
-              const phoneCountry = phoneNumber.country;
-              return (
-                phoneCountry !== undefined &&
-                options.allowedCountries.includes(phoneCountry)
-              );
-            }
-
-            return true;
-          } catch {
-            return false;
+          } catch (error) {
+            // parsing failed, likely not international format
           }
+
+          // Strategy 2: try parsing as local number for each allowed country
+          if (options?.allowedCountries?.length) {
+            for (const country of options.allowedCountries) {
+              try {
+                const phoneNumber = parsePhoneNumberWithError(value, country);
+                if (phoneNumber?.isValid() && phoneNumber.country === country) {
+                  return true;
+                }
+              } catch (error) {
+                continue;
+              }
+            }
+          }
+
+          return false;
         },
         defaultMessage() {
           if (options?.allowedCountries?.length) {

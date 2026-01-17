@@ -200,10 +200,6 @@ export class AuthService {
     const user = await this.userRepository.findOne({
       where: { phone: normalizedPhone },
       select: ['id', 'email', 'phone', 'password_hash', 'name', 'status'],
-      relations: ['merchant_profile'], // Check if 'merchant_profile' relation exists on User?
-      // User entity has OneToMany 'identities', OneToOne 'userSubscription', OneToMany 'facebook_pages' etc.
-      // It doesn't seem to have direct 'merchant' relation in the snippet I saw earlier (User.ts).
-      // But we need to ensure this user IS a merchant.
     });
 
     if (!user) {
