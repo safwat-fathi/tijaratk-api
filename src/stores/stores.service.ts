@@ -15,6 +15,7 @@ import { StoreStatsResponseDto } from './dto/store-stats.dto';
 import { Store } from './entities/store.entity';
 import { StoreTheme } from './entities/store-theme.entity';
 import { StoreVisit } from './entities/store-visit.entity';
+import { StoreVisitSource } from './enums/store-visit-source.enum';
 import {
   STORE_THEME_EDITOR_SCOPE,
   StoreThemeEditorTokenService,
@@ -780,6 +781,8 @@ export class StoresService {
       ip?: string;
       userAgent?: string;
       referer?: string;
+      source?: string;
+      utmSource?: string;
     },
   ): Promise<void> {
     let visitorIpHash: string | undefined;
@@ -794,10 +797,48 @@ export class StoresService {
         .substring(0, 64);
     }
 
+    // Determine Source
+    let source = StoreVisitSource.DIRECT;
+
+    // 1. Check explicit source param
+    if (
+      visitorInfo.source &&
+      Object.values(StoreVisitSource).includes(
+        visitorInfo.source as StoreVisitSource,
+      )
+    ) {
+      source = visitorInfo.source as StoreVisitSource;
+    }
+    // 2. Check UTM source
+    else if (visitorInfo.utmSource) {
+      // Basic mapping for UTM
+      const utm = visitorInfo.utmSource.toLowerCase();
+      if (utm.includes('whatsapp')) source = StoreVisitSource.WHATSAPP;
+      else if (utm.includes('instagram')) source = StoreVisitSource.INSTAGRAM;
+      else if (utm.includes('facebook')) source = StoreVisitSource.FACEBOOK;
+      else if (utm.includes('google')) source = StoreVisitSource.GOOGLE;
+      else if (utm.includes('tiktok')) source = StoreVisitSource.TIKTOK;
+      else if (utm.includes('twitter') || utm.includes('x.com'))
+        source = StoreVisitSource.TWITTER;
+    }
+    // 3. Check Referer
+    else if (visitorInfo.referer) {
+      const ref = visitorInfo.referer.toLowerCase();
+      if (ref.includes('instagram.com')) source = StoreVisitSource.INSTAGRAM;
+      else if (ref.includes('facebook.com')) source = StoreVisitSource.FACEBOOK;
+      else if (ref.includes('google.')) source = StoreVisitSource.GOOGLE;
+      else if (ref.includes('tiktok.com')) source = StoreVisitSource.TIKTOK;
+      else if (ref.includes('t.co') || ref.includes('twitter.com'))
+        source = StoreVisitSource.TWITTER;
+      else if (ref.includes('wa.me') || ref.includes('whatsapp.com'))
+        source = StoreVisitSource.WHATSAPP;
+    }
+
     await this.storeVisitRepository.insert({
       store_id: storeId,
       session_id: visitorInfo.sessionId,
       visitor_ip_hash: visitorIpHash,
+      source,
       user_agent: visitorInfo.userAgent,
       referer: visitorInfo.referer,
     });

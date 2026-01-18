@@ -205,17 +205,17 @@ export class StoresPublicController {
     @Ip() requestIp: string,
     @Headers('user-agent') requestUserAgent?: string,
     @Headers('referer') requestReferer?: string,
+    @Query('source') querySource?: string,
+    @Query('utm_source') queryUtmSource?: string,
   ): Promise<void> {
     const sessionId = req.sessionId;
-    console.log(
-      '🚀 ~ :210 ~ StoresPublicController ~ recordVisit ~ sessionId:',
-      sessionId,
-    );
 
     await this.storesService.recordStoreVisit(id, {
       ip: dto.ip || requestIp,
       userAgent: dto.userAgent || requestUserAgent,
       referer: dto.referer || requestReferer,
+      source: dto.source || querySource,
+      utmSource: dto.utmSource || queryUtmSource,
       sessionId,
     });
   }

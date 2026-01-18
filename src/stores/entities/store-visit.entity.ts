@@ -8,6 +8,7 @@ import {
   Relation,
   Index,
 } from 'typeorm';
+import { StoreVisitSource } from '../enums/store-visit-source.enum';
 import { Store } from './store.entity';
 
 /**
@@ -34,6 +35,14 @@ export class StoreVisit {
   /** Session ID stored in cookie */
   @Column({ type: 'uuid' })
   session_id: string;
+
+  /** Visit source (direct, whatsapp, instagram, etc) */
+  @Column({
+    type: 'enum',
+    enum: StoreVisitSource,
+    default: StoreVisitSource.DIRECT,
+  })
+  source: StoreVisitSource;
 
   /** Optional privacy-safe IP hash */
   @Column({ type: 'varchar', length: 64, nullable: true })
