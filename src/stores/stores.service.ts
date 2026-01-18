@@ -20,6 +20,10 @@ import {
   StoreThemeEditorTokenService,
 } from './store-theme-editor-token.service';
 import { DEFAULT_STORE_THEME, StoreThemeConfig } from './types/theme-config';
+import {
+  CustomOrderRequest,
+  CustomRequestStatus,
+} from '../orders/entities/custom-order-request.entity';
 
 /**
  * Service for managing stores and their theme configurations.
@@ -38,6 +42,8 @@ export class StoresService {
     private readonly orderRepository: Repository<Order>,
     @InjectRepository(Product)
     private readonly productRepository: Repository<Product>,
+    @InjectRepository(CustomOrderRequest)
+    private readonly customOrderRequestRepository: Repository<CustomOrderRequest>,
     private readonly themeEditorTokenService: StoreThemeEditorTokenService,
     private readonly cacheService: CacheService,
   ) {}
@@ -660,9 +666,17 @@ export class StoresService {
         });
 
         // Get order statistics
-        const totalOrders = await this.orderRepository.count({
+        const completedOrders = await this.orderRepository.count({
           where: { store_id: String(storeId), status: OrderStatus.COMPLETED },
         });
+
+        // Count accepted custom orders
+        const acceptedCustomOrders =
+          await this.customOrderRequestRepository.count({
+            where: { store_id: storeId, status: CustomRequestStatus.ACCEPTED },
+          });
+
+        const totalOrders = completedOrders + acceptedCustomOrders;
 
         const newOrders = await this.orderRepository.count({
           where: { store_id: String(storeId), status: OrderStatus.PENDING },
@@ -770,10 +784,12 @@ export class StoresService {
   ): Promise<void> {
     let visitorIpHash: string | undefined;
 
+    const date = new Date().toISOString().split('T')[0];
+
     if (visitorInfo.ip) {
       visitorIpHash = crypto
         .createHash('sha256')
-        .update(visitorInfo.ip + process.env.IP_HASH_SALT)
+        .update(visitorInfo.ip + process.env.IP_HASH_SALT + date)
         .digest('hex')
         .substring(0, 64);
     }

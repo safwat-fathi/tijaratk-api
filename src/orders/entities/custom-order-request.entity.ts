@@ -7,6 +7,7 @@ import {
   PrimaryGeneratedColumn,
   UpdateDateColumn,
   Relation,
+  BeforeUpdate,
 } from 'typeorm';
 import { Store } from '../../stores/entities/store.entity';
 import { Customer } from '../../customers/entities/customer.entity';
@@ -90,4 +91,11 @@ export class CustomOrderRequest {
 
   @UpdateDateColumn()
   updated_at: Date;
+
+  @BeforeUpdate()
+  updateQuotedAt() {
+    if (this.status === CustomRequestStatus.QUOTED) {
+      this.quoted_at = new Date();
+    }
+  }
 }

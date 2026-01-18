@@ -62,7 +62,7 @@ export class AuthService {
     });
 
     if (existingUser) {
-      throw new BadRequestException('User with this email already exists');
+      throw new BadRequestException('Invalid request');
     }
 
     // Hash password
@@ -70,7 +70,7 @@ export class AuthService {
     const password_hash = await hash(dto.password, salt);
 
     // Normalize phone to E.164 format before storing
-    const normalizedPhone = normalizePhoneNumber(dto.phone);
+    const normalizedPhone = normalizePhoneNumber(dto.phone, 'EG');
 
     const user = this.userRepository.create({
       email: dto.email,
@@ -147,7 +147,7 @@ export class AuthService {
    */
   async signupMerchant(dto: MerchantSignupDto) {
     // Check if user exists (phone or email)
-    const normalizedPhone = normalizePhoneNumber(dto.phone);
+    const normalizedPhone = normalizePhoneNumber(dto.phone, 'EG');
     const existingUser = await this.userRepository.findOne({
       where: [{ phone: normalizedPhone }, { email: dto.email }],
     });
@@ -196,7 +196,7 @@ export class AuthService {
    * Merchant login - phone + password
    */
   async loginMerchant(dto: MerchantLoginDto) {
-    const normalizedPhone = normalizePhoneNumber(dto.phone);
+    const normalizedPhone = normalizePhoneNumber(dto.phone, 'EG');
     const user = await this.userRepository.findOne({
       where: { phone: normalizedPhone },
       select: ['id', 'email', 'phone', 'password_hash', 'name', 'status'],
@@ -267,7 +267,7 @@ export class AuthService {
     }
 
     // Normalize phone to E.164 format for consistent lookup and storage
-    const normalizedPhone = normalizePhoneNumber(dto.phone);
+    const normalizedPhone = normalizePhoneNumber(dto.phone, 'EG');
 
     // Find or create user by phone
     let user = await this.userRepository.findOne({

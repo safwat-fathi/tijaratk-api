@@ -207,6 +207,10 @@ export class StoresPublicController {
     @Headers('referer') requestReferer?: string,
   ): Promise<void> {
     const sessionId = req.sessionId;
+    console.log(
+      '🚀 ~ :210 ~ StoresPublicController ~ recordVisit ~ sessionId:',
+      sessionId,
+    );
 
     await this.storesService.recordStoreVisit(id, {
       ip: dto.ip || requestIp,
