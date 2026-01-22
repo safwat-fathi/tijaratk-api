@@ -1,11 +1,12 @@
-import { WsAdapter } from '@nestjs/platform-ws';
 import {
   ExceptionFilter,
   NestInterceptor,
   ValidationPipe,
 } from '@nestjs/common';
 import { NestFactory } from '@nestjs/core';
+import { WsAdapter } from '@nestjs/platform-ws';
 import { DocumentBuilder, SwaggerModule } from '@nestjs/swagger';
+import cookieParser from 'cookie-parser';
 import * as express from 'express';
 import helmet from 'helmet';
 import { join } from 'path';
@@ -18,7 +19,6 @@ import { QueryFailedExceptionFilter } from './common/filters/db-exception.filter
 import { FBExceptionFilter } from './common/filters/fb-exception.filter';
 import { ValidationExceptionFilter } from './common/filters/validation-exception.filter';
 import { ResponseTransformInterceptor } from './common/interceptors/response-transform.transform';
-import cookieParser from 'cookie-parser';
 
 async function bootstrap() {
   const app = await NestFactory.create(AppModule);
@@ -81,7 +81,7 @@ async function bootstrap() {
     .setDescription('Tijaratk API documentation')
     .setVersion('1.0')
     .setExternalDoc('API Documentation', '/docs')
-    .setContact('Tijaratk', 'https://www.tijaratk.com', 'info@tijaratk.com')
+    .setContact('Tijaratk', 'https://www.tijaratk.com', 'help@tijaratk.com')
     .addBearerAuth(
       {
         type: 'http',
@@ -95,12 +95,12 @@ async function bootstrap() {
     );
 
   // Ensure HTTP scheme is used (replace https with http if present)
-  const appUrl = (process.env.APP_URL || '').replace(/^https:\/\//, 'http://');
+  // const appUrl = (process.env.APP_URL || '').replace(/^https:\/\//, 'http://');
 
   if (process.env.NODE_ENV === 'development') {
-    options.addServer(appUrl, 'Local environment');
+    options.addServer(process.env.APP_URL, 'Local environment');
   } else {
-    options.addServer(appUrl, 'Production environment');
+    options.addServer(process.env.APP_URL, 'Production environment');
   }
 
   const config = options.build();
