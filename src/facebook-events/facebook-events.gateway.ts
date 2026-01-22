@@ -14,8 +14,6 @@ export class FacebookEventsGateway implements OnModuleInit {
     this.server = new WebSocket.Server({
       port: +process.env.WS_SERVER_PORT,
       path: '/facebook-events',
-      transports: ['websocket'],
-      connectTimeout: 30000,
     });
 
     this.server.on(

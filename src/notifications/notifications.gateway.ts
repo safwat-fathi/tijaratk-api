@@ -5,7 +5,7 @@ import {
   WebSocketServer,
 } from '@nestjs/websockets';
 import { IncomingMessage } from 'http';
-import { Server, WebSocket } from 'ws';
+import WebSocket from 'ws';
 
 // Extend WebSocket to include userId
 type AppWebSocket = WebSocket & { userId: number };
@@ -15,7 +15,7 @@ export class NotificationsGateway
   implements OnGatewayConnection, OnGatewayDisconnect
 {
   @WebSocketServer()
-  server: Server;
+  server: WebSocket.Server;
 
   private clients: Map<number, AppWebSocket> = new Map();
 
